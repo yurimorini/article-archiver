@@ -76,7 +76,7 @@ Refs: `doc/UrlGuard.md` (DNS / TOCTOU), `doc/01 - research.md` §2.2.
 |----------|-----------|
 | `2xx` | Continue with gates (Content-Type, size, body read) |
 | `3xx` | Fail closed → `HttpFetcherError::Redirect` (do not fetch `Location`) |
-| `4xx` / `5xx` | Fail closed → `HttpFetcherError::HttpStatus` (with `http_errors` or explicit status check) |
+| `4xx` / `5xx` | Fail closed → `HttpFetcherError::HttpStatus` (explicit status check; see below) |
 
 If redirect following is added later, each `Location` **must** go through `UrlGuard` again and be re-pinned before the next GET. That is out of scope for this MVP.
 
@@ -138,10 +138,11 @@ public function __construct(
 **Internal factory (`createDefaultClient`) must:**
 
 1. Use the default cURL handler (pinning).
-2. Apply policy timeouts, `http_errors`, default headers (`User-Agent`, `Accept`, …).
+2. Apply policy timeouts, default headers (`User-Agent`, `Accept`, …).
 3. Set `allow_redirects` to `false`.
-4. **Not** push `GuzzleTranscoder` or any charset middleware.
-5. **Not** expose encoding configuration on the public API.
+4. Set **`http_errors` to `false`** so `4xx`/`5xx` return as responses and are mapped locally to `HttpFetcherError::HttpStatus` (never rely on Guzzle throwing for HTTP status).
+5. **Not** push `GuzzleTranscoder` or any charset middleware.
+6. **Not** expose encoding configuration on the public API.
 
 Per-request options (pin via `CURLOPT_RESOLVE`, `stream => true`) are applied inside `fetch()`, not baked into the client constructor alone.
 
@@ -191,7 +192,7 @@ final class HttpFetcherException extends \RuntimeException
 | Case | Plain meaning | Who detects it |
 |------|---------------|----------------|
 | `Transport` | Timeout, connect failure, other network / Guzzle transfer errors | Guzzle; wrapped with `$previous` |
-| `HttpStatus` | Non-success status when not a redirect (e.g. 404, 500) | Guzzle `http_errors` or explicit status check |
+| `HttpStatus` | Non-success status when not a redirect (e.g. 404, 500) | Explicit status check after response (`http_errors` is false) |
 | `Redirect` | `3xx` (redirects disabled) | Status check after response |
 | `ContentType` | Missing or non-HTML Content-Type | Local gate on headers |
 | `BodyTooLarge` | `Content-Length` over cap, or streamed body over cap | Local gate while reading |
@@ -214,8 +215,8 @@ Immutable. Self-validating construction (reject non-positive timeouts / maxBytes
 
 | Property | Type | Default (suggested) | Meaning |
 |----------|------|---------------------|---------|
-| `timeoutSeconds` | `float` or `int` | `10` | Total request timeout |
-| `connectTimeoutSeconds` | `float` or `int` | `5` | Connect timeout |
+| `timeoutSeconds` | `int` | `10` | Total request timeout (**seconds**) |
+| `connectTimeoutSeconds` | `int` | `5` | Connect timeout (**seconds**) |
 | `maxBytes` | `int` | `5_000_000` | Hard cap on body size |
 | `userAgent` | `string` | product UA string | Outgoing `User-Agent` |
 | `accept` | `string` | prefer `text/html` … | Outgoing `Accept` |
@@ -301,7 +302,7 @@ fetch($target)
   ├─ Build per-request options:
   │     curl CURLOPT_RESOLVE ← $target->curlResolveEntries()
   │     stream ← true
-  │     (client already: timeouts, allow_redirects=false, headers, http_errors)
+  │     (client already: timeouts, allow_redirects=false, headers, http_errors=false)
   │
   ├─ $client->get($target->requestUri, $options)
   │     └─ Guzzle transfer / timeout / connect failure
@@ -310,7 +311,7 @@ fetch($target)
   ├─ Status is 3xx
   │     → HttpFetcherError::Redirect
   │
-  ├─ Status is not 2xx (if not already thrown via http_errors)
+  ├─ Status is not 2xx
   │     → HttpFetcherError::HttpStatus
   │
   ├─ Content-Type gate (header line)

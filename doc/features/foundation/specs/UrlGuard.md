@@ -96,7 +96,7 @@ UrlGuard therefore returns not only a cleaned URL, but also **host**, **port**, 
 
 **Parse** = check and produce a **more precise type** that carries the proof forward.
 
-UrlGuard **parses** `string` → `GuardResult`. `HttpFetcher` should accept `SafeFetchTarget` (or `GuardResult`), not an arbitrary `string`. Then an unvalidated URL cannot be fetched by accident through the type surface of the next stage.
+UrlGuard **parses** `string` → `GuardResult`. `HttpFetcher` accepts **`SafeFetchTarget` only** (Orchestrator passes `$guardResult->safe`), not an arbitrary `string` and not `GuardResult`. Then an unvalidated URL cannot be fetched by accident through the type surface of the next stage.
 
 Refs:
 
@@ -243,7 +243,7 @@ Immutable. Constructible only from `UrlGuard` (package-private constructor or fa
 
 | Property | Type | Meaning |
 |----------|------|---------|
-| `requestUri` | `string` | URL for the HTTP client — still uses the **hostname**, not a raw IP in the URL |
+| `requestUri` | `string` | Canonical URL for the HTTP client and downstream provenance — still uses the **hostname**, not a raw IP in the URL |
 | `host` | `string` | Hostname for TLS SNI, `Host` header, and pin entries |
 | `port` | `int` | Port from the URL, or `443` / `80` from the scheme |
 | `ips` | `list<string>` | Public IPs already checked — used only for pinning |
@@ -253,7 +253,7 @@ public function curlResolveEntries(): array
 // → ["{host}:{port}:{ip1,ip2,…}"]
 ```
 
-`HttpFetcher` must use `requestUri` + `curlResolveEntries()`. It must not fetch `GuardResult::$original`.
+`HttpFetcher` must use `requestUri` + `curlResolveEntries()`. It must not fetch `GuardResult::$original`. craftcms / `SsrfUrlValidator` returns **IPs only** on success — it does not return a normalized URL; UrlGuard owns the canonical `requestUri` string.
 
 ### `GuardResult`
 
@@ -300,7 +300,12 @@ guard($raw)
 3. Allow only schemes `http` and `https`.
 4. Reject URLs that include `user` / `pass`.
 5. Derive `port`: from the URL, else `443` if `https`, else `80`.
-6. Build `requestUri` as the normalized string you pass to the validator and later to the client (trimmed, policy-clean; scheme/host/port/path/query consistent with what you validated).
+6. Build **`requestUri`** as UrlGuard’s **canonical** string passed to the validator and later to the client (and copied as `sourceUrl` after fetch). MVP rules:
+   - Lowercase the scheme.
+   - Keep host, path, query, and **fragment** when present (fragment is part of our canonical form / provenance even though HTTP does not send it on the wire).
+   - Default path to `/` when missing.
+   - Include non-default ports in the string; omit `:80` / `:443` when they match the scheme default (document the chosen reconstruction in tests).
+   - Do **not** use `GuardResult::$original` as the fetch URL.
 
 ### Steps owned by `SsrfUrlValidator` (DNS + IP policy)
 
@@ -352,7 +357,7 @@ Fake returns fixed public IPs (e.g. `['203.0.113.10']` — TEST-NET, safe for do
 |------|----------------|-------|
 | HTTPS minimal | `https://example.com` | port `443` |
 | HTTP minimal | `http://example.com` | port `80` |
-| Path, query, fragment | `https://example.com/a/b?x=1#y` | `requestUri` keeps structure you normalize |
+| Path, query, fragment | `https://example.com/a/b?x=1#y` | `requestUri` keeps path, query, **and fragment** (canonical form; fragment not sent on GET) |
 | Explicit port | `https://example.com:8443/` | port `8443` in pin entry |
 | Leading/trailing spaces | `"  https://example.com/x  "` | trim for parse; `original` keeps raw input |
 | Subdomain | `https://www.example.com` | |

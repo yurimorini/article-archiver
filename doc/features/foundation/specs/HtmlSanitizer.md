@@ -110,6 +110,7 @@ Immutable. Self-validating construction (non-empty scheme list, known scheme nam
 |----------|------|---------|---------|
 | `allowedSchemes` | `list<string>` or lookup map | `http`, `https`, `mailto` | Mapped to `URI.AllowedSchemes` |
 | `debug` | `bool` | `false` | Debug-only Purifier behaviour (see below) |
+| `definitionCachePath` | `?string` | `null` | Writable directory for Purifier definition cache; `null` = caller/factory supplies default |
 
 ```text
 final readonly class PurifyPolicy
@@ -120,8 +121,10 @@ final readonly class PurifyPolicy
     public function __construct(
         public array $allowedSchemes = ['http', 'https', 'mailto'],
         public bool $debug = false,
+        public ?string $definitionCachePath = null,
     ) {
         // assert non-empty, lowercase scheme tokens, no javascript/data/file unless explicitly added later
+        // if definitionCachePath is non-null, assert non-empty path string
     }
 }
 ```
@@ -134,13 +137,25 @@ final readonly class PurifyPolicy
 | `HTML.Doctype` | `XHTML 1.0 Transitional` (or another supported doctype chosen once in code) |
 | `HTML.Trusted` | `false` (default) |
 
+### Definition cache path
+
+Production Purifier needs a **writable** definition cache directory when `debug === false`.
+
+| Source | Behaviour |
+|--------|-----------|
+| `PurifyPolicy::$definitionCachePath` non-null | Use that path |
+| Policy null + `HtmlSanitizer` constructor path argument | Use the constructor / factory path |
+| Neither set | Factory default: `sys_get_temp_dir() . '/log-read-htmlpurifier'` (create if missing when possible) |
+
+`PipelineOptions::$purifierCachePath` maps into this default/override when wiring via `OrchestratorFactory` (see `Orchestrator.md`). Failures to use the cache (permissions, etc.) map to `HtmlSanitizerError::Configuration` (or documented equivalent).
+
 ### Debug mapping (`PurifyPolicy::$debug`)
 
 Debug must **not** change the safety invariant of `SafeDocument` (same allow rules). It only changes cost / observability:
 
 | `debug === false` (default) | `debug === true` |
 |-----------------------------|------------------|
-| Real definition cache enabled (writable project cache path) | `Cache.DefinitionImpl = null` (rebuild every run; spike behaviour) |
+| Real definition cache enabled at the resolved cache path | `Cache.DefinitionImpl = null` (rebuild every run; spike behaviour) |
 | `Core.CollectErrors = false` | Optional `Core.CollectErrors = true`; log collector output internally only |
 
 **Warning:** `Core.CollectErrors` is marked experimental / patchy upstream. Use for developer diagnostics, **not** as a product failure contract.
@@ -154,7 +169,7 @@ final class HtmlSanitizer
 {
     public function __construct(
         ?PurifyPolicy $policy = null,
-        // optional: cache path / filesystem collaborator for definition cache
+        ?string $definitionCachePath = null, // used when policy path is null; factory passes default
     ) { … }
 
     /**
@@ -164,7 +179,7 @@ final class HtmlSanitizer
 }
 ```
 
-Only `$document->content` is passed to `HTMLPurifier::purify()`. Title / excerpt / siteName are **`PlainText` instances copied by reference/value** — not re-parsed, not purified as HTML, not re-escaped here.
+Only `$document->content` is passed to `HTMLPurifier::purify()`. Title / excerpt / siteName are **`PlainText` instances copied** (same `raw()` values) — not re-parsed, not purified as HTML, not re-escaped here.
 
 ### `SafeDocument`
 
@@ -297,7 +312,7 @@ purify($document)
 | ftp (not in policy) | `<a href="ftp://example.com/f">` | stripped or non-ftp |
 | Image https | `<img src="https://…/x.png" alt="x">` | kept under default element set |
 | Provenance | any | `sourceUrl` / `title->raw()` unchanged on `SafeDocument` |
-| Metadata type | title on input is `PlainText` | same instance/`raw()` on output; not passed through Purifier |
+| Metadata type | title on input is `PlainText` | same `raw()` on output; not passed through Purifier |
 
 ---
 

@@ -20,11 +20,11 @@ ArticleExtractor is the **fourth** stage. It receives **`Utf8Html` only** (from 
 
 ```text
 Utf8Html → ArticleExtractor → ExtractResult
-                                ├─ Ok(ReadableDocument)     → continue to HtmlSanitizer
-                                └─ NoContent(…)             → orchestrator chooses UX (abort / warn)
+                                ├─ Ok(ReadableDocument)     → HtmlSanitizer (via Orchestrator)
+                                └─ NoContent(…)             → typed soft result (no exception)
 ```
 
-Hard failures (empty input, document too large) throw `ArticleExtractorException`. Soft “page has no article body” is **`ExtractResult::NoContent`**, not an exception.
+Hard failures (empty input, document too large) throw `ArticleExtractorException`. Soft “page has no article body” is **`ExtractResult::NoContent`**, not an exception. Product mapping (`NoContent` → `PipelineNoContent`) is owned by **Orchestrator**, not this stage.
 
 ---
 
@@ -291,14 +291,14 @@ final readonly class ExtractResult
 | `title` / `excerpt` / `siteName` | mirrored from document (`PlainText`) | from vendor metadata via `PlainText::fromUntrusted*` |
 | `sourceUrl` | from document | from `Utf8Html::$sourceUrl` |
 
-**Orchestrator sketch:**
+**Orchestrator sketch** (authoritative behaviour in `Orchestrator.md`):
 
 ```text
 $result = $extractor->extract($outcome->html);
 
 match ($result->status) {
     ExtractStatus::Ok => $sanitizer->purify($result->document),
-    ExtractStatus::NoContent => warn/abort(/* title, sourceUrl still available */),
+    ExtractStatus::NoContent => PipelineNoContent::fromExtract($result, $warnings),
 };
 ```
 
@@ -359,14 +359,14 @@ Immutable. Self-validating construction (non-negative limits, etc.). Named args 
 
 | Property | Type | Default | Meaning |
 |----------|------|---------|---------|
-| `debug` | `bool` | `false` | Readability `debug` → `error_log()` |
+| `debug` | `bool` | `false` | Readability `debug` → `error_log()`; when true, factory may also pass a PSR-3 logger into Readability |
 | `fixRelativeURLs` | `bool` | `true` | Rewrite relative URLs using `Utf8Html::$sourceUrl` as `originalURL` |
 | `charThreshold` | `int` | `500` | Min article text length before Readability retries / may yield no content (Mozilla default) |
 | `maxElemsToParse` | `int` | `0` | `0` = no limit; if &gt; 0, exceeding throws `TooLarge` |
 
 **Not exposed in MVP** (leave Readability defaults): `nbTopCandidates`, `keepClasses`, `classesToPreserve`, `disableJSONLD`, `allowedVideoRegex`, `linkDensityModifier`, `keepInlineByline`, internal flag toggles, `metadataOnly`.
 
-**Logger:** optional PSR-3 logger may be injected on `ArticleExtractor` (constructor), not on the policy — same split as “policy knobs vs collaborators” on `HttpFetcher`.
+**Logger:** optional PSR-3 logger may be injected on `ArticleExtractor` (constructor), not on the policy — same split as “policy knobs vs collaborators” on `HttpFetcher`. This is the **only** stage that accepts a logger in MVP. Wire it only when `ExtractPolicy::$debug` is true (factory): Readability’s PSR-3 logger, if set, emits even when `debug` is false, so omit the logger unless debugging. Orchestrator owns hop / product logging separately.
 
 ```text
 final readonly class ExtractPolicy
@@ -498,5 +498,5 @@ extract($html)
 - Exposing full Readability `Configuration` or vendor `Article` on the public API.
 - A separate Open Graph / JSON-LD / meta scraper (vendor already fuses these into `Article` fields).
 - Exposing raw `og:*` keys or the full JSON-LD graph alongside fused fields.
-- Deciding product UX for `NoContent` / `Degraded` (Orchestrator).
+- Product mapping of `NoContent` / encoding `Degraded` (Orchestrator — already decided there).
 - A `SafeHtmlFragment` wrapper for article body (optional later; MVP keeps purified HTML as `string` on `SafeDocument`).

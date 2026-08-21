@@ -78,7 +78,7 @@ Refs:
 | Empty HTML after Purifier | **`PipelineNoContent`** (`SanitizedEmpty`); not an exception |
 | Hard stage failures | Wrap in **`OrchestratorException`** + **`OrchestratorError`** (one case per stage) + `$previous` |
 | Public wiring | **`OrchestratorFactory` / `PipelineOptions`** for defaults; **public constructor** for tests/custom DI |
-| Logging | PSR-3 on Orchestrator **and** stages; **`Psr\Log\NullLogger`** when omitted |
+| Logging | PSR-3 on **Orchestrator** (hop / soft / hard); **`NullLogger`** when omitted. Only **ArticleExtractor** may receive the same logger, and only when extract `debug` is on (Readability) |
 | Tests | Prefer **integration** (real stages + mocked HTTP), not mocks of every stage |
 
 ---
@@ -89,7 +89,7 @@ Refs:
 |------|------|----------------|
 | `Orchestrator` | Service | Run stage sequence; map soft/hard outcomes; hop logging |
 | `OrchestratorFactory` | Factory | Opaque defaults + `PipelineOptions` → wired `Orchestrator` |
-| `PipelineOptions` | Value object | Small set of public knobs (timeouts, sizes, logger, …) mapped into stage policies |
+| `PipelineOptions` | Value object | Small set of public knobs (timeouts, sizes, logger, purifier cache path, …) mapped into stage policies |
 | `PipelineSuccess` | Result | Non-empty `SafeDocument` + warnings |
 | `PipelineNoContent` | Result | Empty product outcome + `PipelineEmptyReason` + metadata + warnings |
 | `PipelineEmptyReason` | Enum | Why there is no article body to store |
@@ -139,6 +139,7 @@ final readonly class PipelineOptions
         public ?ExtractPolicy $extractPolicy = null,
         public ?PurifyPolicy $purifyPolicy = null,
         public ?LoggerInterface $logger = null,
+        public ?string $purifierCachePath = null, // null → factory default under sys_get_temp_dir()
         // optional: UrlGuard collaborator overrides for advanced hosts
     ) {}
 }
@@ -148,7 +149,16 @@ final class OrchestratorFactory
     public static function create(?PipelineOptions $options = null): Orchestrator
     {
         $logger = $options?->logger ?? new NullLogger();
-        // wire stages with default or overridden policies; pass $logger into stages that accept it
+        $extractPolicy = $options?->extractPolicy ?? new ExtractPolicy();
+        $purifyPolicy = $options?->purifyPolicy ?? new PurifyPolicy();
+        $cachePath = $options?->purifierCachePath
+            ?? (sys_get_temp_dir() . '/log-read-htmlpurifier');
+        $articleExtractor = new ArticleExtractor(
+            $extractPolicy,
+            $extractPolicy->debug ? $logger : null,
+        );
+        $htmlSanitizer = new HtmlSanitizer($purifyPolicy, $cachePath);
+        // wire UrlGuard, HttpFetcher, EncodingNormalizer similarly (no logger on those stages)
         return new Orchestrator(/* … */, $logger);
     }
 }
@@ -405,11 +415,12 @@ string URL ─────────┤                               ├─ s
 
 | Layer | Role |
 |-------|------|
-| Orchestrator | Hop boundaries: success, soft branch, wrap-before-throw |
-| Stages (optional PSR-3) | Closer to I/O / vendor detail (same logger instance from factory) |
-| Absent logger | `NullLogger` — no custom minimal logger |
+| Orchestrator | Hop boundaries: success, soft branch (`Degraded` / `NoContent` / empty purify), wrap-before-throw |
+| ArticleExtractor only | Optional PSR-3 into Readability when `ExtractPolicy::$debug` is true (same logger instance from factory) |
+| Other stages | No logger collaborator in MVP |
+| Absent logger | `NullLogger` on Orchestrator — no custom minimal logger |
 
-Avoid double-reporting the same failure as `error` on both stage and orchestrator; prefer stage `debug`/`info` detail and orchestrator `warning`/`error` at the product boundary, or the reverse — pick one convention in implementation and stay consistent.
+Do **not** double-report the same hard failure as `error` on both ArticleExtractor and Orchestrator. Readability/vendor detail stays at debug; Orchestrator owns `warning` / `error` at the product boundary.
 
 ---
 
@@ -465,8 +476,8 @@ Do **not** require mocking `ArticleExtractor` / `HtmlSanitizer` for the primary 
 - [ ] `PipelineEmptyReason`, `PipelineNoContent` (`fromExtract`, `fromSanitizedEmpty`), `PipelineSuccess`
 - [ ] `OrchestratorError` / `OrchestratorException`
 - [ ] `Orchestrator` with private hop methods (log + wrap)
-- [ ] `PipelineOptions` + `OrchestratorFactory::create`
-- [ ] PSR-3 logger defaulting to `NullLogger` on orchestrator and stage constructors that accept a logger
+- [ ] `PipelineOptions` + `OrchestratorFactory::create` (incl. purifier cache default + optional override)
+- [ ] PSR-3 logger defaulting to `NullLogger` on Orchestrator; pass into `ArticleExtractor` only when extract debug is on
 - [ ] Integration tests per table above
 - [ ] Thin CLI calling the factory
 

@@ -20,11 +20,11 @@ EncodingNormalizer is the **third** stage. HttpFetcher deliberately does **not**
 
 ```text
 FetchedPage → EncodingNormalizer → EncodingOutcome { quality, Utf8Html, … }
-                                    ├─ Ok        → continue (optional: log nothing)
-                                    └─ Degraded  → continue with warning (orchestrator chooses UX)
+                                    ├─ Ok        → Utf8Html for ArticleExtractor
+                                    └─ Degraded  → same Utf8Html + EncodingError warning payload
 ```
 
-`ArticleExtractor` still receives **`Utf8Html` only** (`$outcome->html`). The outcome’s `quality` is for the orchestrator (log, CLI warning, metrics)—not for re-deciding charset downstream.
+`ArticleExtractor` still receives **`Utf8Html` only** (`$outcome->html`). The outcome’s `quality` is for the orchestrator (log, CLI warning, metrics)—not for re-deciding charset downstream. Soft-failure product policy (`Degraded` → continue with `PipelineWarning`) is owned by **Orchestrator**, not this stage.
 
 `Utf8Html` also carries **`sourceUrl`**, copied from `FetchedPage::$requestUri`, so later stages (relative URL fixing in Readability, logging, `ReadableDocument` / `SafeDocument`) always have the fetch URL beside the UTF-8 HTML. EncodingNormalizer does **not** invent or re-validate the URL; it only propagates it.
 
@@ -94,7 +94,7 @@ Refs:
 | `EncodingNormalizerException` | Exception | Hard failure only when no `Utf8Html` can be produced |
 | Charset helpers (optional ports) | Detection / conversion | Thin wrappers around vendor or `mb_*` / iconv so tests can stub conversion |
 
-**Why `EncodingOutcome` instead of throwing on every soft failure:** the orchestrator can always continue to Readability with `$outcome->html` and decide whether to warn, metric, or abort on `Degraded`. That is more explicit than try/catch-only recovery.
+**Why `EncodingOutcome` instead of throwing on every soft failure:** this stage always returns `Utf8Html` when conversion is possible, tagged `Ok` or `Degraded`. Orchestrator continues on `Degraded` with a `PipelineWarning` (see `Orchestrator.md`). That is more explicit than try/catch-only recovery.
 
 **Why not a Rust-style enum with payloads in PHP:** PHP enums do not carry associated data. Model the sum type as a **readonly VO + `EncodingQuality` discriminant** with private construction and `ok()` / `degraded()` factories (invariants enforced there).
 
@@ -135,7 +135,7 @@ Priority (browser-like / project policy from `doc/01 - research.md` §4.2):
 | BOM bytes | Interpretation |
 |-----------|----------------|
 | `EF BB BF` | UTF-8 — prefer as source encoding; strip before returning `Utf8Html` |
-| Other BOMs (UTF-16/32) | Out of scope for MVP article HTML, or map to Degraded / hard failure |
+| Other BOMs (UTF-16/32) | Treat as source encoding; convert to UTF-8 via the lossy / best-effort path → **`Degraded`** (e.g. `Unsupported` or `Conversion`) |
 
 Check **raw bytes**, not `mb_detect_encoding`.
 
@@ -167,7 +167,7 @@ Use a transcoder that can fall back across `mbstring` / `iconv`:
 - Preferred: `Ddeboer\Transcoder\Transcoder` (dependency of `fossar/guzzle-transcoder`; see package README).
 - Or `mb_convert_encoding` / `iconv` with clear error handling.
 
-If source encoding equals UTF-8, still run validity check. Invalid sequences: prefer a lossy repair (replacement characters / ignore) → `Degraded` + `EncodingError::Conversion`, rather than aborting the pipeline by default.
+If source encoding equals UTF-8, still run validity check. Invalid sequences: prefer a lossy repair (replacement characters / ignore) → `Degraded` + `EncodingError::Conversion`. Hard-fail only when no valid UTF-8 `Utf8Html` can be produced.
 
 **7. Post-condition (both Ok and Degraded)**
 
@@ -260,20 +260,20 @@ final readonly class EncodingOutcome
 | `warning` | `null` | `EncodingError` (why it is degraded) |
 | `previous` | `null` | optional underlying converter exception |
 
-**Orchestrator sketch:**
+**Orchestrator sketch** (authoritative behaviour in `Orchestrator.md`):
 
 ```text
 $outcome = $normalizer->normalize($page);
 
 match ($outcome->quality) {
     EncodingQuality::Ok => null, // or debug log
-    EncodingQuality::Degraded => warn/log($outcome->warning, $outcome->previous),
+    EncodingQuality::Degraded => warn/log($outcome->warning, $outcome->previous), // PipelineWarning; continue
 };
 
 $article = $extractor->extract($outcome->html); // always Utf8Html
 ```
 
-The orchestrator may instead **abort** on `Degraded` (treat as failure): that is a product choice; the type still makes the branch explicit.
+Do **not** abort the pipeline on `Degraded` inside this stage or treat it as an open product fork here — Orchestrator continues.
 
 ---
 
