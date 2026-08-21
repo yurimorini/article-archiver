@@ -7,23 +7,16 @@ This document is both a **design spec** (what to implement) and a **walkthrough*
 The larger pipeline turns a remote page into cleaned article HTML:
 
 ```text
-input URL string
-  → UrlGuard
-  → HttpFetcher
-  → EncodingNormalizer
-  → ArticleExtractor
-  → HtmlSanitizer
-  → Orchestrator   (this document — wires the above)
+                    Orchestrator::fetchArticle  (this document — composition root)
+string URL ─────────┤
+                    ├─ UrlGuard → HttpFetcher → EncodingNormalizer
+                    │            → ArticleExtractor → HtmlSanitizer
+                    ├─ PipelineSuccess { SafeDocument, warnings }
+                    ├─ PipelineNoContent { reason, metadata, warnings }
+                    └─ throws OrchestratorException
 ```
 
 Orchestrator is the **composition root** for the library/CLI entry. It does **not** reimplement SSRF, HTTP, charset, Readability, or Purifier. It owns stage order, soft-outcome UX, exception wrapping, and hop-level logging.
-
-```text
-string $url → Orchestrator::fetchArticle
-                ├─ PipelineSuccess { SafeDocument, warnings }
-                └─ PipelineNoContent { reason, metadata, warnings }
-             throws OrchestratorException
-```
 
 ---
 
@@ -448,6 +441,19 @@ Thin CLI (`bin/run` replacement) should:
 2. Call `fetchArticle`
 3. `match` / `instanceof` on success vs no-content; print or write HTML
 4. `catch (OrchestratorException)` → non-zero exit mapped from `OrchestratorError`
+
+Suggested MVP exit codes (CLI only; library callers use the exception):
+
+| Outcome | Exit |
+|---------|------|
+| `PipelineSuccess` | `0` |
+| `PipelineNoContent` | `0` (print/skip body; optional distinct code later) |
+| `OrchestratorError::Guard` | `2` |
+| `OrchestratorError::Fetch` (`Redirect` on `$previous` may use `3`) | `3` for redirect, `4` for other fetch |
+| `OrchestratorError::Encoding` | `5` |
+| `OrchestratorError::Extract` | `6` |
+| `OrchestratorError::Sanitize` | `7` |
+| `OrchestratorError::Unexpected` | `1` |
 
 Orchestrator must not parse argv; CLI stays outside the domain service.
 

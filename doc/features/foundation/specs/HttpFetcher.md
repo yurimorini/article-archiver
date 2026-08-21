@@ -4,7 +4,7 @@ This document is both a **design spec** (what to implement) and a **walkthrough*
 
 ## Where HttpFetcher sits
 
-The larger pipeline turns a remote page into cleaned article HTML (`doc/notes.md`):
+The larger pipeline turns a remote page into cleaned article HTML (`[feature.md](../feature.md)`):
 
 ```text
 input URL string
@@ -15,6 +15,8 @@ input URL string
   → HtmlSanitizer
   → article HTML
 ```
+
+Composition root: `[Orchestrator.md](Orchestrator.md)` wires these stages; it is not a sixth processing stage.
 
 HttpFetcher is the **second** stage. It performs a single pinned HTTP GET with hard limits. It does **not** normalize character encoding (that is `EncodingNormalizer`) and does **not** follow redirects (MVP policy).
 
@@ -60,7 +62,7 @@ CURLOPT_RESOLVE = ["{host}:{port}:{ip1,ip2,…}"]
 
 **MVP posture:** production `createDefaultClient()` uses the default cURL handler (`ext-curl` is a hard Composer requirement). We **assume** pinning works there. If the active handler cannot honour `CURLOPT_RESOLVE` (injected non-cURL client, unusual stack), HttpFetcher still attaches the resolve entries, **continues the request**, and logs a **warning** that DNS pinning was skipped — it does **not** fail closed on that alone. Orchestrator / ops can treat the warning as a configuration smell.
 
-Refs: `doc/features/foundation/specs/UrlGuard.md` (DNS / TOCTOU), `doc/features/foundation/context/Foundational Research.md`.
+Refs: [UrlGuard.md](UrlGuard.md) (DNS / TOCTOU), [Foundational Research.md](../context/Foundational%20Research.md).
 
 ---
 
@@ -95,7 +97,7 @@ HttpFetcher **parses** `SafeFetchTarget` → `FetchedPage`.
 Refs:
 
 - [Parse, don’t validate](https://lexi-lambda.github.io/blog/2019/11/05/parse-don-t-validate/)
-- `doc/UrlGuard.md` (same principle one stage earlier)
+- [UrlGuard.md](UrlGuard.md) (same principle one stage earlier)
 
 ---
 
@@ -111,7 +113,7 @@ Refs:
 
 **Why HttpFetcher is not a DTO:** it runs I/O and policy. The DTO-like pieces are `FetchPolicy` and `FetchedPage`.
 
-**Why no encoding middleware on the client:** Approach 3 — keep transport and charset as separate stages. Content-Type is read at the fetch gate and again by the normalizer; see `doc/EncodingNormalizer.md`.
+**Why no encoding middleware on the client:** Approach 3 — keep transport and charset as separate stages. Content-Type is read at the fetch gate and again by the normalizer; see [EncodingNormalizer.md](EncodingNormalizer.md).
 
 **Why not a Builder for policy:** MVP has a small fixed set of knobs. Named args on `FetchPolicy` are enough. Introduce a builder only if configuration surface grows a lot.
 
@@ -225,7 +227,7 @@ Immutable. Self-validating construction (reject non-positive timeouts / maxBytes
 | `timeoutSeconds` | `int` | `10` | Total request timeout (**seconds**) |
 | `connectTimeoutSeconds` | `int` | `5` | Connect timeout (**seconds**) |
 | `maxBytes` | `int` | `5_000_000` | Hard cap on body size |
-| `userAgent` | `string` | product UA string | Outgoing `User-Agent` |
+| `userAgent` | `string` | `LogRead/0.1` | Outgoing `User-Agent` (override via `FetchPolicy` / `PipelineOptions` when a contact URL is known) |
 | `accept` | `string` | prefer `text/html` … | Outgoing `Accept` |
 | `debug` | `bool` | `false` | When true, Guzzle transfer detail → PSR-3 `debug` on the HttpFetcher logger |
 
@@ -238,7 +240,7 @@ final readonly class FetchPolicy
         public int $timeoutSeconds = 10,
         public int $connectTimeoutSeconds = 5,
         public int $maxBytes = 5_000_000,
-        public string $userAgent = 'LogRead/0.1 (+https://example.com)',
+        public string $userAgent = 'LogRead/0.1',
         public string $accept = 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.8',
         public bool $debug = false,
     ) {
@@ -286,7 +288,7 @@ Immutable result of a successful fetch gate. Constructible from `HttpFetcher` (p
 
 | Property | Type | Meaning |
 |----------|------|---------|
-| `body` | `string` | Raw response bytes (may be non-UTF-8). Size ≤ `maxBytes` |
+| `body` | `string` | Raw **decoded** response bytes (may be non-UTF-8). Size ≤ `maxBytes` |
 | `contentType` | `string` | Full `Content-Type` header line (may include `charset=`) |
 | `statusCode` | `int` | HTTP status (successful `2xx`) |
 | `requestUri` | `string` | URI that was requested (`SafeFetchTarget::$requestUri`) |
@@ -305,9 +307,9 @@ final readonly class FetchedPage
 
 **Invariants on success:**
 
-- `statusCode` is `2xx`.
+- `statusCode` is `2xx` (including empty-body successes such as `200` with `""` or `204` when Content-Type still passes the gate — empty body is **not** a fetch error; ArticleExtractor maps it to soft `NoContent`).
 - `contentType` matched the HTML allowlist at fetch time.
-- `strlen($body) <= maxBytes`.
+- `strlen($body) <= maxBytes` on **decoded** bytes.
 - Encoding is **not** an invariant — that is `Utf8Html` after `EncodingNormalizer`.
 
 **Why keep `contentType` on the VO:** EncodingNormalizer needs the header charset parameter; logging and debugging need the declared type. Reading Content-Type “in more than one place” is intentional: fetch uses it as a **gate**, normalizer uses it as a **charset hint**.
@@ -354,18 +356,18 @@ fetch($target)
 
 - Prefer types suitable for article HTML: `text/html`, `application/xhtml+xml`.
 - Match on the MIME type prefix before parameters (ignore `charset=` here for the allow/deny decision).
-- **Why:** avoid feeding PDF/JSON/binary into the HTML pipeline (`doc/01 - research.md` §3.1).
+- **Why:** avoid feeding PDF/JSON/binary into the HTML pipeline ([Foundational Research.md](../context/Foundational%20Research.md) §3.1).
 
 Charset inside Content-Type is **not** converted here; it is carried forward for EncodingNormalizer.
 
 ### Body size gate
 
-Two layers (`doc/01 - research.md` §3.2):
+Two layers ([Foundational Research.md](../context/Foundational%20Research.md) §3.2):
 
-1. `Content-Length` present and `> maxBytes` → abort before read.
-2. While streaming, abort if accumulated size `> maxBytes`.
+1. `Content-Length` present and `> maxBytes` → abort before read (**skip or treat as advisory when `Content-Encoding` is present** — compressed length is not the decoded size).
+2. While streaming, abort if accumulated **decoded** body size `> maxBytes`.
 
-Streaming exists to **enforce the cap**, not to stream into Readability.
+`maxBytes` applies to the **decoded** payload bytes collected into `FetchedPage::$body` (after Guzzle content decoding). Streaming exists to **enforce that cap**, not to stream into Readability.
 
 ---
 
@@ -416,5 +418,5 @@ These belong to other stages or a later MVP:
 - Character encoding detection / conversion (`EncodingNormalizer` → `EncodingOutcome` / `Utf8Html`).
 - Following redirects / re-guarding `Location` hops.
 - Readability extraction, HTMLPurifier.
-- `robots.txt`, rate limiting (`doc/01 - research.md` §2.4).
+- `robots.txt`, rate limiting ([Foundational Research.md](../context/Foundational%20Research.md) §2.4).
 - Exposing or configuring charset middleware on the Guzzle stack.

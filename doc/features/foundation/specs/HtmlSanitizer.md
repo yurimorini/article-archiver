@@ -16,6 +16,8 @@ input URL string
   → article HTML
 ```
 
+Composition root: `[Orchestrator.md](Orchestrator.md)` wires these stages; it is not a sixth processing stage.
+
 HtmlSanitizer is the **fifth** stage. It receives a **`ReadableDocument`** (article HTML already extracted). It does **not** re-run Readability and does **not** accept bare `string` / `Utf8Html`.
 
 ```text
@@ -104,13 +106,14 @@ http, https, mailto
 
 ### `PurifyPolicy`
 
-Immutable. Self-validating construction (non-empty scheme list, known scheme names, etc.).
+Immutable. Self-validating construction (non-empty scheme list, MVP allowlist only).
 
 | Property | Type | Default | Meaning |
 |----------|------|---------|---------|
 | `allowedSchemes` | `list<string>` or lookup map | `http`, `https`, `mailto` | Mapped to `URI.AllowedSchemes` |
 | `debug` | `bool` | `false` | Debug-only Purifier behaviour (see below) |
-| `definitionCachePath` | `?string` | `null` | Writable directory for Purifier definition cache; `null` = caller/factory supplies default |
+
+Cache path is **not** on the policy — only via `HtmlSanitizer` constructor / `PipelineOptions::$purifierCachePath` (single public knob).
 
 ```text
 final readonly class PurifyPolicy
@@ -121,10 +124,10 @@ final readonly class PurifyPolicy
     public function __construct(
         public array $allowedSchemes = ['http', 'https', 'mailto'],
         public bool $debug = false,
-        public ?string $definitionCachePath = null,
     ) {
-        // assert non-empty, lowercase scheme tokens, no javascript/data/file unless explicitly added later
-        // if definitionCachePath is non-null, assert non-empty path string
+        // assert non-empty; each token lowercase LDH scheme name
+        // MVP allowlist only: http, https, mailto
+        // hard-reject javascript, data, file, and any scheme outside the allowlist
     }
 }
 ```
@@ -141,13 +144,15 @@ final readonly class PurifyPolicy
 
 Production Purifier needs a **writable** definition cache directory when `debug === false`.
 
-| Source | Behaviour |
-|--------|-----------|
-| `PurifyPolicy::$definitionCachePath` non-null | Use that path |
-| Policy null + `HtmlSanitizer` constructor path argument | Use the constructor / factory path |
-| Neither set | Factory default: `sys_get_temp_dir() . '/log-read-htmlpurifier'` (create if missing when possible) |
+**Single source of truth for the public/factory path:**
 
-`PipelineOptions::$purifierCachePath` maps into this default/override when wiring via `OrchestratorFactory` (see `Orchestrator.md`). Failures to use the cache (permissions, etc.) map to `HtmlSanitizerError::Configuration` (or documented equivalent).
+| Call site | Path |
+|-----------|------|
+| `OrchestratorFactory` | `$options?->purifierCachePath ?? sys_get_temp_dir() . '/log-read-htmlpurifier'` → passed only as `HtmlSanitizer` constructor argument |
+| Direct `new HtmlSanitizer($policy, $path)` | Constructor `$definitionCachePath`; `null` → same `sys_get_temp_dir()` default |
+| `PurifyPolicy` | Does **not** carry a cache path (avoids dual knobs) |
+
+Create the directory when missing if possible. Failures to use the cache (permissions, etc.) map to `HtmlSanitizerError::Configuration` (or documented equivalent).
 
 ### Debug mapping (`PurifyPolicy::$debug`)
 
@@ -169,7 +174,7 @@ final class HtmlSanitizer
 {
     public function __construct(
         ?PurifyPolicy $policy = null,
-        ?string $definitionCachePath = null, // used when policy path is null; factory passes default
+        ?string $definitionCachePath = null, // null → sys_get_temp_dir() . '/log-read-htmlpurifier'
     ) { … }
 
     /**
@@ -298,7 +303,7 @@ purify($document)
 - No network: build `ReadableDocument` fixtures with crafted `content` + `sourceUrl`.
 - Assert dangerous constructs are removed or neutralized; benign markup retained.
 - Assert `javascript:` (and other non-allowed schemes) do not survive in `href` / `src`.
-- Unit-test `PurifyPolicy` rejects empty / nonsense scheme lists if validation is specified.
+- Unit-test `PurifyPolicy` rejects empty lists, `javascript` / `data` / `file`, and any scheme outside the MVP allowlist (`http`, `https`, `mailto`).
 - Optionally assert debug vs non-debug does not change stripping of a fixed XSS fixture (safety invariant).
 
 ### Suggested cases

@@ -141,7 +141,7 @@ Requires Guzzle’s **cURL** handler (default on typical Linux installs). Stream
 
 ### 2.3 Redirects (security)
 
-**MVP decision (see `doc/HttpFetcher.md`):** do **not** follow redirects (`allow_redirects => false`). A `3xx` fails closed. This avoids re-running UrlGuard on every hop while still refusing SSRF via `Location`.
+**MVP decision (see [HttpFetcher.md](../specs/HttpFetcher.md)):** do **not** follow redirects (`allow_redirects => false`). A `3xx` fails closed. This avoids re-running UrlGuard on every hop while still refusing SSRF via `Location`.
 
 If redirect following is added later:
 
@@ -218,7 +218,7 @@ Two layers:
 
 ### 4.3 Library option used in this stack
 
-**MVP (see `doc/EncodingNormalizer.md`):** no Guzzle charset middleware. `EncodingNormalizer` owns the cascade and returns `EncodingOutcome` (`Ok` | `Degraded`) carrying `Utf8Html`.
+**MVP (see [EncodingNormalizer.md](../specs/EncodingNormalizer.md)):** no Guzzle charset middleware. `EncodingNormalizer` owns the cascade and returns `EncodingOutcome` (`Ok` | `Degraded`) carrying `Utf8Html`.
 
 Reuse pieces of `fossar/guzzle-transcoder` as a **library** (e.g. `ContentTypeExtractor` for header/meta), and convert with `Ddeboer\Transcoder\Transcoder` (its dependency)—not as HandlerStack middleware. Prefer HTTP charset over meta when both are present (HTML5-oriented policy); do not rely on `GuzzleTranscoder::convertResponse()` as-is for that precedence.
 

@@ -4,7 +4,7 @@ This document is both a **design spec** (what to implement) and a **walkthrough*
 
 ## Where EncodingNormalizer sits
 
-The larger pipeline turns a remote page into cleaned article HTML (`doc/notes.md`):
+The larger pipeline turns a remote page into cleaned article HTML (`[feature.md](../feature.md)`):
 
 ```text
 input URL string
@@ -15,6 +15,8 @@ input URL string
   → HtmlSanitizer
   → article HTML
 ```
+
+Composition root: `[Orchestrator.md](Orchestrator.md)` wires these stages; it is not a sixth processing stage.
 
 EncodingNormalizer is the **third** stage. HttpFetcher deliberately does **not** convert charsets (no Guzzle transcoder middleware). This stage turns opaque response bytes into a UTF-8 HTML string the rest of the stack can assume.
 
@@ -77,7 +79,7 @@ Quality of the parse is explicit on **`EncodingOutcome`**, not by weakening `Utf
 Refs:
 
 - [Parse, don’t validate](https://lexi-lambda.github.io/blog/2019/11/05/parse-don-t-validate/)
-- `doc/01 - research.md` §4
+- [Foundational Research.md](../context/Foundational%20Research.md) §4
 - HTML5 encoding sniffing model (HTTP charset vs meta): [WHATWG encoding / HTML](https://html.spec.whatwg.org/multipage/parsing.html#determining-the-character-encoding) (conceptual priority; we implement a practical subset)
 
 ---
@@ -116,7 +118,7 @@ Refs:
 
 ## Detection cascade (owned by EncodingNormalizer)
 
-Priority (browser-like / project policy from `doc/01 - research.md` §4.2):
+Priority (browser-like / project policy from [Foundational Research.md](../context/Foundational%20Research.md) §4.2):
 
 ```text
 1. BOM (byte order mark) on raw body

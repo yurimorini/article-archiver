@@ -11,7 +11,9 @@ input URL string
   → EncodingNormalizer → EncodingOutcome (Ok | Degraded + Utf8Html)
   → ArticleExtractor   → ExtractResult (Ok + ReadableDocument | NoContent)
   → HtmlSanitizer      → SafeDocument
-  → Orchestrator       → PipelineSuccess | PipelineNoContent (owns soft UX + exception wrap)
+
+Orchestrator (composition root) wires the five stages above and returns
+  PipelineSuccess | PipelineNoContent  (or throws OrchestratorException)
 ```
 
 Design principle across stages: **parse, don’t validate** — each step produces a richer typed result (or a tagged failure) so unsafe values cannot slip through as bare `string`s.
@@ -36,7 +38,7 @@ Research and threat model: `[context/Foundational Research.md](context/Foundatio
 | **EncodingNormalizer** | Charset cascade → UTF-8; quality `Ok` \| `Degraded`; propagate `sourceUrl`                                       | `EncodingOutcome` (`Utf8Html`)                | `[specs/EncodingNormalizer.md](specs/EncodingNormalizer.md)` |
 | **ArticleExtractor**   | Readability main-content + fused metadata (JSON-LD / og / …); soft `NoContent` vs hard parse failures | `ExtractResult` / `ReadableDocument`          | `[specs/ArticleExtractor.md](specs/ArticleExtractor.md)`     |
 | **HtmlSanitizer**      | HTMLPurifier policy (UTF-8 fixed, tight URI schemes, debug cache/errors)                                         | `SafeDocument`                                | `[specs/HtmlSanitizer.md](specs/HtmlSanitizer.md)`           |
-| **Orchestrator**       | Compose stages; map exceptions; `PipelineSuccess` / `PipelineNoContent`; CLI/library entry                        | `PipelineSuccess` \| `PipelineNoContent`      | `[specs/Orchestrator.md](specs/Orchestrator.md)`             |
+| **Orchestrator**       | Compose stages; map exceptions; `PipelineSuccess` / `PipelineNoContent`; CLI/library entry                        | `PipelineSuccess` \| `PipelineNoContent` \| throws `OrchestratorException` | `[specs/Orchestrator.md](specs/Orchestrator.md)`             |
 
 
 Stack (from research / `composer.json`): Guzzle, `craftcms/url-validator` (planned), `fossar/guzzle-transcoder` helpers / Transcoder for conversion (not as fetch middleware), `fivefilters/readability.php`, `ezyang/htmlpurifier`.
@@ -137,7 +139,7 @@ Implement per `[specs/ArticleExtractor.md](specs/ArticleExtractor.md)`:
 Implement per `[specs/HtmlSanitizer.md](specs/HtmlSanitizer.md)`:
 
 - Types: `PurifyPolicy`, `SafeDocument` (copies `PlainText` metadata), `HtmlSanitizerException` + `HtmlSanitizerError`.
-- Purifier: `Core.Encoding=UTF-8` fixed; `URI.AllowedSchemes` from policy (default http/https/mailto); production definition cache; `debug` maps to cache-off / optional CollectErrors only.
+- Purifier: `Core.Encoding=UTF-8` fixed; `URI.AllowedSchemes` from policy (MVP allowlist `http`/`https`/`mailto` only; hard-reject `javascript`/`data`/`file`); production definition cache via `PipelineOptions::$purifierCachePath` / constructor only; `debug` maps to cache-off / optional CollectErrors only.
 - Tests for script/iframe/`javascript:` stripping and allowed markup retention; assert metadata `PlainText` is not re-encoded by Purifier.
 
 **Exit criteria:** `ReadableDocument` in → `SafeDocument` under the documented policy.
@@ -178,4 +180,4 @@ Only after Phase 6 is green; align with research “Deferred”:
 7 deferred hardening
 ```
 
-Phases 1–6 have complete specs and should be implemented as specified.
+Phases 1–6 should be implemented as specified in `feature.md` and the stage specs.

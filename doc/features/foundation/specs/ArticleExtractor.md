@@ -16,6 +16,8 @@ input URL string
   → article HTML
 ```
 
+Composition root: `[Orchestrator.md](Orchestrator.md)` wires these stages; it is not a sixth processing stage.
+
 ArticleExtractor is the **fourth** stage. It receives **`Utf8Html` only** (from `EncodingOutcome::$html`). It does **not** sanitize for XSS — that is `HtmlSanitizer`.
 
 ```text

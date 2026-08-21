@@ -4,17 +4,19 @@ This document is both a **design spec** (what to implement) and a **walkthrough*
 
 ## Where UrlGuard sits
 
-The larger pipeline turns a remote page into cleaned article HTML (`doc/notes.md`):
+The larger pipeline turns a remote page into cleaned article HTML (`[feature.md](../feature.md)`):
 
 ```text
 input URL string
   → UrlGuard          (this document)
-  → HttpFetcher       (download with limits; see doc/HttpFetcher.md)
-  → EncodingNormalizer (UTF-8; see doc/EncodingNormalizer.md)
+  → HttpFetcher       (download with limits; see [HttpFetcher.md](HttpFetcher.md))
+  → EncodingNormalizer (UTF-8; see [EncodingNormalizer.md](EncodingNormalizer.md))
   → ArticleExtractor
   → HtmlSanitizer
   → article HTML
 ```
+
+Composition root: `[Orchestrator.md](Orchestrator.md)` wires these stages; it is not a sixth processing stage.
 
 UrlGuard is the **first** stage. It must refuse unsafe or malformed destinations **before** any HTTP request to an untrusted host.
 
@@ -250,8 +252,10 @@ Immutable. Constructible only from `UrlGuard` (package-private constructor or fa
 
 ```text
 public function curlResolveEntries(): array
-// → ["{host}:{port}:{ip1,ip2,…}"]
+// → ["{host}:{port}:{ip1,ip2,…}"]  (one string; IPs comma-separated)
 ```
+
+**IPv6 in pin entries:** use bare address forms as returned by the validator (e.g. `2001:db8::1`), without surrounding brackets inside the `{ip}` slot. Prefer **one `CURLOPT_RESOLVE` entry per IP** when the list mixes IPv4 and IPv6 if a single comma-joined entry proves ambiguous on the target cURL version — document the chosen shape in tests. `host` in the entry must match the hostname in `requestUri` (ASCII LDH only in MVP).
 
 `HttpFetcher` must use `requestUri` + `curlResolveEntries()`. It must not fetch `GuardResult::$original`. craftcms / `SsrfUrlValidator` returns **IPs only** on success — it does not return a normalized URL; UrlGuard owns the canonical `requestUri` string.
 
@@ -408,5 +412,5 @@ In UrlGuard unit tests, the fake does not need to implement real IP math: any th
 These belong to later pipeline stages or the orchestrator:
 
 - Performing the HTTP GET, timeouts, body size limits, Content-Type checks (`HttpFetcher`).
-- Following redirects: **MVP HttpFetcher does not follow redirects** (see `doc/HttpFetcher.md`). If redirect following is added later, each hop’s `Location` must be passed through `guard()` again and re-pinned before the next request.
+- Following redirects: **MVP HttpFetcher does not follow redirects** (see [HttpFetcher.md](HttpFetcher.md)). If redirect following is added later, each hop’s `Location` must be passed through `guard()` again and re-pinned before the next request.
 - Character encoding (`EncodingNormalizer`), Readability extraction, HTMLPurifier.
