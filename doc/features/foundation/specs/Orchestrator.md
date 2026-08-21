@@ -74,11 +74,11 @@ Refs:
 | Retry on timeout | **None** — `HttpFetcher` fails closed on `Transport`; Orchestrator does not retry |
 | Redirects | Unchanged stage policy — fail closed on `3xx` |
 | Encoding `Degraded` | **Continue**; append `PipelineWarning`; log warning |
-| Extract `NoContent` | **`PipelineNoContent`** (`ExtractNoContent`); skip sanitizer |
+| Extract `NoContent` | **`PipelineNoContent`** (`ExtractNoContent`); skip sanitizer. Includes empty/whitespace HTML mapped soft inside ArticleExtractor |
 | Empty HTML after Purifier | **`PipelineNoContent`** (`SanitizedEmpty`); not an exception |
 | Hard stage failures | Wrap in **`OrchestratorException`** + **`OrchestratorError`** (one case per stage) + `$previous` |
 | Public wiring | **`OrchestratorFactory` / `PipelineOptions`** for defaults; **public constructor** for tests/custom DI |
-| Logging | PSR-3 on **Orchestrator** (hop / soft / hard); **`NullLogger`** when omitted. Only **ArticleExtractor** may receive the same logger, and only when extract `debug` is on (Readability) |
+| Logging | PSR-3 on **Orchestrator** (hop / soft / hard); **`NullLogger`** when omitted. Same logger instance goes to **HttpFetcher** always (pin warning + optional Guzzle debug). **ArticleExtractor** receives it only when extract `debug` is on (Readability) |
 | Tests | Prefer **integration** (real stages + mocked HTTP), not mocks of every stage |
 
 ---
@@ -140,7 +140,6 @@ final readonly class PipelineOptions
         public ?PurifyPolicy $purifyPolicy = null,
         public ?LoggerInterface $logger = null,
         public ?string $purifierCachePath = null, // null → factory default under sys_get_temp_dir()
-        // optional: UrlGuard collaborator overrides for advanced hosts
     ) {}
 }
 
@@ -149,17 +148,31 @@ final class OrchestratorFactory
     public static function create(?PipelineOptions $options = null): Orchestrator
     {
         $logger = $options?->logger ?? new NullLogger();
+        $fetchPolicy = $options?->fetchPolicy ?? new FetchPolicy();
         $extractPolicy = $options?->extractPolicy ?? new ExtractPolicy();
         $purifyPolicy = $options?->purifyPolicy ?? new PurifyPolicy();
         $cachePath = $options?->purifierCachePath
             ?? (sys_get_temp_dir() . '/log-read-htmlpurifier');
+
+        // UrlGuard: always production default. Fake SSRF / custom DNS →
+        // use `new Orchestrator(…)` (constructor escape hatch), not PipelineOptions.
+        $urlGuard = new UrlGuard();
+        $httpFetcher = new HttpFetcher($fetchPolicy, null, $logger);
+        $encodingNormalizer = new EncodingNormalizer();
         $articleExtractor = new ArticleExtractor(
             $extractPolicy,
             $extractPolicy->debug ? $logger : null,
         );
         $htmlSanitizer = new HtmlSanitizer($purifyPolicy, $cachePath);
-        // wire UrlGuard, HttpFetcher, EncodingNormalizer similarly (no logger on those stages)
-        return new Orchestrator(/* … */, $logger);
+
+        return new Orchestrator(
+            $urlGuard,
+            $httpFetcher,
+            $encodingNormalizer,
+            $articleExtractor,
+            $htmlSanitizer,
+            $logger,
+        );
     }
 }
 ```
@@ -169,6 +182,8 @@ final class OrchestratorFactory
 | CLI / normal library use | `OrchestratorFactory::create()` or `create(new PipelineOptions(…))` |
 | Unit/integration tests | `new Orchestrator($guard, $fetcher, …)` with mocked Guzzle / fake SSRF |
 | App container | Either factory or explicit constructor injection |
+
+**UrlGuard is not a `PipelineOptions` knob.** Local policy is fixed; the only collaborator is `SsrfUrlValidator`. Production factory always uses `new UrlGuard()` (craftcms default). Tests and rare custom DNS inject via the Orchestrator constructor.
 
 **No fluent policy builder** — same rationale as `FetchPolicy` (small fixed knob set).
 
@@ -416,11 +431,12 @@ string URL ─────────┤                               ├─ s
 | Layer | Role |
 |-------|------|
 | Orchestrator | Hop boundaries: success, soft branch (`Degraded` / `NoContent` / empty purify), wrap-before-throw |
-| ArticleExtractor only | Optional PSR-3 into Readability when `ExtractPolicy::$debug` is true (same logger instance from factory) |
+| HttpFetcher | Always receives the shared logger: `warning` if DNS pin cannot be applied; Guzzle transfer `debug` when `FetchPolicy::$debug` is true |
+| ArticleExtractor | Optional PSR-3 into Readability when `ExtractPolicy::$debug` is true (same logger instance from factory) |
 | Other stages | No logger collaborator in MVP |
-| Absent logger | `NullLogger` on Orchestrator — no custom minimal logger |
+| Absent logger | `NullLogger` on Orchestrator / HttpFetcher — no custom minimal logger |
 
-Do **not** double-report the same hard failure as `error` on both ArticleExtractor and Orchestrator. Readability/vendor detail stays at debug; Orchestrator owns `warning` / `error` at the product boundary.
+Do **not** double-report the same hard failure as `error` on both a stage and Orchestrator. Vendor / Guzzle detail stays at `debug` / `warning` inside the stage; Orchestrator owns hop `warning` / `error` at the product boundary.
 
 ---
 
@@ -451,7 +467,7 @@ Assert:
 |----------|--------|
 | Happy path | `PipelineSuccess`, non-empty `html` |
 | Encoding degraded + article | `PipelineSuccess` + `EncodingDegraded` warning |
-| Extract no content | `PipelineNoContent` + `ExtractNoContent` |
+| Extract no content | `PipelineNoContent` + `ExtractNoContent` (incl. empty body after successful fetch) |
 | Purify → empty | `PipelineNoContent` + `SanitizedEmpty` |
 | Guard / fetch / hard encoding / extract / sanitize fail | `OrchestratorException` with matching `OrchestratorError` and stage `$previous` |
 
@@ -477,7 +493,7 @@ Do **not** require mocking `ArticleExtractor` / `HtmlSanitizer` for the primary 
 - [ ] `OrchestratorError` / `OrchestratorException`
 - [ ] `Orchestrator` with private hop methods (log + wrap)
 - [ ] `PipelineOptions` + `OrchestratorFactory::create` (incl. purifier cache default + optional override)
-- [ ] PSR-3 logger defaulting to `NullLogger` on Orchestrator; pass into `ArticleExtractor` only when extract debug is on
+- [ ] PSR-3 logger defaulting to `NullLogger` on Orchestrator; always pass into `HttpFetcher`; pass into `ArticleExtractor` only when extract debug is on
 - [ ] Integration tests per table above
 - [ ] Thin CLI calling the factory
 

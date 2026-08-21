@@ -24,7 +24,7 @@ Utf8Html → ArticleExtractor → ExtractResult
                                 └─ NoContent(…)             → typed soft result (no exception)
 ```
 
-Hard failures (empty input, document too large) throw `ArticleExtractorException`. Soft “page has no article body” is **`ExtractResult::NoContent`**, not an exception. Product mapping (`NoContent` → `PipelineNoContent`) is owned by **Orchestrator**, not this stage.
+Hard failures (document too large, unexpected vendor errors) throw `ArticleExtractorException`. Soft “nothing to extract” — including **empty / whitespace-only HTML** and “page has no article body” — is **`ExtractResult::NoContent`**, not an exception. Product mapping (`NoContent` → `PipelineNoContent`) is owned by **Orchestrator**, not this stage.
 
 ---
 
@@ -126,7 +126,7 @@ Refs: vendor `Readability::getArticleMetadata()`, `getJSONLD()`, `getLeadImageUr
 
 **Why `ExtractResult` instead of nullable `content` on one VO:** `ReadableDocument` proves content exists. A nullable `content` would let HtmlSanitizer receive a “document” with no body. Same pattern as `EncodingOutcome` (Ok / Degraded) vs weakening `Utf8Html`.
 
-**Why not throw on no-content:** Readability 4.x returns metadata-only `Article` when no body is found (`hasContent() === false`). `ParseException` is reserved for empty input / `maxElemsToParse`. Orchestrator retains UX control via `match` on `ExtractResult`.
+**Why not throw on no-content (including empty HTML):** Readability 4.x returns metadata-only `Article` when no body is found (`hasContent() === false`), and throws `ParseException::emptyInput()` on whitespace-only input. This project maps **both** to soft `ExtractResult::NoContent` so empty HTTP bodies and “no article” pages share one product path (`PipelineNoContent`). Hard `ParseException` remains only for `maxElemsToParse` (`TooLarge`). Orchestrator retains UX control via `match` on `ExtractResult`.
 
 **Why `PlainText` for title / excerpt / siteName:** those fields are not passed through HTMLPurifier. A dedicated type reminds callers to choose storage (`raw()`) vs HTML embedding (`html()`), and strips accidental tags once at construction. Article `content` stays a separate string until `HtmlSanitizer` produces the safe fragment.
 
@@ -311,14 +311,12 @@ match ($result->status) {
 ```text
 enum ArticleExtractorError
 {
-    case EmptyInput;
     case TooLarge;
     case Unexpected;
 
     public function defaultMessage(): string
     {
         return match ($this) {
-            self::EmptyInput => 'HTML input is empty',
             self::TooLarge => 'HTML document exceeds the configured element limit',
             self::Unexpected => 'Article extraction failed unexpectedly',
         };
@@ -343,11 +341,12 @@ final class ArticleExtractorException extends \RuntimeException
 
 | Case | Maps from vendor | Meaning |
 |------|------------------|---------|
-| `EmptyInput` | `ParseException::emptyInput()` | Whitespace-only / empty string after trim |
 | `TooLarge` | `ParseException::tooManyElements(…)` | Over `maxElemsToParse` when that limit is set |
 | `Unexpected` | other `\Throwable` from the adapter | Defense in depth; should be rare |
 
-**Mapping rule:** catch `fivefilters\Readability\ParseException` (and unexpected throwables) inside `ArticleExtractor`; rethrow only `ArticleExtractorException`. Orchestrator must not import vendor exception types.
+**Empty / whitespace HTML is soft:** vendor `ParseException::emptyInput()` (and a local `trim($html->html) === ''` short-circuit) → `ExtractResult::noContent($html->sourceUrl)` with empty/null metadata — **not** `ArticleExtractorException`. There is no `EmptyInput` error kind.
+
+**Mapping rule:** catch `fivefilters\Readability\ParseException` (and unexpected throwables) inside `ArticleExtractor`; map empty-input to `NoContent`; rethrow only `ArticleExtractorException` for hard cases. Orchestrator must not import vendor exception types.
 
 ---
 
@@ -362,11 +361,11 @@ Immutable. Self-validating construction (non-negative limits, etc.). Named args 
 | `debug` | `bool` | `false` | Readability `debug` → `error_log()`; when true, factory may also pass a PSR-3 logger into Readability |
 | `fixRelativeURLs` | `bool` | `true` | Rewrite relative URLs using `Utf8Html::$sourceUrl` as `originalURL` |
 | `charThreshold` | `int` | `500` | Min article text length before Readability retries / may yield no content (Mozilla default) |
-| `maxElemsToParse` | `int` | `0` | `0` = no limit; if &gt; 0, exceeding throws `TooLarge` |
+| `maxElemsToParse` | `int` | `30000` | Max DOM elements before parse; exceeding → `TooLarge`. `0` = no limit (explicit opt-out) |
 
 **Not exposed in MVP** (leave Readability defaults): `nbTopCandidates`, `keepClasses`, `classesToPreserve`, `disableJSONLD`, `allowedVideoRegex`, `linkDensityModifier`, `keepInlineByline`, internal flag toggles, `metadataOnly`.
 
-**Logger:** optional PSR-3 logger may be injected on `ArticleExtractor` (constructor), not on the policy — same split as “policy knobs vs collaborators” on `HttpFetcher`. This is the **only** stage that accepts a logger in MVP. Wire it only when `ExtractPolicy::$debug` is true (factory): Readability’s PSR-3 logger, if set, emits even when `debug` is false, so omit the logger unless debugging. Orchestrator owns hop / product logging separately.
+**Logger:** optional PSR-3 logger may be injected on `ArticleExtractor` (constructor), not on the policy — same split as “policy knobs vs collaborators” on `HttpFetcher`. In MVP, stages that take a logger are **HttpFetcher** (always, for pin warning / Guzzle debug) and **ArticleExtractor** (only when `ExtractPolicy::$debug` is true). Wire ArticleExtractor’s logger only when debugging: Readability’s PSR-3 logger, if set, emits even when `debug` is false, so omit it unless debugging. Orchestrator owns hop / product logging separately.
 
 ```text
 final readonly class ExtractPolicy
@@ -375,7 +374,7 @@ final readonly class ExtractPolicy
         public bool $debug = false,
         public bool $fixRelativeURLs = true,
         public int $charThreshold = 500,
-        public int $maxElemsToParse = 0,
+        public int $maxElemsToParse = 30000,
     ) {
         // assert charThreshold >= 0, maxElemsToParse >= 0
     }
@@ -383,6 +382,8 @@ final readonly class ExtractPolicy
 ```
 
 **About `charThreshold`:** after a candidate is chosen, if its text length is below this value, Readability retries with progressively softer flags, then may still return no content. It is **not** a hard truncate and **not** a security control. Keeping the Mozilla default (`500`) is fine unless short articles are a product requirement.
+
+**About `maxElemsToParse`:** resource guard on DOM size, orthogonal to `FetchPolicy::$maxBytes`. Default `30000` rejects pathological tag-dense HTML under the byte cap (`TooLarge`). Set `0` only when unlimited parse is an explicit choice. Mozilla / vendor default is `0` (no limit); this project chooses a finite default for the CLI/library factory path.
 
 ### `ArticleExtractor`
 
@@ -439,12 +440,15 @@ final readonly class ReadableDocument
 ```text
 extract($html)
   │
+  ├─ If trim($html->html) === ''
+  │     → ExtractResult::noContent(sourceUrl)   // soft; do not call Readability
+  │
   ├─ Build Readability Configuration from ExtractPolicy
   │     debug, charThreshold, maxElemsToParse
   │     fixRelativeURLs + originalURL = $html->sourceUrl (when fix on)
   │
   ├─ try parse($html->html)
-  │     └─ catch ParseException empty → ArticleExtractorException(EmptyInput)
+  │     └─ catch ParseException empty → ExtractResult::noContent(sourceUrl)
   │     └─ catch ParseException too many → ArticleExtractorException(TooLarge)
   │     └─ catch other → ArticleExtractorException(Unexpected, previous)
   │
@@ -471,8 +475,8 @@ extract($html)
 
 - No HTTP: build `Utf8Html` fixtures with known `html` + `sourceUrl`.
 - Assert `ExtractStatus` and, on Ok, that `content` excludes obvious chrome fixtures.
-- Cover `NoContent` (empty-ish page / no article node).
-- Cover hard failures: empty string HTML → `EmptyInput`; optional `maxElemsToParse` fixture → `TooLarge`.
+- Cover `NoContent` (empty/whitespace HTML, empty-ish page / no article node).
+- Cover hard failures: fixture over `maxElemsToParse` (default `30000`, or a lowered policy in the test) → `TooLarge`.
 - When `fixRelativeURLs` is true, assert a relative `href` becomes absolute against `sourceUrl`.
 - Unit-test `PlainText`: `fromUntrusted` strips tags; `raw()` vs `html()` (e.g. `&` → `&amp;`); do not store `html()` output in persistence tests.
 
@@ -483,7 +487,8 @@ extract($html)
 | Simple article | `<article><p>…long enough…</p></article>` + chrome | `Ok`, content has paragraph, not nav |
 | Relative link | `<a href="/x">` + `sourceUrl=https://ex.com/a` | absolute `https://ex.com/x` in content |
 | No article | mostly empty / nav-only short page | `NoContent` |
-| Empty HTML | `""` / whitespace | `ArticleExtractorException` + `EmptyInput` |
+| Empty HTML | `""` / whitespace | `NoContent` (soft; not an exception) |
+| Over element limit | many tags + `ExtractPolicy(maxElemsToParse: 50)` (or similar) | `ArticleExtractorException` + `TooLarge` |
 | Metadata only path | page with title meta but no body | `NoContent`, title still set if Readability found it |
 | Title with tags | meta title contains `<b>Hi</b>` | `title->raw() === 'Hi'`; `title->html()` escaped if needed |
 

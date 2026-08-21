@@ -299,8 +299,10 @@ guard($raw)
 2. `parse_url` must succeed; `host` required and non-empty.
 3. Allow only schemes `http` and `https`.
 4. Reject URLs that include `user` / `pass`.
-5. Derive `port`: from the URL, else `443` if `https`, else `80`.
-6. Build **`requestUri`** as UrlGuard’s **canonical** string passed to the validator and later to the client (and copied as `sourceUrl` after fetch). MVP rules:
+5. Reject **literal IP hosts** (IPv4 or IPv6 in brackets), including **public** literals such as `http://8.8.8.8/` or `http://[2001:db8::1]/` → `UrlGuardError::Policy`. MVP allows hostname-only targets; SSRF IP checks then apply only to DNS resolution results, not to “host is already an IP” URLs.
+6. Reject **IDN / non-ASCII hosts** (e.g. `https://münchen.example/`) → `UrlGuardError::Policy`. MVP does not convert to punycode; hostname must be LDH ASCII (`a-z`, `0-9`, `-`, labels). Punycode / `ext-intl` support is deferred (Phase 7).
+7. Derive `port`: from the URL, else `443` if `https`, else `80`.
+8. Build **`requestUri`** as UrlGuard’s **canonical** string passed to the validator and later to the client (and copied as `sourceUrl` after fetch). MVP rules:
    - Lowercase the scheme.
    - Keep host, path, query, and **fragment** when present (fragment is part of our canonical form / provenance even though HTTP does not send it on the wire).
    - Default path to `/` when missing.
@@ -375,20 +377,20 @@ Local policy; collaborator should not be called.
 | Other non-http(s) schemes | `gopher://…`, `javascript:…` |
 | User + password | `https://user:pass@example.com/` |
 | User only | `https://user@example.com/` |
+| Literal IPv4 (any) | `http://127.0.0.1/`, `http://8.8.8.8/`, `http://10.0.0.1/` |
+| Literal IPv6 (any) | `http://[::1]/`, `http://[2001:db8::1]/` |
+| IDN / non-ASCII host | `https://münchen.example/` |
 
 ### Malicious / SSRF-oriented URL → `UrlGuardError::Rejected`
 
-Fake **throws** (UrlGuard maps to `Rejected` + `$previous`). The input string can still look “URL-shaped”; the collaborator refusal is what under test.
+Fake **throws** (UrlGuard maps to `Rejected` + `$previous`). The input string can still look “URL-shaped”; the collaborator refusal is what under test. Literal IP URLs never reach this path in MVP (they fail `Policy` above).
 
 | Case | Example input | What the fake simulates |
 |------|----------------|-------------------------|
-| Loopback IPv4 | `http://127.0.0.1/` | blocked target |
-| Loopback IPv6 | `http://[::1]/` | blocked target |
-| Private LAN | `http://10.0.0.1/`, `http://192.168.1.1/`, `http://172.16.0.1/` | blocked target |
-| Link-local / cloud metadata | `http://169.254.169.254/` | blocked target |
 | Benign hostname, private resolve | `https://internal.example/` | DNS would return `10.x` → throw |
+| Benign hostname, loopback resolve | `https://evil.example/` | DNS would return `127.0.0.1` → throw |
+| Benign hostname, metadata resolve | `https://meta.example/` | DNS would return `169.254.169.254` → throw |
 | DNS failure | `https://no-such-host.invalid/` | resolution failure → same `Rejected` |
-| Literal public IP (if policy forbids literals) | `http://8.8.8.8/` | throw if aligned with craftcms |
 
 In UrlGuard unit tests, the fake does not need to implement real IP math: any throw becomes `Rejected`. Cover real range checks in **adapter** tests with a stub DNS resolver that returns `127.0.0.1` vs `203.0.113.10`.
 
@@ -396,8 +398,8 @@ In UrlGuard unit tests, the fake does not need to implement real IP math: any th
 
 | Case | Example | Expected |
 |------|---------|----------|
-| Uppercase scheme | `HTTPS://example.com` | success after normalization (document actual behaviour) |
-| IDN host | `https://münchen.example/` | success or `Rejected`/`Syntax` — document chosen behaviour |
+| Uppercase scheme | `HTTPS://example.com` | success after normalization (lowercase scheme) |
+| IDN host | `https://münchen.example/` | `Policy` (MVP — no punycode; Phase 7) |
 
 ---
 

@@ -41,6 +41,15 @@ Research and threat model: `[context/Foundational Research.md](context/Foundatio
 
 Stack (from research / `composer.json`): Guzzle, `craftcms/url-validator` (planned), `fossar/guzzle-transcoder` helpers / Transcoder for conversion (not as fetch middleware), `fivefilters/readability.php`, `ezyang/htmlpurifier`.
 
+**Runtime baseline** (locked in `composer.json`):
+
+| Requirement | Why |
+|-------------|-----|
+| PHP `^8.4` | `fivefilters/readability.php` 4.x requires ≥8.4 |
+| `ext-dom` | Readability DOM parsing |
+| `ext-mbstring` | Readability + EncodingNormalizer charset work |
+| `ext-curl` | HttpFetcher DNS pinning via Guzzle cURL / `CURLOPT_RESOLVE` |
+
 ### Explicit MVP non-goals
 
 - Redirect following (fail closed on `3xx`; per-hop re-guard later)
@@ -73,6 +82,7 @@ Each phase should land as a **testable vertical slice** of that stage (unit test
 ### Phase 0 — Project skeleton (short)
 
 - Confirm package layout under `src/` (e.g. one folder or namespace segment per stage).
+- Confirm runtime baseline: PHP `^8.4`, `ext-dom`, `ext-mbstring`, `ext-curl` (already declared in `composer.json`).
 - Add `craftcms/url-validator` to Composer.
 - Optionally replace or retire `bin/run` once Orchestrator exists; until then treat it as non-authoritative scratch only.
 
@@ -113,13 +123,14 @@ Implement per `[specs/EncodingNormalizer.md](specs/EncodingNormalizer.md)`:
 Implement per `[specs/ArticleExtractor.md](specs/ArticleExtractor.md)`:
 
 - Types: `ExtractPolicy`, `ExtractResult` / `ExtractStatus`, `PlainText`, `ReadableDocument`, `ArticleExtractorException` + `ArticleExtractorError`.
-- Thin wrapper around `fivefilters/readability.php`; map soft no-content to `ExtractResult::NoContent`; hard `ParseException` → tagged exception.
+- Thin wrapper around `fivefilters/readability.php`; map soft no-content (including empty/whitespace HTML) to `ExtractResult::NoContent`; hard `ParseException` (element limit) → tagged exception.
 - Rely on vendor fusion for JSON-LD / Open Graph / other meta → `title` / `excerpt` / `siteName` (no separate OG scraper).
 - Propagate `sourceUrl`; use it as Readability `originalURL` when `fixRelativeURLs` is on.
 - Map title/excerpt/siteName through `PlainText::fromUntrusted*` (strip tags once).
+- Default `ExtractPolicy::$maxElemsToParse = 30000` (resource guard; `0` = unlimited opt-out); cover `TooLarge` in tests.
 - Unit tests with small HTML fixtures (chrome vs article body, relative links, empty input, PlainText escape/strip).
 
-**Exit criteria:** `Utf8Html` in → `ExtractResult` with `ReadableDocument` or typed `NoContent`.
+**Exit criteria:** `Utf8Html` in → `ExtractResult` with `ReadableDocument` or typed `NoContent`; oversize DOM → `ArticleExtractorException` + `TooLarge`.
 
 ### Phase 5 — HtmlSanitizer
 
@@ -145,6 +156,7 @@ Implement per `[specs/HtmlSanitizer.md](specs/HtmlSanitizer.md)`:
 Only after Phase 6 is green; align with research “Deferred”:
 
 - Redirect-safe loop (per-hop UrlGuard + re-pin).
+- IDN hosts: accept + normalize to punycode (`ext-intl`) end-to-end (UrlGuard `requestUri` / pin / SNI).
 - Stricter `HTML.Allowed` once display needs are known.
 - Purifier definition cache path tuning for real runs.
 - Optional: batch politeness (`robots.txt`, delays) if multi-URL use appears.

@@ -4,7 +4,10 @@
     "type": "library",
     "license": "MIT",
     "require": {
-      "php": "^8.3",
+        "php": "^8.4",
+        "ext-curl": "*",
+        "ext-dom": "*",
+        "ext-mbstring": "*",
         "fivefilters/readability.php": "^4.0",
         "guzzlehttp/guzzle": "^8.0",
         "ezyang/htmlpurifier": "^4.19",
