@@ -9,9 +9,11 @@ namespace Yumo\LogRead\UrlGuard;
  */
 final class UrlGuard
 {
-    public function __construct(
-        private readonly SsrfUrlValidator $validator,
-    ) {
+    private SsrfUrlValidator $validator;
+
+    public function __construct(?SsrfUrlValidator $validator = null)
+    {
+        $this->validator = $validator ?? new CraftCmsSsrfUrlValidator();
     }
 
     /**
