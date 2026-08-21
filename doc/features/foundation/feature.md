@@ -11,7 +11,7 @@ input URL string
   → EncodingNormalizer → EncodingOutcome (Ok | Degraded + Utf8Html)
   → ArticleExtractor   → ExtractResult (Ok + ReadableDocument | NoContent)
   → HtmlSanitizer      → SafeDocument
-  → Orchestrator       → wires the stages; owns UX for Degraded / NoContent / errors
+  → Orchestrator       → PipelineSuccess | PipelineNoContent (owns soft UX + exception wrap)
 ```
 
 Design principle across stages: **parse, don’t validate** — each step produces a richer typed result (or a tagged failure) so unsafe values cannot slip through as bare `string`s.
@@ -36,7 +36,7 @@ Research and threat model: `[context/Foundational Research.md](context/Foundatio
 | **EncodingNormalizer** | Charset cascade → UTF-8; quality `Ok` \| `Degraded`; propagate `sourceUrl`                                       | `EncodingOutcome` (`Utf8Html`)                | `[specs/EncodingNormalizer.md](specs/EncodingNormalizer.md)` |
 | **ArticleExtractor**   | Readability main-content + fused metadata (JSON-LD / og / …); soft `NoContent` vs hard parse failures | `ExtractResult` / `ReadableDocument`          | `[specs/ArticleExtractor.md](specs/ArticleExtractor.md)`     |
 | **HtmlSanitizer**      | HTMLPurifier policy (UTF-8 fixed, tight URI schemes, debug cache/errors)                                         | `SafeDocument`                                | `[specs/HtmlSanitizer.md](specs/HtmlSanitizer.md)`           |
-| **Orchestrator**       | Compose stages; map exceptions; surface `Degraded` / `NoContent`; CLI/library entry                              | Final article HTML (or typed error)           | *To write*                                                   |
+| **Orchestrator**       | Compose stages; map exceptions; `PipelineSuccess` / `PipelineNoContent`; CLI/library entry                        | `PipelineSuccess` \| `PipelineNoContent`      | `[specs/Orchestrator.md](specs/Orchestrator.md)`             |
 
 
 Stack (from research / `composer.json`): Guzzle, `craftcms/url-validator` (planned), `fossar/guzzle-transcoder` helpers / Transcoder for conversion (not as fetch middleware), `fivefilters/readability.php`, `ezyang/htmlpurifier`.
@@ -56,7 +56,7 @@ Stack (from research / `composer.json`): Guzzle, `craftcms/url-validator` (plann
 
 | Area              | State                                                                                                                                                                                                 |
 | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Specs             | **Done** for UrlGuard, HttpFetcher, EncodingNormalizer, ArticleExtractor, HtmlSanitizer. **Missing** for Orchestrator.                                                                                |
+| Specs             | **Done** for UrlGuard, HttpFetcher, EncodingNormalizer, ArticleExtractor, HtmlSanitizer, Orchestrator.                                                                                                 |
 | Application code  | `src/` and `tests/` are **empty** (PSR-4 `Yumo\LogRead\` ready, no classes yet).                                                                                                                      |
 | Spike / prototype | `bin/run` sketches fetch + Readability + Purifier, but mixes stages, follows redirects, uses GuzzleTranscoder middleware, and has incomplete UrlGuard/pinning — **not** the target design.            |
 | Dependencies      | Present: Guzzle, Readability, HTMLPurifier, guzzle-transcoder. **Missing from Composer:** `craftcms/url-validator` (required by UrlGuard production adapter). PHPUnit is available as dev dependency. |
@@ -133,7 +133,7 @@ Implement per `[specs/HtmlSanitizer.md](specs/HtmlSanitizer.md)`:
 
 ### Phase 6 — Orchestrator + entrypoint
 
-1. Write `specs/Orchestrator.md` (stage order, exception mapping, `Degraded` / `NoContent` handling, public library/CLI API).
+1. Implement per `[specs/Orchestrator.md](specs/Orchestrator.md)` (already written): stage order, `PipelineSuccess` / `PipelineNoContent`, exception wrap, factory + CLI API.
 2. Wire UrlGuard → HttpFetcher → EncodingNormalizer → ArticleExtractor → HtmlSanitizer.
 3. Replace spike `bin/run` with a thin CLI that calls the orchestrator.
 4. One integration/smoke path (mocked HTTP or a fixed public URL) proving the full happy path.
@@ -166,4 +166,4 @@ Only after Phase 6 is green; align with research “Deferred”:
 7 deferred hardening
 ```
 
-Phases 1–5 have complete specs and should be implemented as specified. Phase 6 needs a short Orchestrator spec in the same style before (or as the first step of) coding.
+Phases 1–6 have complete specs and should be implemented as specified.

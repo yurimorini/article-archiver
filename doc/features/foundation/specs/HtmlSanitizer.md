@@ -205,7 +205,7 @@ final readonly class SafeDocument
 | `html` | store as-is (UTF-8) | emit as HTML fragment |
 | `title` / `excerpt` / `siteName` | `$field->raw()` | `$field->html()` |
 
-**Empty fragment:** if Purifier returns empty/whitespace-only HTML, still return `SafeDocument` for MVP (stripping can legitimately remove everything). Orchestrator may treat empty body as a product-level soft failure if desired; that is **not** `HtmlSanitizerException`.
+**Empty fragment:** if Purifier returns empty/whitespace-only HTML, still return `SafeDocument` (stripping can legitimately remove everything). That is **not** `HtmlSanitizerException`. Orchestrator maps it to `PipelineNoContent` with `PipelineEmptyReason::SanitizedEmpty` (see `Orchestrator.md`).
 
 ---
 
