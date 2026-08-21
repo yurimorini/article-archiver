@@ -1,0 +1,137 @@
+#!/usr/bin/env php
+<?php
+require __DIR__ . '/../vendor/autoload.php';
+
+use FiveFilters\Readability\Readability;
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\GuzzleException;
+use Fossar\GuzzleTranscoder\GuzzleTranscoder;
+use GuzzleHttp\HandlerStack;
+use craft\urlvalidator\UrlValidator;
+use craft\urlvalidator\UrlValidationException;
+
+try {
+    $html = downloadUrl('https://example.com/article');
+} catch (GuzzleException $e) {
+    // timeout, DNS, 4xx/5xx, etc.
+    throw $e;
+}
+
+$readability = new Readability();
+$article = $readability->parse($html);
+
+$config = HTMLPurifier_Config::createDefault();
+
+// configuration goes here:
+$config->set('Core.Encoding', 'UTF-8'); // replace with your encoding
+$config->set('HTML.Doctype', 'XHTML 1.0 Transitional'); // replace with your doctype
+$config->set('Cache.DefinitionImpl', null); // TODO: remove this later!
+
+$config->set('URI.AllowedSchemes', [
+    'http' => true,
+    'https' => true,
+    'mailto' => true,
+]);
+
+$purifier = new HTMLPurifier($config);
+$pureHtml = $purifier->purify($article);
+
+echo '<pre>' . htmlspecialchars($pureHtml) . '</pre>';
+
+function downloadUrl(string $url, int $maxBytes = 5_000_000): string
+{
+    
+    $stack = HandlerStack::create();
+    $stack->push(new GuzzleTranscoder()); // default → UTF-8
+
+    $client = new Client([
+        'timeout' => 10,
+        'handler' => $stack,
+        'connect_timeout' => 5,
+        'allow_redirects' => [
+            'max' => 5,
+            'strict' => true,
+            'referer' => true,
+            'track_redirects' => true,
+        ],
+        'http_errors' => true,
+        'headers' => [
+            'User-Agent' => 'LogRead/0.1 (+https://example.com; you@example.com)',
+            'Accept' => 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.8',
+            'Accept-Language' => 'en,it;q=0.8',
+        ],
+    ]);
+    $response = $client->get($url, [
+        'stream' => true,
+    ]);
+    $contentType = $response->getHeaderLine('Content-Type');
+    if ($contentType !== '' && !preg_match('#^text/html|application/xhtml\+xml#i', $contentType)) {
+        throw new RuntimeException("Unexpected Content-Type: {$contentType}");
+    }
+    $contentLength = $response->getHeaderLine('Content-Length');
+    if ($contentLength !== '' && (int) $contentLength > $maxBytes) {
+        throw new RuntimeException("Response too large: {$contentLength} bytes");
+    }
+
+    $body = $response->getBody();
+    $html = '';
+    while (!$body->eof()) {
+        $html .= $body->read(8192);
+        if (strlen($html) > $maxBytes) {
+            throw new RuntimeException("Response exceeded {$maxBytes} bytes");
+        }
+    }
+    return $html;
+}
+
+function stripUtf8Bom(string $bytes): string
+{
+    if (str_starts_with($bytes, "\xEF\xBB\xBF")) {
+        return substr($bytes, 3);
+    }
+    return $bytes;
+}
+function hasUtf8Bom(string $bytes): bool
+{
+    return str_starts_with($bytes, "\xEF\xBB\xBF");
+}
+
+function normalizeUrl(string $url): string
+{
+    $url = trim($url);
+    $parts = parse_url($url);
+
+    $validator = new UrlValidator();
+    try {
+        $ips = $validator->validate($url); // IP pubblici risolti → pinna la connect
+
+        $parts = parse_url($url);
+        $host = $parts['host'];
+        $port = $parts['port'] ?? ($parts['scheme'] === 'https' ? 443 : 80);
+
+        // PINNING -> TCP/TLS chiami ancora l'host ma non risolvi di nuovo
+        // TCP/TLS → verso IP validato
+        // HTTP Host / TLS SNI → ancora www.google.com
+
+        $response = $client->get($url, [
+        'curl' => [
+            CURLOPT_RESOLVE => [
+                // host:port:ip[,ip...]
+                $host . ':' . $port . ':' . implode(',', $ips),
+            ],
+        ],
+    ]);
+
+    } catch (UrlValidationException $e) {
+        // URL non sicuro
+    }
+
+    /*
+    trim → parse_url
+        → scheme http(s)?
+        → host ok? no credentials?
+        → DNS → IP pubblici?
+        → GET
+        → se redirect: ripeti validazione sull’URL nuovo
+    */
+}

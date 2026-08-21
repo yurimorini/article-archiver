@@ -1,0 +1,12 @@
+{
+  "name": "php-lib",
+  "build": { "dockerfile": "../Dockerfile" },
+  "workspaceFolder": "/workspace",
+  "runArgs": ["--add-host=host.docker.internal:host-gateway"],
+  "customizations": {
+    "vscode": {
+      "extensions": ["xdebug.php-debug"]
+    }
+  },
+  "postCreateCommand": "composer install"
+}
