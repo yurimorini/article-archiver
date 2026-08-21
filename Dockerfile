@@ -1,8 +1,13 @@
-FROM php:8.3-cli-bookworm
+FROM php:8.4-cli-bookworm
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         $PHPIZE_DEPS \
+        git \
+        unzip \
+        libxml2-dev \
+        libcurl4-openssl-dev \
         linux-headers-amd64 \
+    && docker-php-ext-install -j$(nproc) mbstring dom \
     && pecl install xdebug \
     && docker-php-ext-enable xdebug \
     && apt-get purge -y --auto-remove $PHPIZE_DEPS linux-headers-amd64 \

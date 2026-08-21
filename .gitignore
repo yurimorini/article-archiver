@@ -1,5 +1,8 @@
 composer.phar
 vendor/
+.composer/
 .worktrees/
 .superpowers/
 .phpunit.cache/
+.php-cs-fixer.cache
+/tmp/phpstan/

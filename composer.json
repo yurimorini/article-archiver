@@ -15,19 +15,28 @@
         "craftcms/url-validator": "^1.1"
     },
     "require-dev": {
-      "phpunit/phpunit": "^11.0"
+        "phpunit/phpunit": "^11.0",
+        "friendsofphp/php-cs-fixer": "^3.95",
+        "phpstan/phpstan": "^2.2"
     },
     "autoload": {
-      "psr-4": {
-        "Yumo\\LogRead\\": "src/"
-      }
+        "psr-4": {
+            "Yumo\\LogRead\\": "src/"
+        }
     },
     "autoload-dev": {
-      "psr-4": {
-        "Yumo\\LogRead\\Tests\\": "tests/"
-      }
+        "psr-4": {
+            "Yumo\\LogRead\\Tests\\": "tests/"
+        }
     },
     "scripts": {
-      "test": "phpunit"
+        "test": "phpunit",
+        "cs-check": "php-cs-fixer fix --dry-run --diff",
+        "cs-fix": "php-cs-fixer fix",
+        "phpstan": "phpstan analyse --memory-limit=512M",
+        "quality": [
+            "@cs-check",
+            "@phpstan"
+        ]
     }
-  }
+}

@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+mapfile -t files < <(find "${ROOT_DIR}/src" "${ROOT_DIR}/tests" "${ROOT_DIR}/bin" -type f -name '*.php' 2>/dev/null | sort || true)
+
+if [[ ${#files[@]} -eq 0 ]]; then
+  echo "No PHP files under src/, tests/, or bin/; skipping php-cs-fixer."
+  exit 0
+fi
+
+exec "${ROOT_DIR}/bin/composer" cs-fix "$@"
