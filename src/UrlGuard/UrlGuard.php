@@ -71,6 +71,13 @@ final class UrlGuard
             );
         }
 
+        if ($this->endsInNumber($host)) {
+            throw new UrlGuardException(
+                UrlGuardError::Policy,
+                'Literal IP hosts are not allowed',
+            );
+        }
+
         $host = strtolower($host);
         $port = $parts['port'] ?? ($scheme === 'https' ? 443 : 80);
         $requestUri = $this->buildRequestUri($scheme, $host, $port, $parts);
@@ -117,6 +124,11 @@ final class UrlGuard
             '/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*$/',
             $normalized,
         ) === 1;
+    }
+
+    private function endsInNumber(string $host): bool
+    {
+        return preg_match('/(?:^|\.)[0-9]+$/D', $host) === 1;
     }
 
     /**

@@ -83,7 +83,7 @@ That gap is a classic **DNS rebinding / TOCTOU** issue: check and use are two di
 cURL option shape:
 
 ```text
-CURLOPT_RESOLVE = ["{host}:{port}:{ip1,ip2,…}"]
+CURLOPT_RESOLVE = ["{host}:{port}:{ip}", …]
 ```
 
 Example: request URL remains `https://www.example.com/path`, but TCP goes to the already-checked public IP(s).
@@ -241,7 +241,7 @@ Default: `CraftCmsSsrfUrlValidator` wraps craftcms `UrlValidator`.
 
 ### `SafeFetchTarget`
 
-Immutable. Constructible only from `UrlGuard` (package-private constructor or factory used only there).
+Immutable. PHP cannot enforce package-private construction, so its constructor is public by necessity. Production callers conventionally treat `UrlGuard` as the only constructor of trusted targets; tests may construct fixtures directly.
 
 | Property | Type | Meaning |
 |----------|------|---------|
@@ -252,10 +252,10 @@ Immutable. Constructible only from `UrlGuard` (package-private constructor or fa
 
 ```text
 public function curlResolveEntries(): array
-// → ["{host}:{port}:{ip1,ip2,…}"]  (one string; IPs comma-separated)
+// → ["{host}:{port}:{ip}", …]  (one entry per IP)
 ```
 
-**IPv6 in pin entries:** use bare address forms as returned by the validator (e.g. `2001:db8::1`), without surrounding brackets inside the `{ip}` slot. Prefer **one `CURLOPT_RESOLVE` entry per IP** when the list mixes IPv4 and IPv6 if a single comma-joined entry proves ambiguous on the target cURL version — document the chosen shape in tests. `host` in the entry must match the hostname in `requestUri` (ASCII LDH only in MVP).
+**IPv6 in pin entries:** use bare address forms as returned by the validator (e.g. `2001:db8::1`), without surrounding brackets inside the `{ip}` slot. Return **one `CURLOPT_RESOLVE` entry per IP**. `host` in the entry must match the hostname in `requestUri` (ASCII LDH only in MVP).
 
 `HttpFetcher` must use `requestUri` + `curlResolveEntries()`. It must not fetch `GuardResult::$original`. craftcms / `SsrfUrlValidator` returns **IPs only** on success — it does not return a normalized URL; UrlGuard owns the canonical `requestUri` string.
 

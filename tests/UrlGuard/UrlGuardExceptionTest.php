@@ -19,6 +19,9 @@ final class UrlGuardExceptionTest extends TestCase
         self::assertSame($error, $e->error);
     }
 
+    /**
+     * @return array<string, array{UrlGuardError, string}>
+     */
     public static function defaultMessages(): array
     {
         return [
