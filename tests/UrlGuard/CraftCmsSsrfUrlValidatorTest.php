@@ -42,7 +42,7 @@ final class CraftCmsSsrfUrlValidatorTest extends TestCase
         $adapter = new CraftCmsSsrfUrlValidator(
             static fn (string $host): array => ['203.0.113.10'],
         );
-        $result = (new UrlGuard($adapter))->guard('https://example.com/');
+        $result = new UrlGuard($adapter)->guard('https://example.com/');
 
         self::assertSame('https://example.com/', $result->safe->requestUri);
         self::assertSame(['203.0.113.10'], $result->safe->ips);
@@ -55,7 +55,7 @@ final class CraftCmsSsrfUrlValidatorTest extends TestCase
         );
 
         try {
-            (new UrlGuard($adapter))->guard('https://meta.example/');
+            new UrlGuard($adapter)->guard('https://meta.example/');
             self::fail('Expected UrlGuardException');
         } catch (UrlGuardException $e) {
             self::assertSame(UrlGuardError::Rejected, $e->error);

@@ -91,7 +91,7 @@ final class UrlGuardTest extends TestCase
         int $expectedPort,
     ): void {
         $fake = new FakeSsrfUrlValidator(['203.0.113.10']);
-        $result = (new UrlGuard($fake))->guard($raw);
+        $result = new UrlGuard($fake)->guard($raw);
 
         self::assertSame($raw, $result->original);
         self::assertSame($expectedRequestUri, $result->safe->requestUri);
@@ -129,7 +129,7 @@ final class UrlGuardTest extends TestCase
     public function test_success_multiple_ips(): void
     {
         $fake = new FakeSsrfUrlValidator(['203.0.113.10', '203.0.113.11']);
-        $result = (new UrlGuard($fake))->guard('https://example.com/');
+        $result = new UrlGuard($fake)->guard('https://example.com/');
 
         self::assertSame(
             [
@@ -181,7 +181,7 @@ final class UrlGuardTest extends TestCase
             }
         };
 
-        (new UrlGuard($fake))->guard('  HTTPS://Example.com  ');
+        new UrlGuard($fake)->guard('  HTTPS://Example.com  ');
 
         self::assertSame('https://example.com/', $fake->lastUrl);
     }
