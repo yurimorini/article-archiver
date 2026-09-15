@@ -94,7 +94,22 @@ final class HttpFetcher
         }
 
         $statusCode = $response->getStatusCode();
+        $contentType = $response->getHeaderLine('Content-Type');
 
+        $this->assertSuccessfulStatus($statusCode);
+        $this->assertAllowedContentType($contentType);
+        $this->assertDeclaredLengthWithinLimit($response);
+
+        $body = $this->readBodyWithinLimit($response->getBody());
+
+        return new FetchedPage($body, $contentType, $statusCode, $target->requestUri);
+    }
+
+    /**
+     * Rejects 3xx as Redirect and any other non-2xx as HttpStatus.
+     */
+    private function assertSuccessfulStatus(int $statusCode): void
+    {
         if ($statusCode >= 300 && $statusCode < 400) {
             throw new HttpFetcherException(
                 HttpFetcherError::Redirect,
@@ -108,33 +123,28 @@ final class HttpFetcher
                 sprintf('HTTP response status %d is not successful', $statusCode),
             );
         }
-
-        $contentType = $response->getHeaderLine('Content-Type');
-        if (!$this->isAllowedContentType($contentType)) {
-            throw new HttpFetcherException(
-                HttpFetcherError::ContentType,
-                $contentType === ''
-                    ? 'Response has no Content-Type header'
-                    : sprintf('Response Content-Type "%s" is not an allowed HTML type', $contentType),
-            );
-        }
-
-        $this->assertDeclaredLengthWithinLimit($response);
-
-        $body = $this->readBodyWithinLimit($response->getBody());
-
-        return new FetchedPage($body, $contentType, $statusCode, $target->requestUri);
     }
 
-    private function isAllowedContentType(string $contentType): bool
+    /**
+     * Rejects a missing or non-HTML Content-Type.
+     */
+    private function assertAllowedContentType(string $contentType): void
     {
         if ($contentType === '') {
-            return false;
+            throw new HttpFetcherException(
+                HttpFetcherError::ContentType,
+                'Response has no Content-Type header',
+            );
         }
 
         $mimeType = strtolower(trim(explode(';', $contentType, 2)[0]));
 
-        return $mimeType === 'text/html' || $mimeType === 'application/xhtml+xml';
+        if ($mimeType !== 'text/html' && $mimeType !== 'application/xhtml+xml') {
+            throw new HttpFetcherException(
+                HttpFetcherError::ContentType,
+                sprintf('Response Content-Type "%s" is not an allowed HTML type', $contentType),
+            );
+        }
     }
 
     private function assertDeclaredLengthWithinLimit(ResponseInterface $response): void
