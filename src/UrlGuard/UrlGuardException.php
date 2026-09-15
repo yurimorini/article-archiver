@@ -7,7 +7,7 @@ namespace Yumo\LogRead\UrlGuard;
 /**
  * Thrown when `UrlGuard` refuses a URL.
  *
- * Inspect `$error` to tell syntax, policy, and DNS/SSRF (server-side request forgery) failures apart. 
+ * Inspect `$error` to tell syntax, policy, and DNS/SSRF (server-side request forgery) failures apart.
  */
 final class UrlGuardException extends \RuntimeException
 {

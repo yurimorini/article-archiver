@@ -80,6 +80,11 @@ final class UrlGuardTest extends TestCase
             'ipv6 loopback' => ['http://[::1]/'],
             'ipv6 literal' => ['http://[2001:db8::1]/'],
             'idn' => ['https://münchen.example/'],
+            'label starts with hyphen' => ['https://-example.com/'],
+            'label ends with hyphen' => ['https://example-.com/'],
+            'hostname contains underscore' => ['https://foo_bar.example/'],
+            'label exceeds DNS limit' => ['https://' . str_repeat('a', 64) . '.example/'],
+            'multiple trailing dots' => ['https://example.com../'],
         ];
     }
 
@@ -123,6 +128,12 @@ final class UrlGuardTest extends TestCase
             'trim spaces' => ['  https://example.com/x  ', 'https://example.com/x', 'example.com', 443],
             'subdomain' => ['https://www.example.com', 'https://www.example.com/', 'www.example.com', 443],
             'uppercase scheme' => ['HTTPS://example.com', 'https://example.com/', 'example.com', 443],
+            'uppercase host with trailing dot' => [
+                'https://Example.COM./path',
+                'https://example.com/path',
+                'example.com',
+                443,
+            ],
         ];
     }
 
@@ -181,7 +192,7 @@ final class UrlGuardTest extends TestCase
             }
         };
 
-        new UrlGuard($fake)->guard('  HTTPS://Example.com  ');
+        new UrlGuard($fake)->guard('  HTTPS://Example.com.  ');
 
         self::assertSame('https://example.com/', $fake->lastUrl);
     }

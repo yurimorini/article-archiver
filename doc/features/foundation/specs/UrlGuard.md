@@ -38,6 +38,7 @@ Examples of bad input:
 | `"not a url"` | Not parseable as a URL |
 | `"file:///etc/passwd"` | Would read a local file if the client followed the scheme |
 | `"http://127.0.0.1/"` | Points at the machine running this program |
+| `"http://127.1/"` / `"http://example.1/"` | Some clients treat these as IPv4 (`127.0.0.1` / `0.0.0.1`), not as DNS names |
 | `"http://169.254.169.254/"` | Cloud “metadata” endpoint (credentials/config on many hosts) |
 | `"https://user:pass@evil.example/"` | Credentials in the URL; rarely needed for public articles |
 
@@ -89,6 +90,38 @@ CURLOPT_RESOLVE = ["{host}:{port}:{ip}", …]
 Example: request URL remains `https://www.example.com/path`, but TCP goes to the already-checked public IP(s).
 
 UrlGuard therefore returns not only a cleaned URL, but also **host**, **port**, and **ips** so `HttpFetcher` can pin. Returning only “URL is OK” as a boolean would throw away the IPs and force a second resolve.
+
+---
+
+## Threat detail: hostnames that parse as IPv4
+
+Rejecting “the host looks like an IP” is not the same as rejecting every string a client will *treat* as an IP.
+
+PHP’s `FILTER_VALIDATE_IP` (and a human reading the URL) accept only **canonical** forms such as `127.0.0.1` or `[::1]`. HTTP clients and URL parsers do not all use that rule. libc `inet_aton`, cURL, and the [WHATWG URL Standard](https://url.spec.whatwg.org/#concept-ipv4-parser) treat several other spellings as IPv4:
+
+| Host in the URL | Typical client interpretation |
+|-----------------|-------------------------------|
+| `127.1` | `127.0.0.1` (missing octets are filled in) |
+| `2130706433` | `127.0.0.1` (the address as a 32-bit decimal) |
+| `0` | `0.0.0.0` |
+
+**Last label numeric.** If the last DNS label is only digits (for example `example.1` or `foo.127.1`), the WHATWG host parser does **not** treat the string as a domain name. It runs the IPv4 parser on the whole host. If that parse succeeds, the destination is an IP address; if it fails, the host is rejected. Either way it is not a normal DNS lookup.
+
+That is a **parser disagreement**, not a DNS problem:
+
+```text
+filter sees  https://foo.127.1/  → “hostname, not an IP”  → allow
+client sees  https://foo.127.1/  → normalize to 127.0.0.1 → connect to loopback
+```
+
+A later fetch then hits localhost (or another internal address) even though the original string never looked like a dotted-quad IP. That is an SSRF bypass of a filter that only calls `FILTER_VALIDATE_IP`.
+
+UrlGuard therefore refuses, as the same `Policy` as literal IPs, **before** DNS:
+
+- Canonical IPv4 / IPv6 hosts (`isLiteralIpHost`)
+- Hosts whose last label is all digits (`endsInNumber`), including `example.1`, `127.1`, and a host that is only digits
+
+Public DNS does not use all-numeric TLDs, so this does not block ordinary websites. A numeric last label is not a legitimate article host for this fetcher; refusing it is cheaper and safer than hoping every downstream parser agrees with PHP.
 
 ---
 
@@ -306,11 +339,13 @@ guard($raw)
 2. `parse_url` must succeed; `host` required and non-empty.
 3. Allow only schemes `http` and `https`.
 4. Reject URLs that include `user` / `pass`.
-5. Reject **literal IP hosts** (IPv4 or IPv6 in brackets), including **public** literals such as `http://8.8.8.8/` or `http://[2001:db8::1]/` → `UrlGuardError::Policy`. MVP allows hostname-only targets; SSRF IP checks then apply only to DNS resolution results, not to “host is already an IP” URLs.
-6. Reject **IDN / non-ASCII hosts** (e.g. `https://münchen.example/`) → `UrlGuardError::Policy`. MVP does not convert to punycode; hostname must be LDH ASCII (`a-z`, `0-9`, `-`, labels). Punycode / `ext-intl` support is deferred (Phase 7).
-7. Derive `port`: from the URL, else `443` if `https`, else `80`.
-8. Build **`requestUri`** as UrlGuard’s **canonical** string passed to the validator and later to the client (and copied as `sourceUrl` after fetch). MVP rules:
+5. Reject **literal IP hosts**, including **public** literals such as `http://8.8.8.8/` or `http://[2001:db8::1]/`, **and** hostnames whose last label is numeric (e.g. `http://example.1/`, `http://127.1/`) → `UrlGuardError::Policy`. PHP’s `FILTER_VALIDATE_IP` is not enough: clients may interpret those strings as IPv4 (see [Threat detail: hostnames that parse as IPv4](#threat-detail-hostnames-that-parse-as-ipv4)). MVP allows hostname-only targets; SSRF IP checks then apply only to DNS resolution results, not to “host is already an IP” URLs.
+6. Canonicalize the hostname by lowercasing it and removing one trailing DNS root dot. Craft's validator performs the same normalization for a valid absolute hostname. UrlGuard applies it before validation and then uses that exact hostname in `requestUri`, `SafeFetchTarget::$host`, and DNS pin entries so validation and the pinned connection cannot disagree on its textual form.
+7. Reject **IDN / non-ASCII hosts** (e.g. `https://münchen.example/`) → `UrlGuardError::Policy`. MVP does not convert to punycode; hostname must be LDH ASCII (`a-z`, `0-9`, `-`, labels). Validate this syntax with PHP's `FILTER_VALIDATE_DOMAIN` and `FILTER_FLAG_HOSTNAME`, including the DNS limits of 63 characters per label and 253 characters for the complete hostname. Punycode / `ext-intl` support is deferred (Phase 7).
+8. Derive `port`: from the URL, else `443` if `https`, else `80`.
+9. Build **`requestUri`** as UrlGuard’s **canonical** string passed to the validator and later to the client (and copied as `sourceUrl` after fetch). MVP rules:
    - Lowercase the scheme.
+   - Use the canonical hostname without a trailing DNS root dot.
    - Keep host, path, query, and **fragment** when present (fragment is part of our canonical form / provenance even though HTTP does not send it on the wire).
    - Default path to `/` when missing.
    - Include non-default ports in the string; omit `:80` / `:443` when they match the scheme default (document the chosen reconstruction in tests).
@@ -386,6 +421,8 @@ Local policy; collaborator should not be called.
 | User only | `https://user@example.com/` |
 | Literal IPv4 (any) | `http://127.0.0.1/`, `http://8.8.8.8/`, `http://10.0.0.1/` |
 | Literal IPv6 (any) | `http://[::1]/`, `http://[2001:db8::1]/` |
+| Abbreviated / decimal IPv4 | `http://127.1/`, `http://2130706433/` |
+| Last hostname label numeric | `http://example.1/`, `http://foo.127.1/` |
 | IDN / non-ASCII host | `https://münchen.example/` |
 
 ### Malicious / SSRF-oriented URL → `UrlGuardError::Rejected`

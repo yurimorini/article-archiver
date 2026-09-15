@@ -78,6 +78,8 @@ final class UrlGuard
             );
         }
 
+        $host = $this->canonicalizeHostname($host);
+
         if ($this->isLiteralIpHost($host)) {
             throw new UrlGuardException(
                 UrlGuardError::Policy,
@@ -99,7 +101,6 @@ final class UrlGuard
             );
         }
 
-        $host = strtolower($host);
         $port = $parts['port'] ?? ($scheme === 'https' ? 443 : 80);
         $requestUri = $this->buildRequestUri($scheme, $host, $port, $parts);
 
@@ -119,6 +120,13 @@ final class UrlGuard
         return new GuardResult($safe, $raw);
     }
 
+    /**
+     * Returns whether `$host` is a literal IPv4 or IPv6 address rather than a DNS name.
+     *
+     * In a URL, IPv6 must be written in square brackets (`http://[::1]/`) because `:` also
+     * separates host and port. `parse_url()` keeps those brackets on `host`, while
+     * `FILTER_VALIDATE_IP` only accepts the inner address (`::1`), so they are stripped first.
+     */
     private function isLiteralIpHost(string $host): bool
     {
         if (str_starts_with($host, '[') && str_ends_with($host, ']')) {
@@ -131,6 +139,22 @@ final class UrlGuard
     }
 
     /**
+     * Produces the hostname form shared by Craft's validation, the request URI, and DNS pin entries.
+     *
+     * A trailing dot marks an absolute DNS name but does not change its destination. Removing that
+     * dot and lowercasing here prevents validation and the pinned connection from using different
+     * textual forms of the same hostname.
+     */
+    private function canonicalizeHostname(string $host): string
+    {
+        $host = strtolower($host);
+
+        return str_ends_with($host, '.') && !str_ends_with($host, '..')
+            ? substr($host, 0, -1)
+            : $host;
+    }
+
+    /**
      * Returns whether `$host` uses only ASCII letters, digits, and hyphens (LDH labels).
      * Internationalized names are not converted to punycode, so they are rejected by policy.
      */
@@ -140,20 +164,17 @@ final class UrlGuard
             return false;
         }
 
-        $normalized = strtolower($host);
-        if ($normalized === '' || str_contains($normalized, '..')) {
-            return false;
-        }
-
-        return preg_match(
-            '/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*$/',
-            $normalized,
-        ) === 1;
+        return filter_var($host, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME) !== false;
     }
 
     /**
      * Returns whether the last hostname label is numeric (for example `example.1`).
-     * That form is treated as a literal IP address and is rejected by policy.
+     *
+     * PHP's IP filter only accepts canonical addresses such as `127.0.0.1`. HTTP
+     * clients and the WHATWG URL Standard treat a last-label-numeric host as an
+     * IPv4 address instead (so `foo.127.1` becomes `127.0.0.1`). That mismatch
+     * is an SSRF bypass if only dotted-quad hosts are rejected, so this form is
+     * refused as a literal IP by policy.
      */
     private function endsInNumber(string $host): bool
     {
@@ -162,7 +183,11 @@ final class UrlGuard
 
     /**
      * Rebuilds the URL string that later code should request: lowercase scheme, `/` when the path is missing,
-     * default ports omitted, query and fragment kept when present.
+     * query and fragment kept when present.
+     *
+     * Default ports (`:80` / `:443`) are omitted. RFC 3986 treats them as the same URL as the host
+     * with no port, but some servers still distinguish the two and may redirect or pick a different
+     * virtual host.
      *
      * @param array<string, mixed> $parts Result of `parse_url()`
      */
