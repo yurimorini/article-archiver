@@ -230,6 +230,9 @@ interface SsrfUrlValidator
     /**
      * Check SSRF policy and resolve public IPs for pinning.
      *
+     * Example: `validate('https://example.com/')` may return `['203.0.113.10']`
+     * when DNS yields that public address; a loopback or private IP throws.
+     *
      * @return list<string> Public IP addresses (non-empty on success)
      * @throws \Throwable Collaborator failure; UrlGuard maps into UrlGuardException
      */
