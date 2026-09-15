@@ -34,7 +34,12 @@ final class SafeFetchTarget
     }
 
     /**
-     * Returns one cURL `CURLOPT_RESOLVE` string per IP, in the form `{host}:{port}:{ip}`.
+     * Returns one cURL `CURLOPT_RESOLVE` string for this host and port, with every
+     * already-checked IP in the address slot, separated by commas.
+     *
+     * libcurl treats later `HOST:PORT:ADDRESS` entries as replacements for the same
+     * host and port, so one string per IP would keep only the last address. A single
+     * `{host}:{port}:{ip1,ip2,…}` entry is the format that lets cURL try every pinned IP.
      *
      * IPv6 addresses are written without brackets in the IP slot.
      *
@@ -42,11 +47,10 @@ final class SafeFetchTarget
      */
     public function curlResolveEntries(): array
     {
-        $entries = [];
-        foreach ($this->ips as $ip) {
-            $entries[] = $this->host . ':' . $this->port . ':' . $ip;
+        if ($this->ips === []) {
+            return [];
         }
 
-        return $entries;
+        return [$this->host . ':' . $this->port . ':' . implode(',', $this->ips)];
     }
 }

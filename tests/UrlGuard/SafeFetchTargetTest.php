@@ -10,20 +10,17 @@ use Yumo\LogRead\UrlGuard\SafeFetchTarget;
 
 final class SafeFetchTargetTest extends TestCase
 {
-    public function test_curl_resolve_entries_one_per_ip(): void
+    public function test_curl_resolve_entries_joins_ips_in_one_host_port_string(): void
     {
         $safe = new SafeFetchTarget(
             requestUri: 'https://example.com/a',
             host: 'example.com',
             port: 443,
-            ips: ['203.0.113.10', '203.0.113.11'],
+            ips: ['203.0.113.10', '203.0.113.11', '2001:db8::1'],
         );
 
         self::assertSame(
-            [
-                'example.com:443:203.0.113.10',
-                'example.com:443:203.0.113.11',
-            ],
+            ['example.com:443:203.0.113.10,203.0.113.11,2001:db8::1'],
             $safe->curlResolveEntries(),
         );
     }

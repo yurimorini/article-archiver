@@ -143,10 +143,7 @@ final class UrlGuardTest extends TestCase
         $result = new UrlGuard($fake)->guard('https://example.com/');
 
         self::assertSame(
-            [
-                'example.com:443:203.0.113.10',
-                'example.com:443:203.0.113.11',
-            ],
+            ['example.com:443:203.0.113.10,203.0.113.11'],
             $result->safe->curlResolveEntries(),
         );
     }

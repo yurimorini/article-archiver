@@ -60,7 +60,11 @@ CURLOPT_RESOLVE = ["{host}:{port}:{ip1,ip2,…}"]
 - TCP goes only to the already-checked IPs.
 - Requires Guzzle’s **cURL** handler for the pin to take effect. Stream handler (and handlers that ignore `curl` options) cannot apply `CURLOPT_RESOLVE`.
 
-**MVP posture:** production `createDefaultClient()` uses the default cURL handler (`ext-curl` is a hard Composer requirement). We **assume** pinning works there. If the active handler cannot honour `CURLOPT_RESOLVE` (injected non-cURL client, unusual stack), HttpFetcher still attaches the resolve entries, **continues the request**, and logs a **warning** that DNS pinning was skipped — it does **not** fail closed on that alone. Orchestrator / ops can treat the warning as a configuration smell.
+**Do not set Guzzle’s `stream => true` together with pinning.** Guzzle’s default handler stack wraps cURL with `Proxy::wrapStreaming(...)`. When `stream` is true, the request is routed to `StreamHandler`, which **rejects** the `curl` option (`InvalidArgumentException`: stream handler ignores cURL options). Pinning and that Guzzle option are mutually exclusive.
+
+Body size is still capped by reading the PSR-7 body in chunks after the cURL transfer (`readBodyWithinLimit`). That is local streaming of an already-received stream, not Guzzle’s `stream` transport switch.
+
+**MVP posture:** production `createDefaultClient()` uses an explicit `CurlHandler` (`ext-curl` is a hard Composer requirement), not `HandlerStack::create()` with no handler (that would re-introduce the stream fallback). We **assume** pinning works there. If the active handler cannot honour `CURLOPT_RESOLVE` (injected non-cURL client, unusual stack), HttpFetcher still attaches the resolve entries, **continues the request**, and logs a **warning** that DNS pinning was skipped — it does **not** fail closed on that alone. Orchestrator / ops can treat the warning as a configuration smell.
 
 Refs: [UrlGuard.md](UrlGuard.md) (DNS / TOCTOU), [Foundational Research.md](../context/Foundational%20Research.md).
 
@@ -145,7 +149,7 @@ public function __construct(
 
 **Internal factory (`createDefaultClient`) must:**
 
-1. Use the default cURL handler (pinning).
+1. Use an explicit `CurlHandler` (pinning). Do **not** use Guzzle’s default `HandlerStack::create()` with no handler: that stack wraps cURL with a stream-handler fallback, and `stream => true` would route the request there, which cannot apply `CURLOPT_RESOLVE`.
 2. Apply policy timeouts, default headers (`User-Agent`, `Accept`, …).
 3. Set `allow_redirects` to `false`.
 4. Set **`http_errors` to `false`** so `4xx`/`5xx` return as responses and are mapped locally to `HttpFetcherError::HttpStatus` (never rely on Guzzle throwing for HTTP status).
@@ -153,7 +157,7 @@ public function __construct(
 6. **Not** expose encoding configuration on the public API.
 7. When `FetchPolicy::$debug` is true, attach Guzzle’s log middleware (or equivalent) so request/response summaries go to the injected PSR-3 logger at **`debug`** level. When `debug` is false, do not spam transfer detail (pinning warning still uses `warning` when needed).
 
-Per-request options (pin via `CURLOPT_RESOLVE`, `stream => true`) are applied inside `fetch()`, not baked into the client constructor alone.
+Per-request options (pin via `CURLOPT_RESOLVE`) are applied inside `fetch()`, not baked into the client constructor alone. Do **not** pass Guzzle’s `stream => true`: it switches transport to `StreamHandler` and conflicts with pinning. The body size cap is enforced by reading the response body in chunks.
 
 ---
 
@@ -323,7 +327,7 @@ fetch($target)
   │
   ├─ Build per-request options:
   │     curl CURLOPT_RESOLVE ← $target->curlResolveEntries()
-  │     stream ← true
+  │     (do not set Guzzle stream=true: it would drop the cURL pin)
   │     (client already: timeouts, allow_redirects=false, headers, http_errors=false)
   │
   ├─ If handler cannot honour CURLOPT_RESOLVE
@@ -365,9 +369,9 @@ Charset inside Content-Type is **not** converted here; it is carried forward for
 Two layers ([Foundational Research.md](../context/Foundational%20Research.md) §3.2):
 
 1. `Content-Length` present and `> maxBytes` → abort before read (**skip or treat as advisory when `Content-Encoding` is present** — compressed length is not the decoded size).
-2. While streaming, abort if accumulated **decoded** body size `> maxBytes`.
+2. While reading the body in chunks, abort if accumulated **decoded** body size `> maxBytes`.
 
-`maxBytes` applies to the **decoded** payload bytes collected into `FetchedPage::$body` (after Guzzle content decoding). Streaming exists to **enforce that cap**, not to stream into Readability.
+`maxBytes` applies to the **decoded** payload bytes collected into `FetchedPage::$body` (after Guzzle content decoding). Chunked reading exists to **enforce that cap**, not to stream into Readability, and it does **not** use Guzzle’s `stream` request option (that option would disable DNS pinning).
 
 ---
 

@@ -6,6 +6,7 @@ namespace Yumo\LogRead\HttpFetcher;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
+use GuzzleHttp\Handler\CurlHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\MessageFormatter;
 use GuzzleHttp\Middleware;
@@ -42,7 +43,7 @@ final class HttpFetcher
     /**
      * Whether `$client` was built by `createDefaultClient()` rather than injected.
      *
-     * The internal client always uses Guzzle's default cURL-capable handler (`ext-curl` is a
+     * The internal client always uses Guzzle's `CurlHandler` (`ext-curl` is a
      * hard Composer requirement), so DNS pinning is assumed to work there. Guzzle composes an
      * injected client's handler stack from closures that do not expose the terminal transport,
      * so an externally injected client's ability to honour `CURLOPT_RESOLVE` cannot be checked
@@ -82,7 +83,6 @@ final class HttpFetcher
             'curl' => [
                 CURLOPT_RESOLVE => $target->curlResolveEntries(),
             ],
-            'stream' => true,
             'allow_redirects' => false,
             'http_errors' => false,
         ];
@@ -190,13 +190,19 @@ final class HttpFetcher
     }
 
     /**
-     * Builds the production Guzzle client: default cURL-capable handler, fixed timeouts and
-     * headers from `$policy`, redirects disabled, and HTTP-status exceptions disabled (status
-     * is checked explicitly in `fetch()` instead of relying on Guzzle to throw for it).
+     * Builds the production Guzzle client: an explicit cURL handler (so `CURLOPT_RESOLVE`
+     * pinning is applied), fixed timeouts and headers from `$policy`, redirects disabled, and
+     * HTTP-status exceptions disabled (status is checked explicitly in `fetch()` instead of
+     * relying on Guzzle to throw for it).
+     *
+     * Guzzle's default stack wraps cURL with a stream-handler fallback. That fallback is
+     * selected when the `stream` request option is true, and StreamHandler rejects `curl`
+     * options. Pinning therefore requires a cURL-only stack; the body size cap is enforced
+     * afterwards by reading the PSR-7 body in chunks, not by Guzzle's `stream` option.
      */
     private function createDefaultClient(FetchPolicy $policy): ClientInterface
     {
-        $stack = HandlerStack::create();
+        $stack = HandlerStack::create(new CurlHandler());
         if ($policy->debug) {
             $stack->push(
                 Middleware::log(

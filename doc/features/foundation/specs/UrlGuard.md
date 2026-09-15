@@ -288,10 +288,10 @@ Immutable. PHP cannot enforce package-private construction, so its constructor i
 
 ```text
 public function curlResolveEntries(): array
-// → ["{host}:{port}:{ip}", …]  (one entry per IP)
+// → ["{host}:{port}:{ip1,ip2,…}"]  (one entry; all IPs comma-separated)
 ```
 
-**IPv6 in pin entries:** use bare address forms as returned by the validator (e.g. `2001:db8::1`), without surrounding brackets inside the `{ip}` slot. Return **one `CURLOPT_RESOLVE` entry per IP**. `host` in the entry must match the hostname in `requestUri` (ASCII LDH only in MVP).
+**IPv6 in pin entries:** use bare address forms as returned by the validator (e.g. `2001:db8::1`), without surrounding brackets inside the `{ip}` slot. Return **one `CURLOPT_RESOLVE` entry** for the host/port, with every IP in the address slot separated by commas. Multiple `HOST:PORT:ADDRESS` strings for the same host and port are replacements in libcurl, not alternatives — only the last IP would be used. `host` in the entry must match the hostname in `requestUri` (ASCII LDH only in MVP).
 
 `HttpFetcher` must use `requestUri` + `curlResolveEntries()`. It must not fetch `GuardResult::$original`. craftcms / `SsrfUrlValidator` returns **IPs only** on success — it does not return a normalized URL; UrlGuard owns the canonical `requestUri` string.
 
@@ -405,7 +405,7 @@ Fake returns fixed public IPs (e.g. `['203.0.113.10']` — TEST-NET, safe for do
 | Explicit port | `https://example.com:8443/` | port `8443` in pin entry |
 | Leading/trailing spaces | `"  https://example.com/x  "` | trim for parse; `original` keeps raw input |
 | Subdomain | `https://www.example.com` | |
-| Multiple IPs from validator | fake → `['203.0.113.10','203.0.113.11']` | `curlResolveEntries()` lists all |
+| Multiple IPs from validator | fake → `['203.0.113.10','203.0.113.11']` | `curlResolveEntries()` is one `host:port:ip1,ip2` string |
 
 ### Unsupported URL → `UrlGuardError::Policy`
 

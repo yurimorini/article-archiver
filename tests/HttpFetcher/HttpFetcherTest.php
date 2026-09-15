@@ -7,6 +7,7 @@ namespace Yumo\LogRead\Tests\HttpFetcher;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\RequestException;
+use GuzzleHttp\Handler\CurlHandler;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Psr7\Request;
@@ -105,6 +106,23 @@ final class HttpFetcherTest extends TestCase
             ['example.com:443:203.0.113.10'],
             $mock->getLastOptions()['curl'][CURLOPT_RESOLVE],
         );
+    }
+
+    public function test_does_not_pass_stream_option_when_pinning_with_curl(): void
+    {
+        $mock = null;
+        $client = $this->clientWithResponses(
+            [new Response(200, ['Content-Type' => 'text/html'], 'ok')],
+            $mock,
+        );
+        $fetcher = new HttpFetcher(new FetchPolicy(), $client, new NullLogger());
+
+        $fetcher->fetch($this->target());
+
+        $options = $mock->getLastOptions();
+        self::assertArrayHasKey('curl', $options);
+        self::assertArrayHasKey(CURLOPT_RESOLVE, $options['curl']);
+        self::assertTrue(empty($options['stream']));
     }
 
     #[DataProvider('transportFailures')]
@@ -339,6 +357,21 @@ final class HttpFetcherTest extends TestCase
     {
         $fetcher = new HttpFetcher();
         self::assertInstanceOf(HttpFetcher::class, $fetcher);
+    }
+
+    public function test_default_client_uses_curl_handler(): void
+    {
+        $fetcher = new HttpFetcher(new FetchPolicy());
+
+        $clientProperty = new \ReflectionProperty(HttpFetcher::class, 'client');
+        /** @var Client $client */
+        $client = $clientProperty->getValue($fetcher);
+
+        /** @var HandlerStack<callable> $stack */
+        $stack = $client->getConfig('handler');
+        $handlerProperty = new \ReflectionProperty(HandlerStack::class, 'handler');
+
+        self::assertInstanceOf(CurlHandler::class, $handlerProperty->getValue($stack));
     }
 
     public function test_default_client_attaches_debug_log_middleware_when_debug_enabled(): void
