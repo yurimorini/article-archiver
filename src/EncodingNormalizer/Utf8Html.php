@@ -5,19 +5,18 @@ declare(strict_types=1);
 namespace Yumo\LogRead\EncodingNormalizer;
 
 /**
- * UTF-8 HTML taken from one fetched page, plus the URL that page was requested as.
+ * This class wraps UTF-8 HTML from one fetched page together with the request URL and the source encoding name.
  *
- * `$html` is the document body to parse. `$sourceUrl` is copied from the fetch request
- * URI so later steps can resolve relative links against the real page address.
+ * Callers pass the HTML document body, the URI that was requested, and the encoding that was used or assumed before UTF-8 conversion.
  */
 final readonly class Utf8Html
 {
     public function __construct(
-        /** HTML bytes that are valid UTF-8 and do not start with a UTF-8 BOM. */
+        /** This value holds the HTML document body that later parsing will read. */
         public string $html,
-        /** Request URI this HTML was fetched from; used as the base for relative URLs. */
+        /** This value holds the request URI this HTML was fetched from, and callers use it as the base for relative URLs. */
         public string $sourceUrl,
-        /** Encoding name that was used or assumed before conversion to UTF-8. */
+        /** This value holds the encoding name that was used or assumed before conversion to UTF-8. */
         public string $sourceEncoding,
     ) {
     }
