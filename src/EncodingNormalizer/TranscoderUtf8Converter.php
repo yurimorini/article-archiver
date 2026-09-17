@@ -8,7 +8,7 @@ use Ddeboer\Transcoder\Transcoder;
 use Ddeboer\Transcoder\TranscoderInterface;
 
 /**
- * Converts encodings with `Ddeboer\Transcoder\Transcoder` (mbstring, then iconv).
+ * This class converts encodings with `Ddeboer\Transcoder\Transcoder` (mbstring, then iconv).
  *
  * Lossy conversion uses `mb_convert_encoding` when `$fromEncoding` is a known mbstring
  * encoding, and `mb_scrub` otherwise, so invalid sequences become replacement characters
@@ -16,11 +16,11 @@ use Ddeboer\Transcoder\TranscoderInterface;
  */
 final class TranscoderUtf8Converter implements Utf8Converter
 {
-    /** Vendor transcoder that maps `$fromEncoding` to UTF-8. */
+    /** This value holds the vendor transcoder that maps `$fromEncoding` to UTF-8. */
     private TranscoderInterface $transcoder;
 
     /**
-     * Creates the adapter. When `$transcoder` is omitted, `Transcoder::create()` is used.
+     * This constructor creates the adapter. When `$transcoder` is omitted, `Transcoder::create()` is used.
      */
     public function __construct(?TranscoderInterface $transcoder = null)
     {
@@ -28,7 +28,7 @@ final class TranscoderUtf8Converter implements Utf8Converter
     }
 
     /**
-     * Converts `$bytes` from `$fromEncoding` into UTF-8.
+     * This method converts `$bytes` from `$fromEncoding` into UTF-8.
      *
      * @throws \Ddeboer\Transcoder\Exception\UnsupportedEncodingException When `$fromEncoding` is not available on this platform
      * @throws \Throwable When conversion fails for any other reason
@@ -38,6 +38,9 @@ final class TranscoderUtf8Converter implements Utf8Converter
         return $this->transcoder->transcode($bytes, $fromEncoding, 'UTF-8');
     }
 
+    /**
+     * This method converts `$bytes` into UTF-8 with substitution or ignore so the result is valid UTF-8 when possible.
+     */
     public function convertLossy(string $bytes, string $fromEncoding): string
     {
         if ($this->isSupportedMbEncoding($fromEncoding) && !$this->isUtf8Name($fromEncoding)) {

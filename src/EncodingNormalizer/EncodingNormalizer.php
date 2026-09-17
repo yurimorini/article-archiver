@@ -9,7 +9,7 @@ use Fossar\GuzzleTranscoder\ContentTypeExtractor;
 use Yumo\LogRead\HttpFetcher\FetchedPage;
 
 /**
- * Turns opaque HTML response bytes into a UTF-8 HTML document, or throws.
+ * This class turns opaque HTML response bytes into a UTF-8 HTML document, or throws.
  *
  * Encoding is taken from a BOM, the HTTP Content-Type charset, a short HTML meta
  * prescan, a UTF-8 validity check, then an optional `mb_detect_encoding` guess.
@@ -23,21 +23,21 @@ use Yumo\LogRead\HttpFetcher\FetchedPage;
  */
 final class EncodingNormalizer
 {
-    /** How many leading body bytes are scanned for `<meta charset>` / `http-equiv`. */
+    /** This constant holds how many leading body bytes are scanned for `<meta charset>` / `http-equiv`. */
     private const META_PRESCAN_BYTES = 1024;
 
     /**
-     * Candidate list for `mb_detect_encoding` when nothing was declared.
+     * This constant holds the candidate encodings for `mb_detect_encoding` when nothing was declared.
      *
      * @var list<string>
      */
     private const DETECT_CANDIDATES = ['UTF-8', 'Windows-1252', 'ISO-8859-1'];
 
-    /** Converts named encodings to UTF-8, including a lossy fallback. */
+    /** This value holds the converter that turns named encodings into UTF-8, including a lossy fallback. */
     private Utf8Converter $converter;
 
     /**
-     * Creates the normalizer. When `$converter` is omitted, the production transcoder adapter is used.
+     * This constructor creates the normalizer. When `$converter` is omitted, the production transcoder adapter is used.
      */
     public function __construct(?Utf8Converter $converter = null)
     {
@@ -45,7 +45,7 @@ final class EncodingNormalizer
     }
 
     /**
-     * Converts `$page->body` to UTF-8 HTML and copies `$page->requestUri` onto the result.
+     * This method converts `$page->body` to UTF-8 HTML and copies `$page->requestUri` onto the result.
      *
      * @throws EncodingNormalizerException When even lossy UTF-8 cannot be produced
      */
