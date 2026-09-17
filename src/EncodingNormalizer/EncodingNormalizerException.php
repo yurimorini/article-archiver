@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace Yumo\LogRead\EncodingNormalizer;
 
 /**
- * Thrown when UTF-8 HTML cannot be produced from the fetched document bytes.
+ * This exception reports that UTF-8 HTML could not be produced from the response bytes.
  *
- * Inspect `$error` to tell undeclared charset, unsupported encoding, and conversion failures apart.
+ * You can inspect `$error` to distinguish undeclared charset, unsupported encoding, and conversion failures.
  */
 final class EncodingNormalizerException extends \RuntimeException
 {
     public function __construct(
-        /** The encoding failure kind that caused this exception to be thrown. */
+        /** This value identifies why UTF-8 HTML could not be produced. */
         public readonly EncodingError $error,
         string $message = '',
         ?\Throwable $previous = null,
