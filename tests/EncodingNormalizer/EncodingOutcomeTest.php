@@ -8,6 +8,7 @@ use PHPUnit\Framework\TestCase;
 use Yumo\LogRead\EncodingNormalizer\EncodingError;
 use Yumo\LogRead\EncodingNormalizer\EncodingOutcome;
 use Yumo\LogRead\EncodingNormalizer\EncodingQuality;
+use Yumo\LogRead\EncodingNormalizer\EncodingSource;
 use Yumo\LogRead\EncodingNormalizer\Utf8Html;
 
 final class EncodingOutcomeTest extends TestCase
@@ -52,6 +53,7 @@ final class EncodingOutcomeTest extends TestCase
             html: '<p>ok</p>',
             sourceUrl: 'https://example.com/article',
             sourceEncoding: 'UTF-8',
+            source: EncodingSource::HttpHeader,
         );
     }
 }
