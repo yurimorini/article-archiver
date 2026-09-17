@@ -231,6 +231,10 @@ final class EncodingNormalizer
             return $bytes;
         }
 
+        if ($this->isSupportedMbEncoding($fromEncoding) && !mb_check_encoding($bytes, $fromEncoding)) {
+            throw new EncodingNormalizerException(EncodingError::Conversion);
+        }
+
         return $this->converter->convert($bytes, $fromEncoding);
     }
 
@@ -273,5 +277,16 @@ final class EncodingNormalizer
     private function isUtf8Name(string $encoding): bool
     {
         return strtoupper(str_replace(['-', '_'], '', $encoding)) === 'UTF8';
+    }
+
+    private function isSupportedMbEncoding(string $encoding): bool
+    {
+        foreach (mb_list_encodings() as $name) {
+            if (strcasecmp($name, $encoding) === 0) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

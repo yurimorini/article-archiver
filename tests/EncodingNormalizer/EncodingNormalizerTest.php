@@ -157,6 +157,17 @@ final class EncodingNormalizerTest extends TestCase
         self::assertStringEndsWith('</html>', $outcome->html->html);
     }
 
+    public function test_invalid_sequences_under_declared_shift_jis_are_degraded_conversion(): void
+    {
+        $page = $this->page("<html>\x82\x20</html>", 'text/html; charset=SJIS');
+        $outcome = new EncodingNormalizer()->normalize($page);
+
+        $this->assertDegradedUtf8($outcome, $page, EncodingError::Conversion);
+        self::assertSame(EncodingSource::HttpHeader, $outcome->html->source);
+        self::assertStringStartsWith('<html>', $outcome->html->html);
+        self::assertStringEndsWith('</html>', $outcome->html->html);
+    }
+
     public function test_utf16le_bom_is_degraded_unsupported(): void
     {
         $payload = mb_convert_encoding('<html>x</html>', 'UTF-16LE', 'UTF-8');

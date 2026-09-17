@@ -11,6 +11,9 @@ namespace Yumo\LogRead\EncodingNormalizer;
  */
 final class EncodingNormalizerException extends \RuntimeException
 {
+    /**
+     * This constructor creates an exception for the specified encoding error.
+     */
     public function __construct(
         /** This value identifies why UTF-8 HTML could not be produced. */
         public readonly EncodingError $error,

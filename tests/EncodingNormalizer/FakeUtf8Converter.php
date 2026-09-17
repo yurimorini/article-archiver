@@ -14,6 +14,9 @@ use Yumo\LogRead\EncodingNormalizer\Utf8Converter;
  */
 final class FakeUtf8Converter implements Utf8Converter
 {
+    /**
+     * This constructor configures the strict-conversion failure and the lossy-conversion result.
+     */
     public function __construct(
         /** This value holds the exception thrown from every `convert()` call. */
         private readonly \Throwable $convertError,
