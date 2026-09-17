@@ -33,6 +33,21 @@ final class EncodingNormalizer
      */
     private const DETECT_CANDIDATES = ['UTF-8', 'Windows-1252', 'ISO-8859-1'];
 
+    /**
+     * This constant maps leading BOM byte sequences to encoding names.
+     *
+     * Longer signatures come first so UTF-32LE (`FF FE 00 00`) is not matched as UTF-16LE (`FF FE`).
+     *
+     * @var array<string, string>
+     */
+    private const BOM_ENCODINGS = [
+        "\x00\x00\xFE\xFF" => 'UTF-32BE',
+        "\xFF\xFE\x00\x00" => 'UTF-32LE',
+        "\xEF\xBB\xBF" => 'UTF-8',
+        "\xFE\xFF" => 'UTF-16BE',
+        "\xFF\xFE" => 'UTF-16LE',
+    ];
+
     /** This value holds the converter that turns named encodings into UTF-8, including a lossy fallback. */
     private Utf8Converter $converter;
 
@@ -55,16 +70,16 @@ final class EncodingNormalizer
         $detected = $this->detect($bytes, $page->contentType);
 
         $working = $bytes;
-        if ($detected['source'] === EncodingSource::Bom && $this->isUtf8Name($detected['encoding'])) {
+        if ($detected->source === EncodingSource::Bom && $this->isUtf8Name($detected->encoding)) {
             $working = $this->stripUtf8Bom($working);
         }
 
-        $warning = $detected['warning'];
+        $warning = $detected->warning;
         $previous = null;
 
-        if (!$detected['weak']) {
+        if (!$detected->isWeak()) {
             try {
-                $html = $this->convertStrict($working, $detected['encoding']);
+                $html = $this->convertStrict($working, $detected->encoding);
                 $html = $this->stripUtf8Bom($html);
                 if (!mb_check_encoding($html, 'UTF-8')) {
                     throw new EncodingNormalizerException(EncodingError::Conversion);
@@ -73,8 +88,8 @@ final class EncodingNormalizer
                 return EncodingOutcome::ok(new Utf8Html(
                     $html,
                     $page->requestUri,
-                    $detected['encoding'],
-                    $detected['source'],
+                    $detected->encoding,
+                    $detected->source,
                 ));
             } catch (EncodingNormalizerException $e) {
                 $warning = $e->error;
@@ -91,8 +106,8 @@ final class EncodingNormalizer
         return $this->degradedFromLossy(
             $working,
             $page->requestUri,
-            $detected['encoding'],
-            $detected['source'],
+            $detected->encoding,
+            $detected->source,
             $warning ?? EncodingError::Conversion,
             $previous,
         );
@@ -100,89 +115,46 @@ final class EncodingNormalizer
 
     /**
      * This method chooses the encoding of `$bytes` from a BOM, HTTP charset, HTML meta, UTF-8 validity, or an mbstring guess.
-     *
-     * @return array{encoding: string, source: EncodingSource, weak: bool, warning: ?EncodingError}
      */
-    private function detect(string $bytes, string $contentType): array
+    private function detect(string $bytes, string $contentType): DetectedEncoding
     {
-        $bom = $this->detectBom($bytes);
-        if ($bom !== null) {
-            $weak = !$this->isUtf8Name($bom['encoding']);
+        $bomEncoding = $this->detectBom($bytes);
+        if ($bomEncoding !== null) {
+            if ($this->isUtf8Name($bomEncoding)) {
+                return DetectedEncoding::trusted($bomEncoding, EncodingSource::Bom);
+            }
 
-            return [
-                'encoding' => $bom['encoding'],
-                'source' => EncodingSource::Bom,
-                'weak' => $weak,
-                'warning' => $weak ? EncodingError::Unsupported : null,
-            ];
+            return DetectedEncoding::weak($bomEncoding, EncodingSource::Bom, EncodingError::Unsupported);
         }
 
         $httpCharset = $this->parseHttpCharset($contentType);
         if ($httpCharset !== null) {
-            return [
-                'encoding' => $httpCharset,
-                'source' => EncodingSource::HttpHeader,
-                'weak' => false,
-                'warning' => null,
-            ];
+            return DetectedEncoding::trusted($httpCharset, EncodingSource::HttpHeader);
         }
 
         $metaCharset = $this->parseMetaCharset($bytes);
         if ($metaCharset !== null) {
-            return [
-                'encoding' => $metaCharset,
-                'source' => EncodingSource::Meta,
-                'weak' => false,
-                'warning' => null,
-            ];
+            return DetectedEncoding::trusted($metaCharset, EncodingSource::Meta);
         }
 
         if (mb_check_encoding($bytes, 'UTF-8')) {
-            return [
-                'encoding' => 'UTF-8',
-                'source' => EncodingSource::Utf8Default,
-                'weak' => false,
-                'warning' => null,
-            ];
+            return DetectedEncoding::trusted('UTF-8', EncodingSource::Utf8Default);
         }
 
         $guessed = mb_detect_encoding($bytes, self::DETECT_CANDIDATES, true);
         if (is_string($guessed) && $guessed !== '') {
-            return [
-                'encoding' => $guessed,
-                'source' => EncodingSource::Detect,
-                'weak' => true,
-                'warning' => EncodingError::Undeclared,
-            ];
+            return DetectedEncoding::weak($guessed, EncodingSource::Detect, EncodingError::Undeclared);
         }
 
-        return [
-            'encoding' => 'UTF-8',
-            'source' => EncodingSource::Lossy,
-            'weak' => true,
-            'warning' => EncodingError::Undeclared,
-        ];
+        return DetectedEncoding::weak('UTF-8', EncodingSource::Lossy, EncodingError::Undeclared);
     }
 
-    /**
-     * @return array{encoding: string}|null
-     */
-    private function detectBom(string $bytes): ?array
+    private function detectBom(string $bytes): ?string
     {
-        if (str_starts_with($bytes, "\x00\x00\xFE\xFF")) {
-            return ['encoding' => 'UTF-32BE'];
-        }
-        if (str_starts_with($bytes, "\xFF\xFE\x00\x00")) {
-            return ['encoding' => 'UTF-32LE'];
-        }
-        if (str_starts_with($bytes, "\xEF\xBB\xBF")) {
-            return ['encoding' => 'UTF-8'];
-        }
-        if (str_starts_with($bytes, "\xFE\xFF")) {
-            return ['encoding' => 'UTF-16BE'];
-        }
-        if (str_starts_with($bytes, "\xFF\xFE")) {
-            return ['encoding' => 'UTF-16LE'];
+        foreach (self::BOM_ENCODINGS as $bomBytes => $encoding) {
+            if (str_starts_with($bytes, $bomBytes)) {
+                return $encoding;
+            }
         }
 
         return null;
