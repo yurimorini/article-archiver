@@ -9,11 +9,7 @@ namespace Yumo\LogRead\EncodingNormalizer;
  *
  * The HTML bytes are valid UTF-8 and do not start with a UTF-8 BOM. Degraded conversion may
  * still contain replacement characters or mojibake, but the bytes are UTF-8.
- * The source URL is copied from the fetch request URI so later steps can resolve relative
- * links against the real page address.
- *
- * Production code constructs this type from `EncodingNormalizer`. Tests may construct
- * one directly when the UTF-8 invariants already hold.
+ * The source URL holds the request URI for the page, and callers use it as the base when they resolve relative links.
  */
 final readonly class Utf8Html
 {
