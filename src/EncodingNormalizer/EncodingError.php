@@ -5,11 +5,10 @@ declare(strict_types=1);
 namespace Yumo\LogRead\EncodingNormalizer;
 
 /**
- * Kind of encoding problem reported as a degraded-outcome warning or on a hard-failure exception.
+ * Kind of encoding problem when document bytes cannot be interpreted or converted to UTF-8 as required.
  *
- * Soft problems (lossy conversion, undeclared charset) use this enum on
- * `EncodingOutcome::$warning`. The exception path uses the same cases only when
- * UTF-8 HTML cannot be produced at all.
+ * Callers attach a case to a warning or to a hard failure so logs and handling can differ
+ * without a separate exception class for each situation.
  */
 enum EncodingError
 {
