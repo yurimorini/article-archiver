@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Yumo\LogRead\Tests\EncodingNormalizer;
 
 use PHPUnit\Framework\TestCase;
+use Yumo\LogRead\EncodingNormalizer\EncodingError;
 use Yumo\LogRead\EncodingNormalizer\EncodingNormalizer;
 use Yumo\LogRead\EncodingNormalizer\EncodingOutcome;
 use Yumo\LogRead\EncodingNormalizer\EncodingSource;
@@ -123,6 +124,62 @@ final class EncodingNormalizerTest extends TestCase
         self::assertSame('https://example.net/posts/1?q=1', $outcome->html->sourceUrl);
     }
 
+    public function test_undeclared_invalid_utf8_is_degraded_via_detect(): void
+    {
+        $page = $this->page("\x80\x81\x82\x83 not utf8 \xFF", 'text/html');
+        $outcome = (new EncodingNormalizer())->normalize($page);
+
+        $this->assertDegradedUtf8($outcome, $page, EncodingError::Undeclared);
+        self::assertSame(EncodingSource::Detect, $outcome->html->source);
+        self::assertSame('Windows-1252', $outcome->html->sourceEncoding);
+    }
+
+    public function test_unknown_charset_name_is_degraded_unsupported(): void
+    {
+        $page = $this->page('<html>ok</html>', 'text/html; charset=x-unknown');
+        $outcome = (new EncodingNormalizer())->normalize($page);
+
+        $this->assertDegradedUtf8($outcome, $page, EncodingError::Unsupported);
+        self::assertSame(EncodingSource::HttpHeader, $outcome->html->source);
+        self::assertSame('x-unknown', $outcome->html->sourceEncoding);
+        self::assertSame('<html>ok</html>', $outcome->html->html);
+    }
+
+    public function test_invalid_sequences_under_declared_utf8_are_degraded_conversion(): void
+    {
+        $page = $this->page("<html>\xC3\x28</html>", 'text/html; charset=utf-8');
+        $outcome = (new EncodingNormalizer())->normalize($page);
+
+        $this->assertDegradedUtf8($outcome, $page, EncodingError::Conversion);
+        self::assertSame(EncodingSource::HttpHeader, $outcome->html->source);
+        self::assertStringStartsWith('<html>', $outcome->html->html);
+        self::assertStringEndsWith('</html>', $outcome->html->html);
+    }
+
+    public function test_utf16le_bom_is_degraded_unsupported(): void
+    {
+        $payload = mb_convert_encoding('<html>x</html>', 'UTF-16LE', 'UTF-8');
+        $page = $this->page("\xFF\xFE" . $payload, 'text/html');
+        $outcome = (new EncodingNormalizer())->normalize($page);
+
+        $this->assertDegradedUtf8($outcome, $page, EncodingError::Unsupported);
+        self::assertSame(EncodingSource::Bom, $outcome->html->source);
+        self::assertSame('UTF-16LE', $outcome->html->sourceEncoding);
+        self::assertSame('<html>x</html>', $outcome->html->html);
+    }
+
+    public function test_meta_beyond_prescan_window_is_not_used(): void
+    {
+        $body = str_repeat(' ', 1024)
+            . "<meta charset=\"ISO-8859-1\"><html>caf\xE9</html>";
+        $page = $this->page($body, 'text/html');
+        $outcome = (new EncodingNormalizer())->normalize($page);
+
+        self::assertFalse($outcome->isOk());
+        self::assertNotSame(EncodingSource::Meta, $outcome->html->source);
+        $this->assertDegradedUtf8($outcome, $page, EncodingError::Undeclared);
+    }
+
     /**
      * Builds a successful fetch fixture. Status is unused by the normalizer and stays 200.
      */
@@ -141,6 +198,21 @@ final class EncodingNormalizerTest extends TestCase
     {
         self::assertTrue($outcome->isOk());
         self::assertNull($outcome->warning);
+        self::assertTrue(mb_check_encoding($outcome->html->html, 'UTF-8'));
+        self::assertSame($page->requestUri, $outcome->html->sourceUrl);
+        self::assertFalse(str_starts_with($outcome->html->html, "\xEF\xBB\xBF"));
+    }
+
+    /**
+     * Asserts the outcome is valid UTF-8 HTML with the given warning, provenance copied from the fetch.
+     */
+    private function assertDegradedUtf8(
+        EncodingOutcome $outcome,
+        FetchedPage $page,
+        EncodingError $warning,
+    ): void {
+        self::assertTrue($outcome->isDegraded());
+        self::assertSame($warning, $outcome->warning);
         self::assertTrue(mb_check_encoding($outcome->html->html, 'UTF-8'));
         self::assertSame($page->requestUri, $outcome->html->sourceUrl);
         self::assertFalse(str_starts_with($outcome->html->html, "\xEF\xBB\xBF"));
