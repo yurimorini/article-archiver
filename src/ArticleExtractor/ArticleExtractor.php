@@ -48,7 +48,7 @@ final class ArticleExtractor
             return ExtractResult::noContent($html->sourceUrl);
         }
 
-        $article = new Readability($this->configurationFor($html))->parse($html->html);
+        $article = (new Readability($this->configurationFor($html)))->parse($html->html);
         $title = PlainText::fromUntrusted($article->title);
         $excerpt = PlainText::fromUntrustedNullable($article->excerpt);
         $siteName = PlainText::fromUntrustedNullable($article->siteName);
@@ -76,14 +76,10 @@ final class ArticleExtractor
      *
      * Relative URLs are rewritten against `$html->sourceUrl`. The element cap
      * is the project default of 30000 until a later change reads it from the policy.
-     * The logger is included only when debug is on. Readability writes to a PSR-3
-     * logger even when its own debug flag is false.
      */
     private function configurationFor(Utf8Html $html): Configuration
     {
         return new Configuration(
-            debug: $this->policy->debug,
-            logger: $this->policy->debug ? $this->logger : null,
             charThreshold: $this->policy->charThreshold,
             fixRelativeURLs: true,
             originalURL: $html->sourceUrl,

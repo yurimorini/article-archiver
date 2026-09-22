@@ -15,7 +15,7 @@ final class ArticleExtractorTest extends TestCase
 {
     public function test_extracts_article_and_drops_chrome(): void
     {
-        $result = new ArticleExtractor()->extract($this->page($this->articleHtml()));
+        $result = (new ArticleExtractor())->extract($this->page($this->articleHtml()));
 
         self::assertSame(ExtractStatus::Ok, $result->status);
         self::assertTrue($result->isOk());
@@ -36,7 +36,7 @@ final class ArticleExtractorTest extends TestCase
     #[DataProvider('blankHtml')]
     public function test_blank_html_is_no_content(string $html): void
     {
-        $result = new ArticleExtractor()->extract($this->page($html, 'https://ex.com/empty'));
+        $result = (new ArticleExtractor())->extract($this->page($html, 'https://ex.com/empty'));
 
         self::assertSame(ExtractStatus::NoContent, $result->status);
         self::assertTrue($result->isNoContent());
@@ -68,7 +68,7 @@ final class ArticleExtractorTest extends TestCase
             . '<meta property="og:site_name" content="Example News">'
             . '</head><body></body></html>';
 
-        $result = new ArticleExtractor()->extract($this->page($html));
+        $result = (new ArticleExtractor())->extract($this->page($html));
 
         self::assertTrue($result->isNoContent());
         self::assertNull($result->document);
@@ -89,7 +89,7 @@ final class ArticleExtractorTest extends TestCase
             . '<meta property="og:site_name" content="&lt;i&gt;News&lt;/i&gt;">'
             . '</head><body></body></html>';
 
-        $result = new ArticleExtractor()->extract($this->page($html));
+        $result = (new ArticleExtractor())->extract($this->page($html));
 
         self::assertTrue($result->isNoContent());
         self::assertNotNull($result->title);
