@@ -60,6 +60,47 @@ final class ArticleExtractorTest extends TestCase
         ];
     }
 
+    public function test_empty_body_with_metadata_is_no_content(): void
+    {
+        $html = '<html><head>'
+            . '<meta property="og:title" content="OG Title">'
+            . '<meta name="description" content="Just a blurb">'
+            . '<meta property="og:site_name" content="Example News">'
+            . '</head><body></body></html>';
+
+        $result = (new ArticleExtractor())->extract($this->page($html));
+
+        self::assertTrue($result->isNoContent());
+        self::assertNull($result->document);
+        self::assertNotNull($result->title);
+        self::assertSame('OG Title', $result->title->raw());
+        self::assertNotNull($result->excerpt);
+        self::assertSame('Just a blurb', $result->excerpt->raw());
+        self::assertNotNull($result->siteName);
+        self::assertSame('Example News', $result->siteName->raw());
+        self::assertSame('https://ex.com/a', $result->sourceUrl);
+    }
+
+    public function test_metadata_tags_are_stripped_on_no_content(): void
+    {
+        $html = '<html><head>'
+            . '<meta property="og:title" content="&lt;b&gt;Hi &amp; Bye&lt;/b&gt;">'
+            . '<meta name="description" content="&lt;em&gt;Excerpt&lt;/em&gt;">'
+            . '<meta property="og:site_name" content="&lt;i&gt;News&lt;/i&gt;">'
+            . '</head><body></body></html>';
+
+        $result = (new ArticleExtractor())->extract($this->page($html));
+
+        self::assertTrue($result->isNoContent());
+        self::assertNotNull($result->title);
+        self::assertSame('Hi & Bye', $result->title->raw());
+        self::assertSame('Hi &amp; Bye', $result->title->html());
+        self::assertNotNull($result->excerpt);
+        self::assertSame('Excerpt', $result->excerpt->raw());
+        self::assertNotNull($result->siteName);
+        self::assertSame('News', $result->siteName->raw());
+    }
+
     private function page(string $html, string $sourceUrl = 'https://ex.com/a'): Utf8Html
     {
         return new Utf8Html(

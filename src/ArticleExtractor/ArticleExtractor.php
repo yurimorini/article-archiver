@@ -49,8 +49,12 @@ final class ArticleExtractor
         }
 
         $article = (new Readability($this->configurationFor($html)))->parse($html->html);
+        $title = PlainText::fromUntrusted($article->title);
+        $excerpt = PlainText::fromUntrustedNullable($article->excerpt);
+        $siteName = PlainText::fromUntrustedNullable($article->siteName);
+
         if (!$article->hasContent()) {
-            throw new ArticleExtractorException(ArticleExtractorError::Unexpected);
+            return ExtractResult::noContent($html->sourceUrl, $title, $excerpt, $siteName);
         }
 
         $content = $article->content;
@@ -59,9 +63,9 @@ final class ArticleExtractor
         }
 
         return ExtractResult::ok(new ReadableDocument(
-            title: PlainText::fromUntrusted($article->title),
-            excerpt: PlainText::fromUntrustedNullable($article->excerpt),
-            siteName: PlainText::fromUntrustedNullable($article->siteName),
+            title: $title,
+            excerpt: $excerpt,
+            siteName: $siteName,
             content: $content,
             sourceUrl: $html->sourceUrl,
         ));
