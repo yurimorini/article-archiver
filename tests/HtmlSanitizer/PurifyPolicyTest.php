@@ -26,6 +26,9 @@ final class PurifyPolicyTest extends TestCase
         self::assertTrue($policy->debug);
     }
 
+    /**
+     * @param list<string> $schemes
+     */
     #[DataProvider('rejectedSchemes')]
     public function test_rejects_schemes_outside_the_mvp_allowlist(array $schemes, string $message): void
     {

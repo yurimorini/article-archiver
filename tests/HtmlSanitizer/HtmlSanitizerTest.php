@@ -9,6 +9,8 @@ use PHPUnit\Framework\TestCase;
 use Yumo\LogRead\ArticleExtractor\PlainText;
 use Yumo\LogRead\ArticleExtractor\ReadableDocument;
 use Yumo\LogRead\HtmlSanitizer\HtmlSanitizer;
+use Yumo\LogRead\HtmlSanitizer\HtmlSanitizerError;
+use Yumo\LogRead\HtmlSanitizer\HtmlSanitizerException;
 use Yumo\LogRead\HtmlSanitizer\PurifyPolicy;
 use Yumo\LogRead\HtmlSanitizer\SafeDocument;
 
@@ -20,7 +22,7 @@ final class HtmlSanitizerTest extends TestCase
     protected function setUp(): void
     {
         $this->cachePath = sys_get_temp_dir() . '/log-read-htmlpurifier-' . bin2hex(random_bytes(4));
-        mkdir($this->cachePath, 0775, true);
+        mkdir($this->cachePath, 0o775, true);
     }
 
     protected function tearDown(): void
@@ -111,6 +113,78 @@ final class HtmlSanitizerTest extends TestCase
         $safe = $this->sanitizer()->purify($this->article('<script>alert(1)</script>'));
 
         self::assertSame('', $safe->html);
+    }
+
+    public function test_missing_cache_directory_is_created(): void
+    {
+        $path = sys_get_temp_dir() . '/log-read-htmlpurifier-missing-' . bin2hex(random_bytes(4));
+        self::assertDirectoryDoesNotExist($path);
+
+        try {
+            $safe = new HtmlSanitizer(new PurifyPolicy(), $path)->purify($this->article('<p>x</p>'));
+
+            self::assertSame('<p>x</p>', $safe->html);
+            self::assertDirectoryExists($path);
+        } finally {
+            $this->removeTree($path);
+        }
+    }
+
+    public function test_file_cache_path_throws_configuration(): void
+    {
+        $path = tempnam(sys_get_temp_dir(), 'lr-hp-');
+        self::assertIsString($path);
+
+        try {
+            new HtmlSanitizer(new PurifyPolicy(), $path)->purify($this->article('<p>x</p>'));
+            self::fail('A file path must not be used as the definition cache');
+        } catch (HtmlSanitizerException $exception) {
+            self::assertSame(HtmlSanitizerError::Configuration, $exception->error);
+            self::assertSame('HTML purifier definition cache path is not usable', $exception->getMessage());
+            self::assertNull($exception->getPrevious());
+        } finally {
+            $this->removeTree($path);
+        }
+    }
+
+    public function test_unwritable_cache_directory_throws_configuration(): void
+    {
+        $path = sys_get_temp_dir() . '/log-read-htmlpurifier-ro-' . bin2hex(random_bytes(4));
+        mkdir($path, 0o775, true);
+        chmod($path, 0o555);
+        if (is_writable($path)) {
+            $this->removeTree($path);
+            self::markTestSkipped('This process can still write to a mode 0555 directory');
+        }
+
+        try {
+            new HtmlSanitizer(new PurifyPolicy(), $path)->purify($this->article('<p>x</p>'));
+            self::fail('An unwritable directory must not be used as the definition cache');
+        } catch (HtmlSanitizerException $exception) {
+            self::assertSame(HtmlSanitizerError::Configuration, $exception->error);
+            self::assertSame('HTML purifier definition cache path is not usable', $exception->getMessage());
+        } finally {
+            chmod($path, 0o775);
+            $this->removeTree($path);
+        }
+    }
+
+    public function test_debug_does_not_require_a_cache_directory_and_strips_the_same_way(): void
+    {
+        $file = tempnam(sys_get_temp_dir(), 'lr-hp-debug-');
+        self::assertIsString($file);
+        $content = '<p>x</p><script>alert(1)</script>';
+
+        try {
+            $debugged = new HtmlSanitizer(new PurifyPolicy(debug: true), $file)->purify($this->article($content));
+            $cached = $this->sanitizer()->purify($this->article($content));
+
+            self::assertSame('<p>x</p>', $debugged->html);
+            self::assertSame($cached->html, $debugged->html);
+            self::assertFileExists($file);
+        } finally {
+            $this->removeTree($file);
+        }
     }
 
     /**

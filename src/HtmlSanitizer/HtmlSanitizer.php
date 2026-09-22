@@ -50,7 +50,7 @@ final class HtmlSanitizer
         $config = $this->config();
 
         try {
-            $html = (new HTMLPurifier($config))->purify($document->content);
+            $html = new HTMLPurifier($config)->purify($document->content);
         } catch (HTMLPurifier_Exception $exception) {
             throw new HtmlSanitizerException(HtmlSanitizerError::Configuration, '', $exception);
         } catch (\Throwable $exception) {
@@ -67,7 +67,10 @@ final class HtmlSanitizer
     }
 
     /**
-     * This method builds the purifier config: UTF-8, a fixed XHTML doctype, and the policy’s scheme lookup.
+     * This method builds the purifier config for the stored policy.
+     *
+     * Debug skips the definition cache and collects errors inside the purifier.
+     * Those messages are not returned and do not change the fragment.
      */
     private function config(): HTMLPurifier_Config
     {
@@ -77,9 +80,52 @@ final class HtmlSanitizer
         $config->set('HTML.Trusted', false);
         $config->set('URI.AllowedSchemes', $this->schemeLookup());
         $config->set('URI.OverrideAllowedSchemes', false);
+
+        if ($this->policy->debug) {
+            $config->set('Cache.DefinitionImpl', null);
+            $config->set('Core.CollectErrors', true);
+
+            return $config;
+        }
+
+        $this->prepareDefinitionCache();
         $config->set('Cache.SerializerPath', $this->definitionCachePath);
 
         return $config;
+    }
+
+    /**
+     * This method creates the definition-cache directory when it is missing.
+     *
+     * Purifier only warns when the directory is absent, and still returns HTML.
+     * Callers need a hard failure instead, so this method throws before `purify()`.
+     */
+    private function prepareDefinitionCache(): void
+    {
+        $path = $this->definitionCachePath;
+        if ($path === '' || (file_exists($path) && !is_dir($path)) || (is_dir($path) && !is_writable($path))) {
+            throw new HtmlSanitizerException(
+                HtmlSanitizerError::Configuration,
+                'HTML purifier definition cache path is not usable',
+            );
+        }
+        if (is_dir($path)) {
+            return;
+        }
+
+        // mkdir warns on failure. The warning is suppressed so the thrown exception is the only signal.
+        if (!@mkdir($path, 0o775, true) && !is_dir($path)) {
+            throw new HtmlSanitizerException(
+                HtmlSanitizerError::Configuration,
+                'HTML purifier definition cache path is not usable',
+            );
+        }
+        if (!is_writable($path)) {
+            throw new HtmlSanitizerException(
+                HtmlSanitizerError::Configuration,
+                'HTML purifier definition cache path is not usable',
+            );
+        }
     }
 
     /**
