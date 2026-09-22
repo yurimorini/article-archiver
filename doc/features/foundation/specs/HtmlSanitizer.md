@@ -148,9 +148,11 @@ Production Purifier needs a **writable** definition cache directory when `debug 
 
 | Call site | Path |
 |-----------|------|
-| `OrchestratorFactory` | `$options?->purifierCachePath ?? sys_get_temp_dir() . '/log-read-htmlpurifier'` → passed only as `HtmlSanitizer` constructor argument |
-| Direct `new HtmlSanitizer($policy, $path)` | Constructor `$definitionCachePath`; `null` → same `sys_get_temp_dir()` default |
+| `OrchestratorFactory` | `$options?->purifierCachePath ??` per-user temp directory → passed only as `HtmlSanitizer` constructor argument |
+| Direct `new HtmlSanitizer($policy, $path)` | Constructor `$definitionCachePath`; `null` → `sys_get_temp_dir() . '/log-read-htmlpurifier-' . <process user id>` |
 | `PurifyPolicy` | Does **not** carry a cache path (avoids dual knobs) |
+
+The default directory is private to the current user (`0700`). A shared name such as `log-read-htmlpurifier` would let only one account use that private directory; the user id in the name avoids that collision. A caller-supplied path is refused when it is empty, not a directory, not owned by this user, or writable by the group or by everyone. Purifier unserializes definition files from this directory, so another writer could replace the sanitizer’s rules. Directories Purifier creates inside the cache use `Cache.SerializerPermissions = 0700`.
 
 Create the directory when missing if possible. Failures to use the cache (permissions, etc.) map to `HtmlSanitizerError::Configuration` (or documented equivalent).
 
