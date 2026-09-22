@@ -79,6 +79,7 @@ final class HtmlSanitizer
         $config->set('HTML.Doctype', 'XHTML 1.0 Transitional');
         $config->set('HTML.Trusted', false);
         $config->set('URI.AllowedSchemes', $this->schemeLookup());
+        // HTMLPurifier's scheme registry is process-wide; keep this false or an earlier config can leave a scheme this policy rejected.
         $config->set('URI.OverrideAllowedSchemes', false);
 
         if ($this->policy->debug) {

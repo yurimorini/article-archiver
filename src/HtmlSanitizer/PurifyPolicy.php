@@ -26,6 +26,8 @@ final readonly class PurifyPolicy
      * This constructor stores the scheme list and the debug switch.
      *
      * @param list<string> $allowedSchemes Lowercase scheme names. Only `http`, `https`, and `mailto` are accepted.
+     *
+     * @throws \InvalidArgumentException When `$allowedSchemes` is empty, when any entry is not a lowercase scheme name, or when any entry is not `http`, `https`, or `mailto`.
      */
     public function __construct(
         /** This value is the URI scheme allowlist copied onto `URI.AllowedSchemes`. */
