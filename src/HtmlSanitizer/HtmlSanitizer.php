@@ -76,6 +76,7 @@ final class HtmlSanitizer
         $config->set('HTML.Doctype', 'XHTML 1.0 Transitional');
         $config->set('HTML.Trusted', false);
         $config->set('URI.AllowedSchemes', $this->schemeLookup());
+        $config->set('URI.OverrideAllowedSchemes', false);
         $config->set('Cache.SerializerPath', $this->definitionCachePath);
 
         return $config;
