@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 namespace Yumo\LogRead\Tests\ArticleExtractor;
 
+use fivefilters\Readability\ParseException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Yumo\LogRead\ArticleExtractor\ArticleExtractor;
+use Yumo\LogRead\ArticleExtractor\ArticleExtractorError;
+use Yumo\LogRead\ArticleExtractor\ArticleExtractorException;
+use Yumo\LogRead\ArticleExtractor\ExtractPolicy;
 use Yumo\LogRead\ArticleExtractor\ExtractStatus;
 use Yumo\LogRead\EncodingNormalizer\EncodingSource;
 use Yumo\LogRead\EncodingNormalizer\Utf8Html;
@@ -15,7 +19,7 @@ final class ArticleExtractorTest extends TestCase
 {
     public function test_extracts_article_and_drops_chrome(): void
     {
-        $result = (new ArticleExtractor())->extract($this->page($this->articleHtml()));
+        $result = new ArticleExtractor()->extract($this->page($this->articleHtml()));
 
         self::assertSame(ExtractStatus::Ok, $result->status);
         self::assertTrue($result->isOk());
@@ -36,7 +40,7 @@ final class ArticleExtractorTest extends TestCase
     #[DataProvider('blankHtml')]
     public function test_blank_html_is_no_content(string $html): void
     {
-        $result = (new ArticleExtractor())->extract($this->page($html, 'https://ex.com/empty'));
+        $result = new ArticleExtractor()->extract($this->page($html, 'https://ex.com/empty'));
 
         self::assertSame(ExtractStatus::NoContent, $result->status);
         self::assertTrue($result->isNoContent());
@@ -68,7 +72,7 @@ final class ArticleExtractorTest extends TestCase
             . '<meta property="og:site_name" content="Example News">'
             . '</head><body></body></html>';
 
-        $result = (new ArticleExtractor())->extract($this->page($html));
+        $result = new ArticleExtractor()->extract($this->page($html));
 
         self::assertTrue($result->isNoContent());
         self::assertNull($result->document);
@@ -89,7 +93,7 @@ final class ArticleExtractorTest extends TestCase
             . '<meta property="og:site_name" content="&lt;i&gt;News&lt;/i&gt;">'
             . '</head><body></body></html>';
 
-        $result = (new ArticleExtractor())->extract($this->page($html));
+        $result = new ArticleExtractor()->extract($this->page($html));
 
         self::assertTrue($result->isNoContent());
         self::assertNotNull($result->title);
@@ -99,6 +103,65 @@ final class ArticleExtractorTest extends TestCase
         self::assertSame('Excerpt', $result->excerpt->raw());
         self::assertNotNull($result->siteName);
         self::assertSame('News', $result->siteName->raw());
+    }
+
+    public function test_too_many_elements_throws_too_large(): void
+    {
+        $html = '<html><body>' . str_repeat('<span>x</span>', 40) . '</body></html>';
+        $extractor = new ArticleExtractor(new ExtractPolicy(maxElemsToParse: 10));
+
+        try {
+            $extractor->extract($this->page($html));
+            self::fail('Expected ArticleExtractorException');
+        } catch (ArticleExtractorException $exception) {
+            self::assertSame(ArticleExtractorError::TooLarge, $exception->error);
+            self::assertSame(
+                'HTML document exceeds the configured element limit',
+                $exception->getMessage(),
+            );
+            self::assertInstanceOf(ParseException::class, $exception->getPrevious());
+        }
+    }
+
+    public function test_zero_element_cap_parses_a_document_over_the_lowered_limit(): void
+    {
+        $html = '<html><body>' . str_repeat('<span>x</span>', 40) . '</body></html>';
+        $extractor = new ArticleExtractor(new ExtractPolicy(maxElemsToParse: 0));
+
+        $result = $extractor->extract($this->page($html));
+
+        self::assertTrue($result->isOk());
+    }
+
+    public function test_relative_link_stays_relative_when_fix_is_off(): void
+    {
+        $extractor = new ArticleExtractor(new ExtractPolicy(fixRelativeURLs: false));
+        $result = $extractor->extract($this->page($this->articleHtml()));
+
+        self::assertTrue($result->isOk());
+        self::assertNotNull($result->document);
+        self::assertStringContainsString('href="/x"', $result->document->content);
+        self::assertStringNotContainsString('https://ex.com/x', $result->document->content);
+    }
+
+    public function test_logger_is_not_called_when_debug_is_false(): void
+    {
+        $logger = new RecordingLogger();
+        $extractor = new ArticleExtractor(new ExtractPolicy(debug: false), $logger);
+
+        $extractor->extract($this->page($this->articleHtml()));
+
+        self::assertSame([], $logger->records);
+    }
+
+    public function test_logger_receives_messages_when_debug_is_true(): void
+    {
+        $logger = new RecordingLogger();
+        $extractor = new ArticleExtractor(new ExtractPolicy(debug: true), $logger);
+
+        $extractor->extract($this->page($this->articleHtml()));
+
+        self::assertNotEmpty($logger->records);
     }
 
     private function page(string $html, string $sourceUrl = 'https://ex.com/a'): Utf8Html

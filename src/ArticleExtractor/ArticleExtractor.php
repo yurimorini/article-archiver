@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Yumo\LogRead\ArticleExtractor;
 
 use fivefilters\Readability\Configuration;
+use fivefilters\Readability\ParseException;
 use fivefilters\Readability\Readability;
 use Psr\Log\LoggerInterface;
 use Yumo\LogRead\EncodingNormalizer\Utf8Html;
@@ -38,9 +39,9 @@ final class ArticleExtractor
     }
 
     /**
-     * This method extracts an article from `$html`, or returns NoContent when the document is blank.
+     * This method extracts an article from `$html`, or returns NoContent when the document is blank or has no article body.
      *
-     * @throws ArticleExtractorException When extraction aborts
+     * @throws ArticleExtractorException When the document exceeds the element cap or parsing fails unexpectedly
      */
     public function extract(Utf8Html $html): ExtractResult
     {
@@ -48,7 +49,21 @@ final class ArticleExtractor
             return ExtractResult::noContent($html->sourceUrl);
         }
 
-        $article = (new Readability($this->configurationFor($html)))->parse($html->html);
+        try {
+            $article = new Readability($this->configurationFor($html))->parse($html->html);
+        } catch (ParseException $exception) {
+            if ($this->isEmptyInput($exception)) {
+                return ExtractResult::noContent($html->sourceUrl);
+            }
+            if ($this->isTooLarge($exception)) {
+                throw new ArticleExtractorException(ArticleExtractorError::TooLarge, previous: $exception);
+            }
+
+            throw new ArticleExtractorException(ArticleExtractorError::Unexpected, previous: $exception);
+        } catch (\Throwable $exception) {
+            throw new ArticleExtractorException(ArticleExtractorError::Unexpected, previous: $exception);
+        }
+
         $title = PlainText::fromUntrusted($article->title);
         $excerpt = PlainText::fromUntrustedNullable($article->excerpt);
         $siteName = PlainText::fromUntrustedNullable($article->siteName);
@@ -72,18 +87,40 @@ final class ArticleExtractor
     }
 
     /**
-     * This method builds the vendor configuration for one page.
+     * This method builds the vendor configuration for one page from the stored policy.
      *
-     * Relative URLs are rewritten against `$html->sourceUrl`. The element cap
-     * is the project default of 30000 until a later change reads it from the policy.
+     * The logger is included only when debug is on. Readability writes to a PSR-3
+     * logger even when its own debug flag is false.
      */
     private function configurationFor(Utf8Html $html): Configuration
     {
         return new Configuration(
+            debug: $this->policy->debug,
+            logger: $this->policy->debug ? $this->logger : null,
+            maxElemsToParse: $this->policy->maxElemsToParse,
             charThreshold: $this->policy->charThreshold,
-            fixRelativeURLs: true,
-            originalURL: $html->sourceUrl,
-            maxElemsToParse: 30000,
+            fixRelativeURLs: $this->policy->fixRelativeURLs,
+            originalURL: $this->policy->fixRelativeURLs ? $html->sourceUrl : null,
         );
+    }
+
+    /**
+     * This method reports whether `$exception` is Readability’s empty-input failure.
+     *
+     * v4.1.0 has no error code. The message is the one from `ParseException::emptyInput()`.
+     */
+    private function isEmptyInput(ParseException $exception): bool
+    {
+        return $exception->getMessage() === 'No HTML content provided.';
+    }
+
+    /**
+     * This method reports whether `$exception` is Readability’s element-cap failure.
+     *
+     * v4.1.0 has no error code. The message prefix is the one from `ParseException::tooManyElements()`.
+     */
+    private function isTooLarge(ParseException $exception): bool
+    {
+        return str_starts_with($exception->getMessage(), 'Aborting parsing document;');
     }
 }
