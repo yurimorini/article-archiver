@@ -22,7 +22,7 @@ final class HtmlSanitizerTest extends TestCase
     protected function setUp(): void
     {
         $this->cachePath = sys_get_temp_dir() . '/log-read-htmlpurifier-' . bin2hex(random_bytes(4));
-        mkdir($this->cachePath, 0o775, true);
+        mkdir($this->cachePath, 0o700, true);
     }
 
     protected function tearDown(): void
@@ -125,6 +125,7 @@ final class HtmlSanitizerTest extends TestCase
 
             self::assertSame('<p>x</p>', $safe->html);
             self::assertDirectoryExists($path);
+            self::assertSame(0o700, fileperms($path) & 0o777);
         } finally {
             $this->removeTree($path);
         }
@@ -163,6 +164,7 @@ final class HtmlSanitizerTest extends TestCase
         } catch (HtmlSanitizerException $exception) {
             self::assertSame(HtmlSanitizerError::Configuration, $exception->error);
             self::assertSame('HTML purifier definition cache path is not usable', $exception->getMessage());
+            self::assertNull($exception->getPrevious());
         } finally {
             chmod($path, 0o775);
             $this->removeTree($path);
@@ -184,6 +186,57 @@ final class HtmlSanitizerTest extends TestCase
             self::assertFileExists($file);
         } finally {
             $this->removeTree($file);
+        }
+    }
+
+    public function test_empty_cache_path_throws_configuration(): void
+    {
+        try {
+            new HtmlSanitizer(new PurifyPolicy(), '')->purify($this->article('<p>x</p>'));
+            self::fail('An empty path must not be used as the definition cache');
+        } catch (HtmlSanitizerException $exception) {
+            self::assertSame(HtmlSanitizerError::Configuration, $exception->error);
+            self::assertSame('HTML purifier definition cache path is not usable', $exception->getMessage());
+            self::assertNull($exception->getPrevious());
+        }
+    }
+
+    public function test_group_or_world_writable_cache_directory_throws_configuration(): void
+    {
+        $path = sys_get_temp_dir() . '/log-read-htmlpurifier-open-' . bin2hex(random_bytes(4));
+        mkdir($path, 0o700, true);
+        chmod($path, 0o777);
+
+        try {
+            new HtmlSanitizer(new PurifyPolicy(), $path)->purify($this->article('<p>x</p>'));
+            self::fail('A directory other users can write must not be used as the definition cache');
+        } catch (HtmlSanitizerException $exception) {
+            self::assertSame(HtmlSanitizerError::Configuration, $exception->error);
+            self::assertSame('HTML purifier definition cache path is not usable', $exception->getMessage());
+            self::assertNull($exception->getPrevious());
+        } finally {
+            chmod($path, 0o700);
+            $this->removeTree($path);
+        }
+    }
+
+    public function test_default_cache_directory_is_private_to_this_user(): void
+    {
+        $uid = function_exists('posix_geteuid') ? posix_geteuid() : getmyuid();
+        $path = sys_get_temp_dir() . '/log-read-htmlpurifier-' . $uid;
+        $existed = is_dir($path);
+
+        try {
+            $safe = new HtmlSanitizer()->purify($this->article('<p>x</p>'));
+
+            self::assertSame('<p>x</p>', $safe->html);
+            self::assertDirectoryExists($path);
+            self::assertSame($uid, fileowner($path));
+            self::assertSame(0, fileperms($path) & 0o022);
+        } finally {
+            if (!$existed) {
+                $this->removeTree($path);
+            }
         }
     }
 

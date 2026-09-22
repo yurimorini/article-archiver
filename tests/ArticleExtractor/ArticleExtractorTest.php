@@ -6,7 +6,9 @@ namespace Yumo\LogRead\Tests\ArticleExtractor;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\AbstractLogger;
 use Yumo\LogRead\ArticleExtractor\ArticleExtractor;
+use Yumo\LogRead\ArticleExtractor\ExtractPolicy;
 use Yumo\LogRead\ArticleExtractor\ExtractStatus;
 use Yumo\LogRead\EncodingNormalizer\EncodingSource;
 use Yumo\LogRead\EncodingNormalizer\Utf8Html;
@@ -15,7 +17,7 @@ final class ArticleExtractorTest extends TestCase
 {
     public function test_extracts_article_and_drops_chrome(): void
     {
-        $result = (new ArticleExtractor())->extract($this->page($this->articleHtml()));
+        $result = new ArticleExtractor()->extract($this->page($this->articleHtml()));
 
         self::assertSame(ExtractStatus::Ok, $result->status);
         self::assertTrue($result->isOk());
@@ -36,7 +38,7 @@ final class ArticleExtractorTest extends TestCase
     #[DataProvider('blankHtml')]
     public function test_blank_html_is_no_content(string $html): void
     {
-        $result = (new ArticleExtractor())->extract($this->page($html, 'https://ex.com/empty'));
+        $result = new ArticleExtractor()->extract($this->page($html, 'https://ex.com/empty'));
 
         self::assertSame(ExtractStatus::NoContent, $result->status);
         self::assertTrue($result->isNoContent());
@@ -68,7 +70,7 @@ final class ArticleExtractorTest extends TestCase
             . '<meta property="og:site_name" content="Example News">'
             . '</head><body></body></html>';
 
-        $result = (new ArticleExtractor())->extract($this->page($html));
+        $result = new ArticleExtractor()->extract($this->page($html));
 
         self::assertTrue($result->isNoContent());
         self::assertNull($result->document);
@@ -89,7 +91,7 @@ final class ArticleExtractorTest extends TestCase
             . '<meta property="og:site_name" content="&lt;i&gt;News&lt;/i&gt;">'
             . '</head><body></body></html>';
 
-        $result = (new ArticleExtractor())->extract($this->page($html));
+        $result = new ArticleExtractor()->extract($this->page($html));
 
         self::assertTrue($result->isNoContent());
         self::assertNotNull($result->title);
@@ -99,6 +101,26 @@ final class ArticleExtractorTest extends TestCase
         self::assertSame('Excerpt', $result->excerpt->raw());
         self::assertNotNull($result->siteName);
         self::assertSame('News', $result->siteName->raw());
+    }
+
+    public function test_logger_is_used_only_when_debug_is_on(): void
+    {
+        $quiet = new RecordingLogger();
+        $loud = new RecordingLogger();
+        $previousLog = ini_get('error_log');
+        ini_set('error_log', '/dev/null');
+
+        try {
+            new ArticleExtractor(new ExtractPolicy(debug: false), $quiet)
+                ->extract($this->page($this->articleHtml()));
+            new ArticleExtractor(new ExtractPolicy(debug: true), $loud)
+                ->extract($this->page($this->articleHtml()));
+        } finally {
+            ini_set('error_log', $previousLog === false ? '' : $previousLog);
+        }
+
+        self::assertSame([], $quiet->messages);
+        self::assertNotEmpty($loud->messages);
     }
 
     private function page(string $html, string $sourceUrl = 'https://ex.com/a'): Utf8Html
@@ -129,5 +151,19 @@ final class ArticleExtractorTest extends TestCase
             . '<p><a href="/x">more</a></p></article>'
             . '<footer>Copyright 2026</footer>'
             . '</body></html>';
+    }
+}
+
+/**
+ * This logger stores messages so a test can see whether Readability received the extractor logger.
+ */
+final class RecordingLogger extends AbstractLogger
+{
+    /** @var list<string> */
+    public array $messages = [];
+
+    public function log($level, string|\Stringable $message, array $context = []): void
+    {
+        $this->messages[] = (string) $message;
     }
 }

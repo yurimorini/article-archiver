@@ -10,8 +10,8 @@ use Yumo\LogRead\ArticleExtractor\PlainText;
  * This class holds article HTML that has been purified, plus the metadata that belongs with it.
  *
  * `$html` is a UTF-8 fragment. Emit it as HTML. Do not run `htmlspecialchars` on the whole fragment.
- * `$title`, `$excerpt`, and `$siteName` are plain text copied from the extracted article:
- * store `raw()`, and use `html()` when rendering them as text.
+ * `$title`, `$excerpt`, and `$siteName` are `PlainText` objects copied from the extracted article.
+ * Keep those objects. Call `raw()` when storing or logging the text, and `html()` when rendering it.
  */
 final readonly class SafeDocument
 {
