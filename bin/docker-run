@@ -10,11 +10,34 @@ if ! docker image inspect "${IMAGE_NAME}" >/dev/null 2>&1; then
   exit 1
 fi
 
-exec docker run --rm \
-  --user "$(id -u):$(id -g)" \
-  -v "${ROOT_DIR}:/workspace" \
-  -w /workspace \
-  -e COMPOSER_HOME=/workspace/.composer \
-  -e HOME=/workspace \
-  "${IMAGE_NAME}" \
-  "$@"
+security_options="$(docker info --format '{{json .SecurityOptions}}')"
+run_args=(
+  --rm
+  -v "${ROOT_DIR}:/workspace"
+  -w /workspace
+  -e COMPOSER_HOME=/workspace/.composer
+  -e HOME=/workspace
+)
+
+if [[ "${security_options}" == *'"name=rootless"'* ]]; then
+  # Container uid 0 is the host user. The host uid is a different user inside
+  # the namespace, so Git rejects /workspace and Composer cannot write vendor/.
+  # Slirp also blocks host loopback, so Xdebug cannot reach an IDE on
+  # 127.0.0.1:9003. Stay off unless the caller sets XDEBUG_MODE.
+  run_args+=(-e COMPOSER_ALLOW_SUPERUSER=1)
+  if [[ -n "${XDEBUG_MODE+x}" ]]; then
+    run_args+=(-e "XDEBUG_MODE=${XDEBUG_MODE}")
+    if [[ "${XDEBUG_MODE}" != "off" ]]; then
+      run_args+=(-e "XDEBUG_CONFIG=${XDEBUG_CONFIG:-client_host=10.0.2.2}")
+    fi
+  else
+    run_args+=(-e XDEBUG_MODE=off)
+  fi
+else
+  run_args+=(
+    --user "$(id -u):$(id -g)"
+    --add-host=host.docker.internal:host-gateway
+  )
+fi
+
+exec docker run "${run_args[@]}" "${IMAGE_NAME}" "$@"
