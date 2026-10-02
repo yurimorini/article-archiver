@@ -132,7 +132,7 @@ final readonly class PipelineOptions
         public ?ExtractPolicy $extractPolicy = null,
         public ?PurifyPolicy $purifyPolicy = null,
         public ?LoggerInterface $logger = null,
-        public ?string $purifierCachePath = null, // null → factory default under sys_get_temp_dir()
+        public ?string $purifierCachePath = null, // null → HtmlSanitizer per-user default
     ) {}
 }
 
@@ -144,8 +144,6 @@ final class OrchestratorFactory
         $fetchPolicy = $options?->fetchPolicy ?? new FetchPolicy();
         $extractPolicy = $options?->extractPolicy ?? new ExtractPolicy();
         $purifyPolicy = $options?->purifyPolicy ?? new PurifyPolicy();
-        $cachePath = $options?->purifierCachePath
-            ?? (sys_get_temp_dir() . '/log-read-htmlpurifier');
 
         // UrlGuard: always production default. Fake SSRF / custom DNS →
         // use `new Orchestrator(…)` (constructor escape hatch), not PipelineOptions.
@@ -156,7 +154,9 @@ final class OrchestratorFactory
             $extractPolicy,
             $extractPolicy->debug ? $logger : null,
         );
-        $htmlSanitizer = new HtmlSanitizer($purifyPolicy, $cachePath);
+        // null keeps HtmlSanitizer's private per-user cache. A shared name would
+        // be owned by the first account and rejected for every other user.
+        $htmlSanitizer = new HtmlSanitizer($purifyPolicy, $options?->purifierCachePath);
 
         return new Orchestrator(
             $urlGuard,
@@ -494,13 +494,13 @@ Do **not** require mocking `ArticleExtractor` / `HtmlSanitizer` for the primary 
 
 ## Implementation checklist
 
-- [ ] `PipelineWarningCode` / `PipelineWarning`
-- [ ] `PipelineEmptyReason`, `PipelineNoContent` (`fromExtract`, `fromSanitizedEmpty`), `PipelineSuccess`
-- [ ] `OrchestratorError` / `OrchestratorException`
-- [ ] `Orchestrator` with private hop methods (log + wrap)
-- [ ] `PipelineOptions` + `OrchestratorFactory::create` (incl. purifier cache default + optional override)
-- [ ] PSR-3 logger defaulting to `NullLogger` on Orchestrator; always pass into `HttpFetcher`; pass into `ArticleExtractor` only when extract debug is on
-- [ ] Integration tests per table above
-- [ ] Thin CLI calling the factory
+- [x] `PipelineWarningCode` / `PipelineWarning`
+- [x] `PipelineEmptyReason`, `PipelineNoContent` (`fromExtract`, `fromSanitizedEmpty`), `PipelineSuccess`
+- [x] `OrchestratorError` / `OrchestratorException`
+- [x] `Orchestrator` with private hop methods (log + wrap)
+- [x] `PipelineOptions` + `OrchestratorFactory::create` (incl. purifier cache default + optional override)
+- [x] PSR-3 logger defaulting to `NullLogger` on Orchestrator; always pass into `HttpFetcher`; pass into `ArticleExtractor` only when extract debug is on
+- [x] Integration tests per table above
+- [x] Thin CLI calling the factory
 
 **Exit criteria:** one public `fetchArticle(string): PipelineSuccess|PipelineNoContent` path end-to-end under the policies above, with hard failures only as `OrchestratorException`.
