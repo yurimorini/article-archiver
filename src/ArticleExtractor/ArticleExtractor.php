@@ -89,13 +89,14 @@ final class ArticleExtractor
     /**
      * This method builds the vendor configuration for one page from the stored policy.
      *
-     * The logger is included only when debug is on. Readability writes to a PSR-3
-     * logger even when its own debug flag is false.
+     * The logger is included only when debug is on. Vendor `debug` stays false so
+     * Readability never calls `error_log()`. A debug-on extractor without a logger
+     * is treated as debug-off.
      */
     private function configurationFor(Utf8Html $html): Configuration
     {
         return new Configuration(
-            debug: $this->policy->debug,
+            debug: false,
             logger: $this->policy->debug ? $this->logger : null,
             maxElemsToParse: $this->policy->maxElemsToParse,
             charThreshold: $this->policy->charThreshold,

@@ -360,14 +360,22 @@ Immutable. Self-validating construction (non-negative limits, etc.). Named args 
 
 | Property | Type | Default | Meaning |
 |----------|------|---------|---------|
-| `debug` | `bool` | `false` | Readability `debug` → `error_log()`; when true, factory may also pass a PSR-3 logger into Readability |
+| `debug` | `bool` | `false` | When true **and** a PSR-3 logger is injected on `ArticleExtractor`, that logger is passed to Readability. Vendor `debug` (`error_log()`) is never enabled. `debug: true` with no logger is treated as off. Amendment: `[../extensions/2026-10-02-article-extractor-debug-logger.md](../extensions/2026-10-02-article-extractor-debug-logger.md)` |
 | `fixRelativeURLs` | `bool` | `true` | Rewrite relative URLs using `Utf8Html::$sourceUrl` as `originalURL` |
 | `charThreshold` | `int` | `500` | Min article text length before Readability retries / may yield no content (Mozilla default) |
 | `maxElemsToParse` | `int` | `30000` | Max DOM elements before parse; exceeding → `TooLarge`. `0` = no limit (explicit opt-out) |
 
 **Not exposed in MVP** (leave Readability defaults): `nbTopCandidates`, `keepClasses`, `classesToPreserve`, `disableJSONLD`, `allowedVideoRegex`, `linkDensityModifier`, `keepInlineByline`, internal flag toggles, `metadataOnly`.
 
-**Logger:** optional PSR-3 logger may be injected on `ArticleExtractor` (constructor), not on the policy — same split as “policy knobs vs collaborators” on `HttpFetcher`. In MVP, stages that take a logger are **HttpFetcher** (always, for pin warning / Guzzle debug) and **ArticleExtractor** (only when `ExtractPolicy::$debug` is true). Wire ArticleExtractor’s logger only when debugging: Readability’s PSR-3 logger, if set, emits even when `debug` is false, so omit it unless debugging. Orchestrator owns hop / product logging separately.
+**Logger:** optional PSR-3 logger may be injected on `ArticleExtractor` (constructor), not on the policy — same split as “policy knobs vs collaborators” on `HttpFetcher`. In MVP, stages that take a logger are **HttpFetcher** (always, for pin warning / Guzzle debug) and **ArticleExtractor** (only when `ExtractPolicy::$debug` is true **and** a logger was injected). Mapping to the vendor:
+
+| Policy `debug` | Injected logger | Vendor `debug` (`error_log`) | Vendor `logger` |
+|----------------|-----------------|------------------------------|-----------------|
+| `true` | none | `false` (forced) | `null` |
+| `true` | present | `false` | the logger |
+| `false` | present or none | `false` | `null` |
+
+Readability’s PSR-3 logger, if set, emits even when vendor `debug` is false. That is why this adapter never sets vendor `debug` (no `error_log` / stderr) and omits the logger unless policy debug is on. Orchestrator owns hop / product logging separately.
 
 ```text
 final readonly class ExtractPolicy
@@ -446,7 +454,9 @@ extract($html)
   │     → ExtractResult::noContent(sourceUrl)   // soft; do not call Readability
   │
   ├─ Build Readability Configuration from ExtractPolicy
-  │     debug, charThreshold, maxElemsToParse
+  │     vendor debug = false (never error_log)
+  │     logger only when policy debug is on and a logger was injected
+  │     charThreshold, maxElemsToParse
   │     fixRelativeURLs + originalURL = $html->sourceUrl (when fix on)
   │
   ├─ try parse($html->html)
@@ -493,6 +503,9 @@ extract($html)
 | Over element limit | many tags + `ExtractPolicy(maxElemsToParse: 50)` (or similar) | `ArticleExtractorException` + `TooLarge` |
 | Metadata only path | page with title meta but no body | `NoContent`, title still set if Readability found it |
 | Title with tags | meta title contains `<b>Hi</b>` | `title->raw() === 'Hi'`; `title->html()` escaped if needed |
+| Debug off + logger | `ExtractPolicy(debug: false)` + PSR-3 spy | spy receives no calls |
+| Debug on + logger | `ExtractPolicy(debug: true)` + PSR-3 spy | spy receives Readability debug; `error_log` stays empty |
+| Debug on, no logger | `ExtractPolicy(debug: true)` only | treated as off; `error_log` stays empty |
 
 ---
 

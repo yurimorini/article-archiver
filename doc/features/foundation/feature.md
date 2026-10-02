@@ -24,6 +24,14 @@ Metadata (`title`, `excerpt`, `siteName`) uses shared **`PlainText`**: `raw()` f
 
 Research and threat model: `[context/Foundational Research.md](context/Foundational%20Research.md)`.
 
+## Spec extensions
+
+Amendments after a stage spec was marked done. The living spec is current; the extension file is the paper trail (old contract, why it changed).
+
+| Date | Stage | Change | Doc |
+|------|-------|--------|-----|
+| 2026-10-02 | ArticleExtractor | `ExtractPolicy::$debug` only forwards the PSR-3 logger. Vendor `error_log()` is never enabled. | `[extensions/2026-10-02-article-extractor-debug-logger.md](extensions/2026-10-02-article-extractor-debug-logger.md)` |
+
 ---
 
 
@@ -131,6 +139,7 @@ Implement per `[specs/ArticleExtractor.md](specs/ArticleExtractor.md)`:
 - Map title/excerpt/siteName through `PlainText::fromUntrusted*` (strip tags once).
 - Default `ExtractPolicy::$maxElemsToParse = 30000` (resource guard; `0` = unlimited opt-out); cover `TooLarge` in tests.
 - Unit tests with small HTML fixtures (chrome vs article body, relative links, empty input, PlainText escape/strip).
+- Debug mapping as amended: `[extensions/2026-10-02-article-extractor-debug-logger.md](extensions/2026-10-02-article-extractor-debug-logger.md)` (`debug` forwards the PSR-3 logger only; never vendor `error_log()`).
 
 **Exit criteria:** `Utf8Html` in → `ExtractResult` with `ReadableDocument` or typed `NoContent`; oversize DOM → `ArticleExtractorException` + `TooLarge`.
 

@@ -164,6 +164,30 @@ final class ArticleExtractorTest extends TestCase
         self::assertNotEmpty($logger->records);
     }
 
+    public function test_debug_true_without_logger_does_not_write_error_log(): void
+    {
+        $extractor = new ArticleExtractor(new ExtractPolicy(debug: true));
+
+        $written = $this->captureErrorLog(function () use ($extractor): void {
+            $extractor->extract($this->page($this->articleHtml()));
+        });
+
+        self::assertSame('', $written);
+    }
+
+    public function test_debug_true_with_logger_does_not_write_error_log(): void
+    {
+        $logger = new RecordingLogger();
+        $extractor = new ArticleExtractor(new ExtractPolicy(debug: true), $logger);
+
+        $written = $this->captureErrorLog(function () use ($extractor): void {
+            $extractor->extract($this->page($this->articleHtml()));
+        });
+
+        self::assertSame('', $written);
+        self::assertNotEmpty($logger->records);
+    }
+
     private function page(string $html, string $sourceUrl = 'https://ex.com/a'): Utf8Html
     {
         return new Utf8Html(
@@ -172,6 +196,32 @@ final class ArticleExtractorTest extends TestCase
             sourceEncoding: 'UTF-8',
             source: EncodingSource::Utf8Default,
         );
+    }
+
+    /**
+     * This helper runs `$run` with PHP `error_log` pointed at a temp file and returns what was written.
+     *
+     * @param callable(): void $run
+     */
+    private function captureErrorLog(callable $run): string
+    {
+        $logFile = tempnam(sys_get_temp_dir(), 'lr-error-log-');
+        if ($logFile === false) {
+            self::fail('Could not create a temp error_log file');
+        }
+
+        $previous = ini_get('error_log');
+        ini_set('error_log', $logFile);
+        try {
+            $run();
+            $written = file_get_contents($logFile);
+            self::assertNotFalse($written);
+
+            return $written;
+        } finally {
+            ini_set('error_log', $previous);
+            unlink($logFile);
+        }
     }
 
     /**

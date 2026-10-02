@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Yumo\LogRead\ArticleExtractor\ArticleExtractor;
 use Yumo\LogRead\ArticleExtractor\ExtractPolicy;
 use Yumo\LogRead\EncodingNormalizer\EncodingNormalizer;
@@ -28,6 +30,11 @@ $normalizedPage = $encodingNormalizer->normalize($page);
 
 $articleExtractor = new ArticleExtractor(new ExtractPolicy());
 $article = $articleExtractor->extract($normalizedPage->html);
+if ($article->document === null) {
+    echo "No article content\n";
+
+    return;
+}
 
 $htmlSanitizer = new HtmlSanitizer(new PurifyPolicy());
 $safeDocument = $htmlSanitizer->purify($article->document);

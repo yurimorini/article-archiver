@@ -21,7 +21,7 @@ final readonly class ExtractPolicy
      * @throws \InvalidArgumentException When `$charThreshold` or `$maxElemsToParse` is negative
      */
     public function __construct(
-        /** This value enables Readability’s `error_log` debug output, and it is also the switch that allows a PSR-3 logger to be passed in. */
+        /** This value allows the injected PSR-3 logger to be passed to Readability. Without a logger it is treated as off. */
         public bool $debug = false,
         /** This value rewrites relative URLs against `Utf8Html::$sourceUrl` when true. */
         public bool $fixRelativeURLs = true,
