@@ -2,6 +2,9 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=lib/projects.sh
+source "${ROOT_DIR}/bin/lib/projects.sh"
+# shellcheck source=lib/dispatch.sh
+source "${ROOT_DIR}/bin/lib/dispatch.sh"
 
-"${ROOT_DIR}/bin/cs-check"
-"${ROOT_DIR}/bin/phpstan"
+dispatch_composer_jobs "${ROOT_DIR}" quality "$@"

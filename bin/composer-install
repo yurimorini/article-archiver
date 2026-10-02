@@ -2,4 +2,9 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-exec "${ROOT_DIR}/bin/composer" install "$@"
+# shellcheck source=lib/projects.sh
+source "${ROOT_DIR}/bin/lib/projects.sh"
+# shellcheck source=lib/dispatch.sh
+source "${ROOT_DIR}/bin/lib/dispatch.sh"
+
+dispatch_composer_jobs "${ROOT_DIR}" install "$@"

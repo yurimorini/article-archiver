@@ -1,12 +1,29 @@
 #!/usr/bin/env bash
-# Run a command inside the project PHP Docker image with the repo mounted.
+# Run a command inside the shared PHP image, with the working directory set to one package.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=lib/projects.sh
+source "${ROOT_DIR}/bin/lib/projects.sh"
+
 IMAGE_NAME="${IMAGE_NAME:-log-read-php}"
 
+if [[ $# -lt 2 ]]; then
+  printf 'Usage: ./bin/docker-run <package> <command> [args...]\n' >&2
+  exit 1
+fi
+
+package_name="$1"
+shift
+
+if ! package_rel="$(projects_path_for "${ROOT_DIR}/bin/projects" "${package_name}")"; then
+  printf 'Unknown package: %s\n' "${package_name}" >&2
+  projects_names "${ROOT_DIR}/bin/projects" >&2
+  exit 1
+fi
+
 if ! docker image inspect "${IMAGE_NAME}" >/dev/null 2>&1; then
-  echo "Docker image '${IMAGE_NAME}' not found. Build it with: ./bin/docker-build" >&2
+  printf "Docker image '%s' not found. Build it with: ./bin/docker-build\n" "${IMAGE_NAME}" >&2
   exit 1
 fi
 
@@ -14,8 +31,8 @@ security_options="$(docker info --format '{{json .SecurityOptions}}')"
 run_args=(
   --rm
   -v "${ROOT_DIR}:/workspace"
-  -w /workspace
-  -e COMPOSER_HOME=/workspace/.composer
+  -w "/workspace/${package_rel}"
+  -e "COMPOSER_HOME=/workspace/${package_rel}/.composer"
   -e HOME=/workspace
 )
 

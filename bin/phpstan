@@ -2,12 +2,9 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=lib/projects.sh
+source "${ROOT_DIR}/bin/lib/projects.sh"
+# shellcheck source=lib/dispatch.sh
+source "${ROOT_DIR}/bin/lib/dispatch.sh"
 
-mapfile -t files < <(find "${ROOT_DIR}/src" "${ROOT_DIR}/tests" -type f -name '*.php' 2>/dev/null | sort || true)
-
-if [[ ${#files[@]} -eq 0 ]]; then
-  echo "No PHP files under src/ or tests/; skipping PHPStan."
-  exit 0
-fi
-
-exec "${ROOT_DIR}/bin/composer" phpstan "$@"
+dispatch_composer_jobs "${ROOT_DIR}" phpstan "$@"

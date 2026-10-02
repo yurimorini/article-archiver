@@ -1,6 +1,6 @@
 ---
 description: PHPDoc for classes, properties, and methods; PHPStan types when native typing is not enough
-globs: src/**/*.php,tests/**/*.php
+globs: packages/article-reader/src/**/*.php,packages/article-reader/tests/**/*.php
 alwaysApply: false
 ---
 

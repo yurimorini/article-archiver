@@ -8,5 +8,5 @@
       "extensions": ["xdebug.php-debug"]
     }
   },
-  "postCreateCommand": "composer install"
+  "postCreateCommand": "composer install --working-dir=packages/article-reader"
 }
