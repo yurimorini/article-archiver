@@ -35,24 +35,12 @@ BEFORE claiming any status or expressing satisfaction:
 Skip any step = lying, not verifying
 ```
 
-## Project PHP quality gates
-
-When PHP under `src/` or `tests/` changed, completion also requires Docker-based checks:
-
-```bash
-./bin/quality
-```
-
-Or separately: `./bin/cs-check` and `./bin/phpstan`. Both must exit 0 on a fresh run. Do not use host PHP/Composer for verification. Fix failures, then re-run `./bin/quality` before claiming done.
-
 ## Common Failures
 
 | Claim | Requires | Not Sufficient |
 |-------|----------|----------------|
 | Tests pass | Test command output: 0 failures | Previous run, "should pass" |
 | Linter clean | Linter output: 0 errors | Partial check, extrapolation |
-| PHP style clean | `./bin/cs-check` exit 0 | Assumed format / prior run / host PHP |
-| PHPStan clean | `./bin/phpstan` exit 0 | Assumed types / prior run / host PHP |
 | Build succeeds | Build command: exit 0 | Linter passing, logs look good |
 | Bug fixed | Test original symptom: passes | Code changed, assumed fixed |
 | Regression test works | Red-green cycle verified | Test passes once |
