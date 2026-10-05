@@ -338,12 +338,12 @@ test_composer_requires_a_package_name() {
   unset DOCKER_RUN_LOG
 }
 
-test_projects_file_lists_only_article_reader() {
+test_projects_file_lists_article_reader_and_web_app() {
   require_file "${REPO}/bin/projects" || return 0
   local got
   got="$(cat "${REPO}/bin/projects")"
-  assert_eq "${got}" $'article-reader\tpackages/article-reader' \
-    "bin/projects lists only article-reader"
+  assert_eq "${got}" $'article-reader\tpackages/article-reader\nweb-app\tpackages/web-app' \
+    "bin/projects lists article-reader and web-app"
 }
 
 # --- docker-run ---
@@ -451,7 +451,7 @@ test_test_and_composer_install_do_not_skip
 test_missing_composer_json_fails_that_job_only
 test_named_package_forwards_composer_args
 test_composer_requires_a_package_name
-test_projects_file_lists_only_article_reader
+test_projects_file_lists_article_reader_and_web_app
 test_docker_run_sets_package_workdir_and_composer_home
 test_docker_run_usage_and_unknown_package_and_missing_image
 

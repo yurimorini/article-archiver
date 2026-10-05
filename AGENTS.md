@@ -39,4 +39,4 @@ What we develop is not an MVP. Build the real structure. A feature may start inc
 
 ## Tooling
 
-The project uses Docker. `bin/` at the git root is the launcher for the packages under `packages/`. Library code lives in `packages/article-reader`. `packages/web-app` is an empty placeholder until the app starts.
+The project uses Docker. `bin/` at the git root is the launcher for the packages under `packages/`. Library code lives in `packages/article-reader`. The Eleanor application lives in `packages/web-app` (Composer name `yumo/eleanor`). Its PHP namespace is unset until the first class.

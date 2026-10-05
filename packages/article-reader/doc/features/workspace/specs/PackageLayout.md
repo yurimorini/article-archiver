@@ -16,7 +16,7 @@ One git repository. The git root is the Cursor workspace.
   bin/                         # launcher only
   Dockerfile                   # shared development image
   packages/article-reader/     # library, current tree moved here
-  packages/web-app/            # empty placeholder
+  packages/web-app/            # Eleanor; see packages/web-app/doc/features/bootstrap/specs/Bootstrap.md
 ```
 
 ### Library
@@ -38,7 +38,7 @@ The Composer package name stays `yumo/log-read`. The PSR-4 namespace stays `Yumo
 
 ### Web app
 
-`packages/web-app/` contains only `.gitkeep`, so git tracks the empty directory. It has no `composer.json`, no `vendor/`, and no `doc/`. Its `doc/` is created when the app starts, at `packages/web-app/doc/`.
+The layout change left `packages/web-app/` as an empty placeholder (`.gitkeep` only). The Eleanor bootstrap replaced that placeholder. The living contract is `packages/web-app/doc/features/bootstrap/specs/Bootstrap.md`: Composer package `yumo/eleanor`, the library path requirement, the same PHP tooling, and no PSR-4 map until the namespace is chosen.
 
 ### Gitignore
 
@@ -86,7 +86,7 @@ Initial contents:
 article-reader	packages/article-reader
 ```
 
-`packages/web-app` is not listed. It joins the list only when its `composer.json` exists, by adding:
+`packages/web-app` joined the list when its `composer.json` was created:
 
 ```text
 web-app	packages/web-app
@@ -118,13 +118,13 @@ Per-package `COMPOSER_HOME` keeps parallel `composer install` runs from sharing 
 
 ## Connecting the two packages
 
-The web app Composer file is not created in this change. This section is the contract for when the app starts.
+The layout change did not create the web app Composer file. The Eleanor bootstrap did. The connection rules below still hold. The full manifest, including PHP `^8.5`, dev tooling, and the absent autoload map, is `packages/web-app/doc/features/bootstrap/specs/Bootstrap.md`.
 
 The dependency is one way. The app requires the library. The library does not require the app.
 
 The library manifest is already the connectable package: `"name": "yumo/log-read"` in `packages/article-reader/composer.json`.
 
-`packages/web-app/composer.json`, when it is created, declares a path repository on the sibling directory and requires that name:
+`packages/web-app/composer.json` declares a path repository on the sibling directory and requires that name:
 
 ```json
 {
@@ -147,23 +147,15 @@ The library manifest is already the connectable package: `"name": "yumo/log-read
 
 `minimum-stability: dev` is required because the path package resolves as a development version. `prefer-stable: true` keeps other dependencies on stable releases.
 
-The same change adds the `web-app` line to `bin/projects`. `./bin/quality` and `./bin/composer-install` then include the app. The Docker mount is already the git root, so the symlink target stays inside the mount.
+`bin/projects` includes the `web-app` line. `./bin/quality` and `./bin/composer-install` include the app. The Docker mount is the git root, so the symlink target stays inside the mount.
 
-The app framework and the app's own autoload are chosen when the app is created. They are not part of this connection file.
+The app framework is still unchosen. The PHP namespace is unset, so the manifest has no autoload map.
 
 ## Verification
 
-After the move, with the library as the only listed package:
-
-- `./bin/docker-build` builds the shared development image.
-- `./bin/composer-install` installs into `packages/article-reader/vendor`.
-- `./bin/quality` and `./bin/quality article-reader` both exit 0.
-- `./bin/quality web-app` exits non-zero and prints the names from `bin/projects`.
-- `packages/web-app` contains `.gitkeep` and does not contain `composer.json` or `vendor/`.
+After the layout move, with the library as the only listed package, these checks passed: `./bin/docker-build`, `./bin/composer-install` into the library, `./bin/quality` and `./bin/quality article-reader` exit 0, and `./bin/quality web-app` was unknown. The bootstrap replaced that last check. `web-app` is now a listed package. With no PHP under its `src/` or `tests/`, `./bin/quality web-app` exits 0 and skips Composer.
 
 ## Out of scope
 
-- Choosing Symfony or Laravel, and creating the app skeleton.
-- Writing `packages/web-app/composer.json` in this change. The JSON above is the contract for a later change.
-- Adding any file under `packages/web-app` other than `.gitkeep`.
+- Choosing Symfony or Laravel.
 - Redesigning library modules, finishing pipeline features, or rewriting `bin/run`.
