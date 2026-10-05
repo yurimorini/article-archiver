@@ -47,4 +47,4 @@ If the image is missing, build then install deps first:
 
 ## Scope
 
-Applies whenever `packages/article-reader/src`, `packages/article-reader/tests`, or other project PHP files were created or modified in the task.
+Applies whenever `packages/article-reader/src`, `packages/article-reader/tests`, `packages/web-app/src`, `packages/web-app/tests`, or other project PHP files were created or modified in the task.

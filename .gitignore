@@ -6,3 +6,4 @@ vendor/
 .phpunit.cache/
 .php-cs-fixer.cache
 /tmp/phpstan/
+.codegraph/
