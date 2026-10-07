@@ -22,7 +22,7 @@ Provenance cascade: `requestUri` / `sourceUrl` rides on `FetchedPage` → `Utf8H
 
 Metadata (`title`, `excerpt`, `siteName`) uses shared **`PlainText`**: `raw()` for DB/FS/JSON, `html()` for HTML embedding; article body HTML is purified separately into `SafeDocument::$html`.
 
-Research and threat model: `[context/Foundational Research.md](context/Foundational%20Research.md)`.
+Research and threat model: `[research/Foundational Research.md](research/Foundational%20Research.md)`.
 
 ## Spec extensions
 

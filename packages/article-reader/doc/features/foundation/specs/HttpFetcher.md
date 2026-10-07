@@ -66,7 +66,7 @@ Body size is still capped by reading the PSR-7 body in chunks after the cURL tra
 
 **MVP posture:** production `createDefaultClient()` uses an explicit `CurlHandler` (`ext-curl` is a hard Composer requirement), not `HandlerStack::create()` with no handler (that would re-introduce the stream fallback). We **assume** pinning works there. If the active handler cannot honour `CURLOPT_RESOLVE` (injected non-cURL client, unusual stack), HttpFetcher still attaches the resolve entries, **continues the request**, and logs a **warning** that DNS pinning was skipped — it does **not** fail closed on that alone. Orchestrator / ops can treat the warning as a configuration smell.
 
-Refs: [UrlGuard.md](UrlGuard.md) (DNS / TOCTOU), [Foundational Research.md](../context/Foundational%20Research.md).
+Refs: [UrlGuard.md](UrlGuard.md) (DNS / TOCTOU), [Foundational Research.md](../research/Foundational%20Research.md).
 
 ---
 
@@ -360,13 +360,13 @@ fetch($target)
 
 - Prefer types suitable for article HTML: `text/html`, `application/xhtml+xml`.
 - Match on the MIME type prefix before parameters (ignore `charset=` here for the allow/deny decision).
-- **Why:** avoid feeding PDF/JSON/binary into the HTML pipeline ([Foundational Research.md](../context/Foundational%20Research.md) §3.1).
+- **Why:** avoid feeding PDF/JSON/binary into the HTML pipeline ([Foundational Research.md](../research/Foundational%20Research.md) §3.1).
 
 Charset inside Content-Type is **not** converted here; it is carried forward for EncodingNormalizer.
 
 ### Body size gate
 
-Two layers ([Foundational Research.md](../context/Foundational%20Research.md) §3.2):
+Two layers ([Foundational Research.md](../research/Foundational%20Research.md) §3.2):
 
 1. `Content-Length` present and `> maxBytes` → abort before read (**skip or treat as advisory when `Content-Encoding` is present** — compressed length is not the decoded size).
 2. While reading the body in chunks, abort if accumulated **decoded** body size `> maxBytes`.
@@ -422,5 +422,5 @@ These belong to other stages or a later MVP:
 - Character encoding detection / conversion (`EncodingNormalizer` → `EncodingOutcome` / `Utf8Html`).
 - Following redirects / re-guarding `Location` hops.
 - Readability extraction, HTMLPurifier.
-- `robots.txt`, rate limiting ([Foundational Research.md](../context/Foundational%20Research.md) §2.4).
+- `robots.txt`, rate limiting ([Foundational Research.md](../research/Foundational%20Research.md) §2.4).
 - Exposing or configuring charset middleware on the Guzzle stack.

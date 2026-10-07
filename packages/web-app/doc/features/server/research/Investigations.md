@@ -1,12 +1,12 @@
-# Discovery sessions still open
+# Research ideas
 
-Login is recorded in [Login.md](Login.md). These sessions do not reopen it.
+This file is an early list of generic ideas. It is not a mandatory sequence. Notes in `research/` are ideas of the same kind: nothing here is required, and nothing has to be done in this order. A later document adopts an idea by writing it in its own file.
 
-Each session closes one item and writes the outcome into `context/` (or into a spec, once the design is stable). Start at the top. An item may assume the ones above it.
+Login is recorded in [Login.md](Login.md). The route contract is recorded in [Route.md](Route.md). The controller boundary is recorded in [Controller.md](Controller.md). The archive flow is recorded in [Flow.md](Flow.md). This list does not reopen them.
 
-The configured token and the firewall are the first implementation slice. They do not wait on the sessions below. Those sessions are the design of the archive command and of the surfaces around it.
+The configured token and the firewall are the first implementation slice. They do not wait on the ideas below. Those ideas sketch the archive command and the surfaces around it.
 
-[Request blocks](#request-blocks) lists the blocks a generic REST call carries. It is a guideline for implementation and enhancement decisions. A session closes only the blocks it names. The other blocks stay on the list until a change needs them.
+[Request blocks](#request-blocks) lists the blocks a generic REST call carries. It is a guideline. An adopted document names the blocks it takes. The other blocks stay on the list until a change needs them.
 
 ## 1. Contract of the archive command
 
@@ -90,25 +90,25 @@ The configured token and the firewall are the first implementation slice. They d
 
 ## Request blocks
 
-A generic REST call is a fixed set of blocks. Eleanor uses that set when an implementation or an enhancement needs a decision. The sessions above close the blocks they name. A block with no session, and any detail a session leaves open, stays listed here until a change needs it. Finishing the sessions leaves the unused rows undecided on purpose.
+A generic REST call is a fixed set of blocks. Eleanor uses that set when an implementation or an enhancement needs a decision. The ideas above name blocks they might close. A block with no idea, and any detail an idea leaves open, stays listed here until a change needs it. Leaving ideas unadopted leaves the unused rows undecided on purpose.
 
 The controller action is three blocks: typed input, one use case, and the HTTP response. The blocks around the action belong to the request and stay outside that method.
 
-When a change touches a row, record which part of the generic block it follows and which part it leaves for a later enhancement. The row stays the checklist. The session or the spec holds the choice.
+When a change touches a row, record which part of the generic block it follows and which part it leaves for a later enhancement. The row stays the checklist. The document that adopts the choice holds it.
 
 ### Inside the action
 
 | Block | Generic project | Eleanor |
 | --- | --- | --- |
 | Typed input | Body, query, and path become a DTO. An invalid body stops before the use case. | Session 1 names the POST body. |
-| Use case | One application service per operation. The controller passes a command and receives a result. The application type is what calls the domain pipeline. | Session 9 names the controller, the application type, and the orchestrator. The orchestrator stays behind the application type. It has no knowledge of HTTP. |
+| Use case | One application service per operation. The controller passes a command and receives a result. The application type is what calls the domain pipeline. | Adopted in [Controller.md](Controller.md). |
 | Response | The result becomes status, body, and headers such as `Location` or `ETag` when the resource needs them. | Session 1 names the success body and the empty-outcome body. Session 5 names the status of each outcome. |
 
 ### Around the action
 
 | Block | Generic project | Eleanor |
 | --- | --- | --- |
-| Route contract | Verb, path, media type, and often a version prefix. | Session 8 fixes the JSON prefix and which routes return JSON. Versioning past that prefix waits for the first breaking change. |
+| Route contract | Verb, path, media type, and often a version prefix. | Adopted in [Route.md](Route.md). |
 | Authentication | A component in front of the controller resolves the caller. The action finds that identity already decided. | [Login.md](Login.md). The firewall checks the configured token, and later a session. |
 | Authorization | A policy on this caller, this action, and this resource. | The firewall is the filter for the first command. A policy per resource waits until a stored archive is something a caller can be allowed or refused. |
 | Errors | One translator turns validation, domain, and infrastructure failures into Problem Details. | Session 5. JSON uses RFC 9457. HTML pages keep their own error documents. |

@@ -64,7 +64,7 @@ Illegal states:
 Refs:
 
 - [Parse, don’t validate](https://lexi-lambda.github.io/blog/2019/11/05/parse-don-t-validate/)
-- `doc/features/foundation/context/Foundational Research.md` §5
+- `doc/features/foundation/research/Foundational Research.md` §5
 - `fivefilters/readability.php` README (`Article::hasContent()`, `ParseException`)
 
 ---

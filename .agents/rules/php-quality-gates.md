@@ -1,6 +1,7 @@
 ---
 description: Run php-cs-fixer and PHPStan via Docker after every PHP implementation
 alwaysApply: true
+globs: packages/**/*.php,tests/**/*.php
 ---
 
 # PHP quality gates

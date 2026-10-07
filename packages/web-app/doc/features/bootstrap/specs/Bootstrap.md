@@ -53,7 +53,7 @@ The development image stays the root `Dockerfile` and the name `log-read-php`.
 
 ## Docs and tests
 
-Feature documents live under `packages/web-app/doc/features/<feature>/`, with `feature.md`, `specs/`, `plans/`, and `context/` when each has something to hold.
+Feature documents live under `packages/web-app/doc/features/<feature>/`, with `feature.md`, `specs/`, `plans/`, and `research/` when each has something to hold.
 
 Tests will mirror modules under `tests/` the way the library does. No test class is added in this change, because a class needs a namespace.
 
