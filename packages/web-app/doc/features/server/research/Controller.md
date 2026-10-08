@@ -15,6 +15,8 @@ Another route is another class. Shared code lives in services, or in a language 
 
 The controller is the HTTP adapter. The firewall has already authenticated the caller. `__invoke` receives the body DTO from `#[MapRequestPayload]`, reads the URL, and passes that URL to the application service. The DTO does not enter the service. The controller does not call the orchestrator and does not build the pipeline.
 
+The firewall's user is the framework's type. A use case that has a rule about the person receives an object of Eleanor's, built at the edge from that framework user. The mapping is written when the rule exists. A mechanism that only the framework runs, such as its rate limiter, keeps the framework type. [Logging.md](Logging.md) records that split.
+
 The application service is a concrete class. The controller receives it in the constructor. There is no interface until a second implementation exists. The service calls `Orchestrator::fetchArticle`. `UrlGuard` runs inside that call. The service returns a result with no status, headers, or JSON.
 
 The orchestrator is the library entry. It receives a URL. It returns `PipelineSuccess` or `PipelineNoContent`, or throws `OrchestratorException`.
@@ -35,8 +37,8 @@ The controller does not extend `AbstractController`. The serializer arrives thro
 
 A listener that serializes a returned object on its own waits until actions repeat this call and do nothing else.
 
-## Still open
+## Closed by the types session
 
-The URL field name, the error document, and the shape of the serializer attributes are still open. The HTTP status of each outcome, including 400 for an invalid body, is recorded in [Flow.md](Flow.md). The body of that error is part of the error document.
+The URL field, the error document, and the serializer attributes are recorded in [Types.md](Types.md). The HTTP status of each outcome, including 400 for an invalid body and 200 when the archive is already stored, is recorded in [Flow.md](Flow.md).
 
 The reading of the Symfony docs is in [Symfony-controller.md](Symfony-controller.md). It is not this decision.

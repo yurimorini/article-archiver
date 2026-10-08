@@ -60,9 +60,9 @@ The configured token and the firewall are the first implementation slice. They d
 
 **Question.** What does Eleanor record for one HTTP call, and how long does that record live?
 
-**Already known.** The orchestrator already logs each pipeline hop through PSR-3. Eleanor adds the HTTP round: method, route, outcome, duration, and a correlation id shared with the pipeline log. The article HTML, upstream headers, and the configured token stay out of the log. Archived URLs are a reading trace, so retention is a decision. Eleanor does not send telemetry off the machine.
+**Already known.** The orchestrator already logs each pipeline hop through PSR-3. Eleanor adds the HTTP round: method, route, outcome, duration, and a correlation id shared with the pipeline log. The article HTML, upstream headers, and the configured token stay out of the log. `application` and `domain` are written on every call, to stderr for now. Eleanor does not send telemetry off the machine. The handler is recorded in [Logging.md](Logging.md).
 
-**Done when.** The fields of one request log line are listed, the fields that are never logged are listed, and the retention of those lines is chosen.
+**Done when.** The fields of one request log line are listed, and the fields that are never logged are listed. Both are recorded in [Logging.md](Logging.md).
 
 ## 8. JSON and HTML
 
@@ -114,5 +114,5 @@ When a change touches a row, record which part of the generic block it follows a
 | Errors | One translator turns validation, domain, and infrastructure failures into Problem Details. | Session 5. JSON uses RFC 9457. HTML pages keep their own error documents. |
 | Persistence | The use case talks to storage. The controller receives the outcome. | Session 2 lists what one archive writes. Session 3 decides a second post of the same URL. |
 | Limits | Body size, concurrent work, and sometimes an idempotency key. | Session 6: request size, fetches in flight, and the disk check. |
-| Observability | A request log, a correlation id, and often metrics and tracing. | Session 7 names the HTTP log line and its retention. Metrics and tracing wait with the later surfaces in session 8. |
+| Observability | A request log, a correlation id, and often metrics and tracing. | [Logging.md](Logging.md) names the HTTP log line. Metrics and tracing wait with the later surfaces in session 8. |
 | Browser edges | CORS, HTTP caching, and CSRF appear when a browser, a GET, or a cookie-backed form exists. | Session 8 keeps these off the first command. |
