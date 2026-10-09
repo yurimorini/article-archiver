@@ -45,6 +45,16 @@ alwaysApply: true
 - **Use tools** to inspect the codebase, configuration, and tests before changing behavior; do not rely on memory alone.
 - When behavior or public surfaces change, **update the relevant documentation** in the same change when it exists (README, inline docs users rely on).
 
+Before designing or building a feature, pick one interview and name it:
+
+- Terms are fuzzy, or a hard-to-reverse decision is still open: run `grill-with-docs` (`grilling` + `domain-modeling`). Stop when the frontier is empty and the user confirms a shared understanding. Do not write a spec in that session. 
+
+- The decisions are settled enough to design: run `brainstorming`. Classify spike, bounded, or architectural, ask one question at a time, and stop at that path's approval gate.
+
+- Both apply: grill first, then brainstorm from the shared understanding.
+
+Do not start `brainstorming` while a grill frontier is still open. When grilling, ask one question at a time.
+
 ## Documentation and Style
 
 - Use JSDoc to document public classes and methods

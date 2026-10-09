@@ -20,18 +20,8 @@ Write exclusively in English.
 
 - Project rules: `.agents/rules/`
 - Skills: `.agents/skills/<name>/SKILL.md`
-- Feature layout: read `.agents/rules/feature-framework.md` before organizing a new feature
+- Feature layout and the grill → contract → tickets → spec → plan flow: read `.agents/rules/feature-framework.md` before organizing a feature or writing a contract, ticket, spec, or plan.
 
-Spec and plan locations in that file override the Superpowers defaults (`docs/superpowers/specs/`, `docs/superpowers/plans/`). Do not create those directories.
-
-Specs and plans go in the `doc/` of the package whose files the task changes.
-
-- Library work, including the unfinished pipeline: `packages/article-reader/doc/features/<feature>/specs/` and `packages/article-reader/doc/features/<feature>/plans/`. The pipeline feature folder stays `features/foundation/`.
-- App work, once `packages/web-app` has a `doc/` tree: the same `doc/features/<feature>/specs/` and `.../plans/` layout under `packages/web-app/doc/`.
-
-The package is the one that owns the files being edited. A pipeline task writes under `article-reader`. An app task writes under `web-app`.
-
-Use `/use-superpower` and `/caveman` skills
 
 ## Product
 
@@ -40,3 +30,17 @@ What we develop is not an MVP. Build the real structure. A feature may start inc
 ## Tooling
 
 The project uses Docker. `bin/` at the git root is the launcher for the packages under `packages/`. Library code lives in `packages/article-reader`. The Eleanor application lives in `packages/web-app` (Composer name `yumo/eleanor`). Its PHP namespace is unset until the first class.
+
+## Agent skills
+
+### Issue tracker
+
+Feature work lives in the owning package's feature folder. See `.agents/rules/issue-tracker.md`.
+
+### Triage labels
+
+Default role names, stored as a `Status:` line on each ticket. See `.agents/rules/triage-labels.md`.
+
+### Domain docs
+
+Multi-context: one glossary and one ADR directory per package. See `.agents/rules/domain.md`.
