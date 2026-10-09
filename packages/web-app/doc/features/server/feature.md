@@ -96,7 +96,7 @@ A file in `research/` is a direction until a slice spec adopts it. `research/Inv
 | Discovery | Recorded. The queue in [research/Open.md](research/Open.md) is closed. |
 | Next slice | 2 — Empty route. Not started. |
 | Contract | [symfony-skeleton.md](symfony-skeleton.md). Status `ready-for-agent`. |
-| Current ticket | [01 — Boot Eleanor's kernel in the test environment](issues/01-boot-eleanor-kernel.md). Status `ready-for-agent`. |
+| Current ticket | [01 — Boot Eleanor's kernel in the test environment](issues/01-boot-eleanor-kernel.md). Slice 1 is Done. |
 | Namespace | `Yumo\Eleanor` on `src/`. `Yumo\Eleanor\Tests` on `tests/`. |
 | Application code | `Yumo\Eleanor\Kernel` boots. Symfony 8.1. |
 | Specs and plans | [Kernel](specs/Kernel.md). [Plan](plans/2026-10-10-kernel.md). |

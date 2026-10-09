@@ -15,6 +15,18 @@ class Kernel extends BaseKernel
     use MicroKernelTrait;
 
     /**
+     * Boots the kernel, then resolves the framework secret.
+     *
+     * An empty or missing secret fails here, while `kernel.secret` is resolved.
+     */
+    public function boot(): void
+    {
+        parent::boot();
+
+        $this->getContainer()->getParameter('kernel.secret');
+    }
+
+    /**
      * @return list<string> An array of allowed values for APP_ENV
      *
      * @phpstan-ignore method.unused
