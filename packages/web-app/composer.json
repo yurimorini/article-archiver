@@ -14,7 +14,15 @@
     ],
     "require": {
         "php": "^8.5",
-        "yumo/log-read": "@dev"
+        "yumo/log-read": "@dev",
+        "symfony/flex": "^2",
+        "ext-ctype": "*",
+        "ext-iconv": "*",
+        "symfony/framework-bundle": "8.1.*",
+        "symfony/runtime": "8.1.*",
+        "symfony/dotenv": "8.1.*",
+        "symfony/yaml": "8.1.*",
+        "symfony/console": "8.1.*"
     },
     "require-dev": {
         "phpunit/phpunit": "^11.0",
@@ -31,6 +39,32 @@
         "quality": [
             "@cs-check",
             "@phpstan"
-        ]
+        ],
+        "auto-scripts": {
+            "cache:clear": "symfony-cmd",
+            "assets:install %PUBLIC_DIR%": "symfony-cmd"
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Yumo\\Eleanor\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Yumo\\Eleanor\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "symfony/flex": true,
+            "symfony/runtime": true
+        }
+    },
+    "extra": {
+        "symfony": {
+            "allow-contrib": false,
+            "require": "8.1.*"
+        }
     }
 }

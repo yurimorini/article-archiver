@@ -35,7 +35,7 @@ The HTTP layer sees one archive service. The orchestrator and storage are inside
 
 | Order | Slice | Category | Done when | Status |
 | --- | --- | --- | --- | --- |
-| 1 | [Symfony skeleton](symfony-skeleton.md) | Shell | The PHP namespace is chosen, the app boots, and quality checks pass | Not started |
+| 1 | [Symfony skeleton](symfony-skeleton.md) | Shell | The PHP namespace is chosen, the app boots, and quality checks pass | Done |
 | 2 | Empty route | Shell | `POST /api/archives` answers on a temporary server | Not started |
 | 3 | Logging | Shell | A request writes a line on the configured channels | Not started |
 | 4 | Payload and mapper | Archive route | A body is accepted or refused before the service runs | Not started |
@@ -94,8 +94,9 @@ A file in `research/` is a direction until a slice spec adopts it. `research/Inv
 | Area | State |
 | --- | --- |
 | Discovery | Recorded. The queue in [research/Open.md](research/Open.md) is closed. |
-| Next slice | 1 — Symfony skeleton. Not started. |
+| Next slice | 2 — Empty route. Not started. |
 | Contract | [symfony-skeleton.md](symfony-skeleton.md). Status `ready-for-agent`. |
-| Namespace | Chosen in the contract. Not applied in code yet. |
-| Application code | `src/` and `tests/` are empty. |
-| Specs and plans | Contract published. No module spec or plan yet. |
+| Current ticket | [01 — Boot Eleanor's kernel in the test environment](issues/01-boot-eleanor-kernel.md). Status `ready-for-agent`. |
+| Namespace | `Yumo\Eleanor` on `src/`. `Yumo\Eleanor\Tests` on `tests/`. |
+| Application code | `Yumo\Eleanor\Kernel` boots. Symfony 8.1. |
+| Specs and plans | [Kernel](specs/Kernel.md). [Plan](plans/2026-10-10-kernel.md). |

@@ -14,4 +14,10 @@
             <directory>src</directory>
         </include>
     </source>
+    <php>
+        <env name="APP_ENV" value="test" force="true"/>
+        <env name="APP_SECRET" value="test" force="true"/>
+        <server name="APP_ENV" value="test" force="true"/>
+        <server name="APP_SECRET" value="test" force="true"/>
+    </php>
 </phpunit>

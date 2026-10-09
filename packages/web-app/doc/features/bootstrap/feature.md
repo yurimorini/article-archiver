@@ -33,8 +33,9 @@ packages/web-app/
 | --- | --- |
 | Tooling | Composer, PHPUnit, PHPStan, and php-cs-fixer configs are in place. Dev dependencies match the library. |
 | Library link | Path repository on `../article-reader`, requirement `yumo/log-read`. |
-| Namespace | Unset. No `autoload` or `autoload-dev`. |
-| Application code | `src/` and `tests/` are empty. |
+| Namespace | `Yumo\Eleanor` mapped to `src/`. `Yumo\Eleanor\Tests` mapped to `tests/`. |
+| Application code | `Yumo\Eleanor\Kernel` boots. Framework is Symfony 8.1. |
+| Framework | Symfony 8.1 micro skeleton. Flex require `8.1.*`. |
 | Image | Shared `log-read-php` image. A per-package Dockerfile is a later decision. |
 
 ## Out of scope
