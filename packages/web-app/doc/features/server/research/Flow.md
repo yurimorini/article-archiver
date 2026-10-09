@@ -20,7 +20,7 @@ What one accepted archive writes, and what it leaves unwritten, is recorded in [
 
 ## Status
 
-The action maps the service result to a response DTO and returns `JsonResponse::fromJsonString` with the status below. The division is recorded in [the ADR](../adr/0001-archive-outcome-status.md).
+The action maps the service result to a response DTO and returns `JsonResponse::fromJsonString` with the status below. The division is recorded in [the ADR](../../../adr/0001-archive-outcome-status.md).
 
 | Outcome | Status |
 | --- | --- |
@@ -34,7 +34,7 @@ The action maps the service result to a response DTO and returns `JsonResponse::
 
 An invalid body is 400 from `#[MapRequestPayload]` before `__invoke` runs. `validationFailedStatusCode` sets that 400. `HttpFetcherError::Transport` mixes timeouts with other network failures, so none of them is 504 until the library separates a timeout. `Location` waits until an archive has an address.
 
-The URL field, the JSON bodies, and the serializer attributes are recorded in [Types.md](Types.md). The 200 for an archive already stored is recorded in [the second ADR](../adr/0002-second-post-returns-stored-archive.md).
+The URL field, the JSON bodies, and the serializer attributes are recorded in [Types.md](Types.md). The 200 for an archive already stored is recorded in [the second ADR](../../../adr/0002-second-post-returns-stored-archive.md).
 
 ## After the service returns
 

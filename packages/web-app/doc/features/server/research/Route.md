@@ -12,4 +12,4 @@ The request and the success response use `application/json`. The route does not 
 
 The error document is recorded in [Types.md](Types.md). CORS, HTTP caching, and CSRF stay open. The status of each outcome is recorded in [Flow.md](Flow.md).
 
-Archive, article, and URL pointer are defined in the repository `GLOSSARY.md`.
+Archive, article, and URL pointer are defined in the package [GLOSSARY.md](../../../GLOSSARY.md).

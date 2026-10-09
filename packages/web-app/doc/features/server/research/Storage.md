@@ -10,13 +10,13 @@ Application state stays out of that file. Request ids, rate limits, and an idemp
 
 ## The port
 
-The service receives the owner and the URL string. The port reads an archive by that pair and writes an archive this owner does not have yet. Another owner's copy is not a hit. [0004](../adr/0004-archive-lookup-is-per-owner.md) records why.
+The service receives the owner and the URL string. The port reads an archive by that pair and writes an archive this owner does not have yet. Another owner's copy is not a hit. [0004](../../../adr/0004-archive-lookup-is-per-owner.md) records why.
 
 A later adapter may keep one article body and an ownership link per owner. On save it may attach this owner to a body that already exists. The service does not ask whether any other owner has the URL, and it does not branch on which adapter is plugged in.
 
 ## The file
 
-The first adapter creates the file at page size 8192 and then sets WAL. [0003](../adr/0003-owner-database-is-wal.md) records why, and [Sqlite.md](Sqlite.md) records what SQLite's own docs say about the sidecars and about a later asset.
+The first adapter creates the file at page size 8192 and then sets WAL. [0003](../../../adr/0003-owner-database-is-wal.md) records why, and [Sqlite.md](Sqlite.md) records what SQLite's own docs say about the sidecars and about a later asset.
 
 The write connection opens when the article is in hand, writes, and closes. It stays closed during the download. The exportable copy is the database after a checkpoint, or a snapshot taken with `VACUUM INTO` or the backup API. Copying the `.sqlite` file while a connection is open is not the export.
 
