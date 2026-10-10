@@ -22,6 +22,7 @@ Write exclusively in English.
 - Skills: `.agents/skills/<name>/SKILL.md`
 - Feature layout and the grill → contract → tickets → spec → plan flow: read `.agents/rules/feature-framework.md` before organizing a feature or writing a contract, ticket, spec, or plan.
 
+Run the caveman skill from the first message
 
 ## Product
 
