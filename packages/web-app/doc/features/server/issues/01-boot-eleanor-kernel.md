@@ -17,7 +17,7 @@
 - [x] These env files do not carry the owner email, the bearer token, a database path, or an archive directory.
 - [x] The test environment uses the recipe's framework test mode and mock session. The dev environment exposes the recipe's framework error route. The cache adapter is the filesystem in every environment. The recipe's session default and shared-directory setting stay as the recipe wrote them.
 - [x] The recipe's editor settings for this package are kept. The agent-instruction files that recipe copies into the package are removed.
-- [x] Existing PHPUnit, PHPStan, and formatter configuration stay. Existing quality scripts stay. Flex may add its cache-clear and asset-install scripts beside them.
+- [x] Existing PHPStan and formatter configuration stay. The PHPUnit configuration of the library stays, except the test-run bootstrap, which is the Symfony recipe’s `tests/bootstrap.php`. Existing quality scripts stay. Flex may add its cache-clear and asset-install scripts beside them.
 - [x] One PHPUnit test, in the web-app suite, boots the kernel and sees that the environment is `test`. It does not assert file contents, namespace strings inside configuration, or an HTTP status.
 - [x] The console about command exits 0, and the package quality command exits 0.
 - [x] The bootstrap feature's status records that the namespace and the framework exist.

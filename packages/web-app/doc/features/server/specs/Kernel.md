@@ -44,13 +44,13 @@ The recipe’s dev error route is the framework’s dev error page. It is not a 
 
 One test, in the web-app suite, is the only automated seam. The test run sets the environment to `test` and the secret to `test`, then the test boots `Yumo\Eleanor\Kernel` and reads the environment back. The assertion is that the environment is `test`.
 
-The test does not read files, namespace strings inside configuration, or an HTTP status. It does not cover the empty-environment, disallowed-environment, or empty-secret failures. The library’s PHPUnit tests stay the pattern for how this repo writes a test. They are not the boot seam. The existing PHPUnit configuration stays. The PHPUnit bridge is not added.
+The test does not read files, namespace strings inside configuration, or an HTTP status. It does not cover the empty-environment, disallowed-environment, or empty-secret failures. The library’s PHPUnit tests stay the pattern for how this repo writes a test. They are not the boot seam. The PHPUnit configuration of the library stays, except the test-run bootstrap, which is the Symfony recipe’s `tests/bootstrap.php`. That file loads the env files through Dotenv. PHPUnit sets the test environment and the secret before that file runs, so the dev env file is not loaded. The PHPUnit bridge is not added.
 
 The console about command exiting 0, and the package quality command exiting 0, are acceptance checks of the same boot. They are not a second test.
 
 ## Adopted recipe
 
-The recipe’s editor settings for this package stay. The agent-instruction files that recipe copies into the package are removed. Existing PHPUnit, PHPStan, and formatter configuration stay. Existing quality scripts stay. Flex may add its cache-clear and asset-install scripts beside them.
+The recipe’s editor settings for this package stay. The agent-instruction files that recipe copies into the package are removed. Existing PHPStan and formatter configuration stay. The PHPUnit configuration of the library stays, except the test-run bootstrap, which is the Symfony recipe’s `tests/bootstrap.php`. Existing quality scripts stay. Flex may add its cache-clear and asset-install scripts beside them.
 
 When this slice is done, the bootstrap feature’s status records that the namespace and the framework exist. A move to the next Symfony minor is a separate constraint change.
 

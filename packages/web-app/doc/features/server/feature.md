@@ -99,4 +99,4 @@ A file in `research/` is a direction until a slice spec adopts it. `research/Inv
 | Current ticket | [01 — Boot Eleanor's kernel in the test environment](issues/01-boot-eleanor-kernel.md). Slice 1 is Done. |
 | Namespace | `Yumo\Eleanor` on `src/`. `Yumo\Eleanor\Tests` on `tests/`. |
 | Application code | `Yumo\Eleanor\Kernel` boots. Symfony 8.1. |
-| Specs and plans | [Kernel](specs/Kernel.md). [Plan](plans/2026-10-10-kernel.md). |
+| Specs and plans | [Kernel](specs/Kernel.md). [Plan](plans/2026-10-10-kernel.md). The test-run bootstrap is the Symfony recipe’s `tests/bootstrap.php`. The rest of the library PHPUnit configuration stays. |
