@@ -4,11 +4,13 @@ Module design for [empty-route.md](../empty-route.md). The decisions in that con
 
 ## Module
 
-`Yumo\Eleanor\Controller\Api\CreateArchiveController` is the HTTP adapter for this slice. The action is `create`. The class does not extend `AbstractController`. It has no constructor dependency and the action has no parameter. It does not read the body, map a payload, touch the session, call an archive service, or fetch a page.
+`Yumo\Eleanor\Api\Controller\CreateArchiveController` is the HTTP adapter for this slice. It lives in `src/Api/Controller/`. The action is `create`. The class does not extend `AbstractController`. It has no constructor dependency and the action has no parameter. It does not read the body, map a payload, touch the session, call an archive service, or fetch a page.
 
 The class is a service through the existing `Yumo\Eleanor\` resource. This slice adds no service definition.
 
-One import loads that namespace. The import sets prefix `/api`, `trailing_slash_on_root` false, and `stateless` true. It does not set methods or format. The route entry that loads `routing.controllers` is removed. It is not restored when a later HTML import is added. This slice does not add the HTML import.
+The directory was `src/Controller/Api/` (`Yumo\Eleanor\Controller\Api`). The payload design groups the API surface under `src/Api/`: the controller in `src/Api/Controller/`, the body type in `src/Api/Dto/`. This spec takes the controller half of that move. The payload slice moved the class. The finished empty-route plan stays the record of the code written then. [PayloadAndMapper.md](PayloadAndMapper.md) replaces the parameterless action.
+
+One import loads `src/Api/Controller/` and the namespace `Yumo\Eleanor\Api\Controller`. It does not load `src/Api/`. The import sets prefix `/api`, `trailing_slash_on_root` false, and `stateless` true. It does not set methods or format. The route entry that loads `routing.controllers` is removed. It is not restored when a later HTML import is added. This slice does not add the HTML import.
 
 The action declares path `/archives`, name `create_archive`, method POST, and format `json`. It has no alias. POST and the format are declared on the action. The finished path is `/api/archives`, with no trailing slash and no version segment. The query string is not part of the match.
 
@@ -26,7 +28,7 @@ Only POST is the command on `/api/archives`. Any other verb, including HEAD, rec
 
 A request path other than `/api/archives` does not match `create_archive`. `POST /api/archives/` misses this route and receives 404 (`NotFoundHttpException`). The framework's trailing-slash redirect applies to GET and HEAD, so this POST is not redirected. `/archives` without the prefix is not this route.
 
-A wrong content type is not 415. An unreadable body is not 400. This slice adds no Eleanor exception type. The skeleton's dev error route stays. This slice adds no owner email, bearer token, database path, or archive directory.
+A wrong content type is not 415. An unreadable body is not 400. [PayloadAndMapper.md](PayloadAndMapper.md) replaces both rules. This slice adds no Eleanor exception type. The skeleton's dev error route stays. This slice adds no owner email, bearer token, database path, or archive directory.
 
 ## Temporary server
 

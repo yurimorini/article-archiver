@@ -3,8 +3,8 @@
 # API controllers only. The catch-all routing.controllers import stays removed.
 api_controllers:
     resource:
-        path: ../src/Controller/Api/
-        namespace: Yumo\Eleanor\Controller\Api
+        path: ../src/Api/Controller/
+        namespace: Yumo\Eleanor\Api\Controller
     type: attribute
     prefix: /api
     trailing_slash_on_root: false
