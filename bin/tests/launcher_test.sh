@@ -379,6 +379,7 @@ test_docker_run_sets_package_workdir_and_composer_home() {
   dest="$(mktemp -d)"
   mkdir -p "${dest}/bin/lib" "${dest}/packages/article-reader"
   cp "${REPO}/bin/lib/projects.sh" "${dest}/bin/lib/projects.sh"
+  cp "${REPO}/bin/lib/container.sh" "${dest}/bin/lib/container.sh"
   cp "${REPO}/bin/docker-run" "${dest}/bin/docker-run"
   chmod +x "${dest}/bin/docker-run"
   printf '%s\n' $'article-reader\tpackages/article-reader' > "${dest}/bin/projects"
@@ -411,6 +412,7 @@ test_docker_run_usage_and_unknown_package_and_missing_image() {
   dest="$(mktemp -d)"
   mkdir -p "${dest}/bin/lib"
   cp "${REPO}/bin/lib/projects.sh" "${dest}/bin/lib/projects.sh"
+  cp "${REPO}/bin/lib/container.sh" "${dest}/bin/lib/container.sh"
   cp "${REPO}/bin/docker-run" "${dest}/bin/docker-run"
   chmod +x "${dest}/bin/docker-run"
   printf '%s\n' $'article-reader\tpackages/article-reader' > "${dest}/bin/projects"
@@ -440,6 +442,103 @@ test_docker_run_usage_and_unknown_package_and_missing_image() {
   unset DOCKER_IMAGE_MISSING DOCKER_BIN_LOG
 }
 
+test_docker_serve_publishes_loopback_and_starts_php() {
+  local dest fake log stdout stderr status
+  dest="$(mktemp -d)"
+  mkdir -p "${dest}/bin/lib" "${dest}/packages/web-app"
+  cp "${REPO}/bin/lib/projects.sh" "${dest}/bin/lib/projects.sh"
+  cp "${REPO}/bin/docker-serve" "${dest}/bin/docker-serve"
+  cp "${REPO}/bin/lib/container.sh" "${dest}/bin/lib/container.sh"
+  chmod +x "${dest}/bin/docker-serve"
+  printf '%s\n' $'web-app\tpackages/web-app' > "${dest}/bin/projects"
+  fake="${dest}/fake-bin"
+  log="${dest}/docker.log"
+  install_fake_docker "${fake}"
+  export DOCKER_BIN_LOG="${log}"
+  stdout="$(mktemp)"
+  stderr="$(mktemp)"
+  status=0
+  PATH="${fake}:${PATH}" "${dest}/bin/docker-serve" web-app >"${stdout}" 2>"${stderr}" || status=$?
+  assert_status "${status}" 0 "docker-serve exits 0 when the image exists"
+  local recorded
+  recorded="$(cat "${log}")"
+  case "${recorded}" in
+    *"-w /workspace/packages/web-app"*) ;;
+    *)
+      fail "docker-serve workdir was wrong: ${recorded}"
+      ;;
+  esac
+  case "${recorded}" in
+    *"log-read-php"*) ;;
+    *)
+      fail "docker-serve image was wrong: ${recorded}"
+      ;;
+  esac
+  case "${recorded}" in
+    *" -p 127.0.0.1:8000:8000 "*) ;;
+    *)
+      fail "docker-serve publish was wrong: ${recorded}"
+      ;;
+  esac
+  case "${recorded}" in
+    *"php -S 0.0.0.0:8000 -t public router.php"*) ;;
+    *)
+      fail "docker-serve php command was wrong: ${recorded}"
+      ;;
+  esac
+  case "${recorded}" in
+    *"0.0.0.0:8000:8000"*)
+      fail "docker-serve must not publish 0.0.0.0:8000:8000: ${recorded}"
+      ;;
+  esac
+  case "${recorded}" in
+    *"-d"*)
+      fail "docker-serve must not detach: ${recorded}"
+      ;;
+  esac
+  rm -rf "${dest}" "${stdout}" "${stderr}"
+  unset DOCKER_BIN_LOG
+}
+
+test_docker_serve_usage_unknown_package_and_missing_image() {
+  local dest fake stderr status
+  dest="$(mktemp -d)"
+  mkdir -p "${dest}/bin/lib" "${dest}/packages/web-app" "${dest}/packages/article-reader"
+  cp "${REPO}/bin/lib/projects.sh" "${dest}/bin/lib/projects.sh"
+  cp "${REPO}/bin/docker-serve" "${dest}/bin/docker-serve"
+  cp "${REPO}/bin/lib/container.sh" "${dest}/bin/lib/container.sh"
+  chmod +x "${dest}/bin/docker-serve"
+  printf '%s\n' $'article-reader\tpackages/article-reader' $'web-app\tpackages/web-app' > "${dest}/bin/projects"
+  fake="${dest}/fake-bin"
+  install_fake_docker "${fake}"
+  stderr="$(mktemp)"
+  export DOCKER_BIN_LOG="${dest}/docker.log"
+  : > "${DOCKER_BIN_LOG}"
+  status=0
+  PATH="${fake}:${PATH}" "${dest}/bin/docker-serve" >"${stderr}.out" 2>"${stderr}" || status=$?
+  assert_status "${status}" 1 "docker-serve without arguments exits 1"
+  assert_eq "$(cat "${stderr}")" "Usage: ./bin/docker-serve web-app" \
+    "docker-serve usage"
+  assert_eq "$(cat "${DOCKER_BIN_LOG}")" "" "usage does not docker run"
+  : > "${DOCKER_BIN_LOG}"
+  status=0
+  PATH="${fake}:${PATH}" "${dest}/bin/docker-serve" article-reader >"${stderr}.out" 2>"${stderr}" || status=$?
+  assert_status "${status}" 1 "docker-serve article-reader exits 1"
+  assert_eq "$(cat "${stderr}")" "docker-serve only serves web-app" \
+    "docker-serve rejects a package other than web-app"
+  assert_eq "$(cat "${DOCKER_BIN_LOG}")" "" "rejected package does not docker run"
+  export DOCKER_IMAGE_MISSING=1
+  : > "${DOCKER_BIN_LOG}"
+  status=0
+  PATH="${fake}:${PATH}" "${dest}/bin/docker-serve" web-app >"${stderr}.out" 2>"${stderr}" || status=$?
+  assert_status "${status}" 1 "missing image exits 1"
+  assert_eq "$(cat "${stderr}")" "Docker image 'log-read-php' not found. Build it with: ./bin/docker-build" \
+    "missing image message"
+  assert_eq "$(cat "${DOCKER_BIN_LOG}")" "" "missing image does not docker run"
+  rm -rf "${dest}" "${stderr}" "${stderr}.out"
+  unset DOCKER_IMAGE_MISSING DOCKER_BIN_LOG
+}
+
 test_projects_read_ignores_blanks_and_comments
 test_projects_path_for_unknown_name
 test_quality_unknown_package_prints_known_names
@@ -454,6 +553,8 @@ test_composer_requires_a_package_name
 test_projects_file_lists_article_reader_and_web_app
 test_docker_run_sets_package_workdir_and_composer_home
 test_docker_run_usage_and_unknown_package_and_missing_image
+test_docker_serve_publishes_loopback_and_starts_php
+test_docker_serve_usage_unknown_package_and_missing_image
 
 if [[ "${FAILURES}" -ne 0 ]]; then
   printf '%s failure(s)\n' "${FAILURES}" >&2

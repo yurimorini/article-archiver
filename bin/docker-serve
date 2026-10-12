@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# Start PHP's built-in server for web-app, on loopback port 8000.
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=lib/projects.sh
+source "${ROOT_DIR}/bin/lib/projects.sh"
+# shellcheck source=lib/container.sh
+source "${ROOT_DIR}/bin/lib/container.sh"
+
+IMAGE_NAME="${IMAGE_NAME:-log-read-php}"
+
+if [[ $# -ne 1 ]]; then
+  printf 'Usage: ./bin/docker-serve web-app\n' >&2
+  exit 1
+fi
+
+if [[ "$1" != "web-app" ]]; then
+  printf 'docker-serve only serves web-app\n' >&2
+  exit 1
+fi
+
+package_name="$1"
+
+if ! package_rel="$(projects_path_for "${ROOT_DIR}/bin/projects" "${package_name}")"; then
+  printf 'Unknown package: %s\n' "${package_name}" >&2
+  projects_names "${ROOT_DIR}/bin/projects" >&2
+  exit 1
+fi
+
+if ! docker image inspect "${IMAGE_NAME}" >/dev/null 2>&1; then
+  printf "Docker image '%s' not found. Build it with: ./bin/docker-build\n" "${IMAGE_NAME}" >&2
+  exit 1
+fi
+
+container_fill_run_args "${ROOT_DIR}" "${package_rel}"
+
+exec docker run -p 127.0.0.1:8000:8000 "${run_args[@]}" "${IMAGE_NAME}" php -S 0.0.0.0:8000 -t public router.php
