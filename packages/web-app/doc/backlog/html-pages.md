@@ -1,3 +1,0 @@
-# HTML pages
-
-HTML pages.
