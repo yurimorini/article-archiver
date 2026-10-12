@@ -36,7 +36,7 @@ The HTTP layer sees one archive service. The orchestrator and storage are inside
 | Order | Slice | Category | Done when | Status |
 | --- | --- | --- | --- | --- |
 | 1 | [Symfony skeleton](symfony-skeleton.md) | Shell | The PHP namespace is chosen, the app boots, and quality checks pass | Done |
-| 2 | Empty route | Shell | `POST /api/archives` answers on a temporary server | Not started |
+| 2 | Empty route | Shell | `POST /api/archives` answers on a temporary server | In progress |
 | 3 | Logging | Shell | A request writes a line on the configured channels | Not started |
 | 4 | Payload and mapper | Archive route | A body is accepted or refused before the service runs | Not started |
 | 5 | Application service | Archive route | The controller calls that one service and no other collaborator for the command | Not started |

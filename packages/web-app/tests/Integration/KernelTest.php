@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Yumo\Eleanor\Tests;
+namespace Yumo\Eleanor\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
 use Yumo\Eleanor\Kernel;
