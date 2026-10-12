@@ -1,6 +1,6 @@
 # Kernel
 
-Module design for [ticket 01](../issues/01-boot-eleanor-kernel.md). The decisions in [symfony-skeleton.md](../symfony-skeleton.md) and that ticket are closed. This slice adds no glossary term and adopts no ADR.
+Module design for [ticket 01](../issues/01-boot-eleanor-kernel.md). The decisions in [symfony-skeleton.md](../symfony-skeleton.md) and that ticket are closed. This slice adds no glossary term. The boot test namespace follows [adr/0006](../../../adr/0006-kernel-tests-live-in-integration.md).
 
 ## Module
 
@@ -10,7 +10,7 @@ The recipe’s front controller and the recipe’s console construct this kernel
 
 The kernel loads the official 8.1 service and environment configuration. The only renames are the kernel class and the service-resource prefix, which is `Yumo\Eleanor\`. Classes in that namespace are services, with autowire and autoconfigure. The parameter section is empty. While the container is built, the framework aliases `Yumo\Eleanor\Kernel` to its own `kernel` service. That alias is framework wiring. This slice defines no Eleanor service. The kernel class is the only application class.
 
-The test namespace is `Yumo\Eleanor\Tests`.
+The PSR-4 test prefix is `Yumo\Eleanor\Tests` on `tests/`. The boot test's namespace is `Yumo\Eleanor\Tests\Integration`.
 
 The kernel depends on the Symfony 8.1 framework bundle, runtime, dotenv, YAML, and console, installed into the existing Composer project and constrained to `8.1.*`. Flex’s require setting is the same line. The library link and the quality tools stay. Contrib recipes stay off. Composer may run the Flex plugin and the runtime plugin. The ctype and iconv extensions are required. The website pack, Maker, the debug bundle, the web profiler, Monolog, and the PHPUnit bridge are not added.
 
@@ -42,7 +42,7 @@ The recipe’s dev error route is the framework’s dev error page. It is not a 
 
 ## Test
 
-One test, in the web-app suite, is the only automated seam. The test run sets the environment to `test` and the secret to `test`, then the test boots `Yumo\Eleanor\Kernel` and reads the environment back. The assertion is that the environment is `test`.
+One test, in the web-app suite, is the only automated seam. It lives in `Yumo\Eleanor\Tests\Integration`, as a flat file under `tests/Integration/`. The test run sets the environment to `test` and the secret to `test`, then the test boots `Yumo\Eleanor\Kernel` and reads the environment back. The assertion is that the environment is `test`.
 
 The test does not read files, namespace strings inside configuration, or an HTTP status. It does not cover the empty-environment, disallowed-environment, or empty-secret failures. The library’s PHPUnit tests stay the pattern for how this repo writes a test. They are not the boot seam. The PHPUnit configuration of the library stays, except the test-run bootstrap, which is the Symfony recipe’s `tests/bootstrap.php`. That file loads the env files through Dotenv. PHPUnit sets the test environment and the secret before that file runs, so the dev env file is not loaded. The PHPUnit bridge is not added.
 
