@@ -48,13 +48,6 @@ final class LogApiRequest implements EventSubscriberInterface
             return;
         }
 
-        $class = $this->controllerClass($event->getController());
-
-        // The payload slice moved the controller to Yumo\Eleanor\Api\Controller.
-        if ($class === null || !str_starts_with($class, 'Yumo\\Eleanor\\Api\\Controller\\')) {
-            return;
-        }
-
         $request = $event->getRequest();
         $enriched = $this->enricher->enrich($request);
         $request->attributes->set(EnrichedRequest::class, $enriched);
@@ -103,19 +96,6 @@ final class LogApiRequest implements EventSubscriberInterface
         } catch (\Throwable) {
             // A failed write must not change the action's response.
         }
-    }
-
-    private function controllerClass(mixed $controller): ?string
-    {
-        if (is_array($controller)) {
-            $controller = $controller[0] ?? null;
-        }
-
-        if (!is_object($controller)) {
-            return null;
-        }
-
-        return $controller::class;
     }
 
     /**
