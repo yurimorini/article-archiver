@@ -1,5 +1,7 @@
 # 01: Boot Eleanor's kernel in the test environment
 
+**Feature:** [0002-server](../features/0002-server/feature.md)
+
 **What to build:** A developer of Eleanor can boot the application from the existing Composer project. Symfony 8.1's micro skeleton is installed there, and the quality tools and the library link stay. The kernel class is `Yumo\Eleanor\Kernel`. Dev is the default environment, the test run forces the test environment and its own fixed secret, and prod is selected by setting the environment. The shared env file commits an empty application secret, the dev env file commits a generated secret, and machine-local env files stay off git. The owner email, the bearer token, a database path, and an archive directory are absent. The console reports the application. One test boots the kernel and sees the test environment. Quality checks pass, and the bootstrap record says the namespace and the framework exist.
 
 **Blocked by:** None (can start immediately).

@@ -1,27 +1,25 @@
-# Issue tracker: package feature folder
+# Issue tracker: package issues folder
 
-Issues, contracts, and specs live in the package that owns the work.
+Tickets live in the package that owns the work. Contracts, specs, and plans stay in the feature folder.
 
-`packages/<package>/doc/features/<feature>/`
+`packages/<package>/doc/issues/<NN>-<slug>.md`
 
-The package is the one whose files the work changes. `.agents/rules/feature-framework.md` is the layout. This file is how the engineering skills find it. There is no GitHub or GitLab issue tracker, and no `.scratch/` tree.
+The package is the one whose files the work changes. `.agents/rules/feature-framework.md` is the feature-folder layout, including how `NNNN` is chosen. This file is how the engineering skills find a ticket. There is no GitHub or GitLab issue tracker, and no `.scratch/` tree.
 
 ## Layout
 
-- `feature.md` — index: status, order, links to the contract and the current ticket.
-- `<slug>.md` — the feature contract from `to-spec`. One file per feature folder.
-- `issues/<NN>-<slug>.md` — one ticket from `to-tickets`, numbered from `01` in dependency order.
-- `specs/<Name>.md` — the module design for one ticket.
-- `plans/YYYY-MM-DD-<name>.md` — the implementation plan for that ticket.
-- `research/` — notes. A note is not a requirement until a contract or a spec adopts it.
+- `packages/<package>/doc/issues/<NN>-<slug>.md` — one ticket from `to-tickets`. `NN` is two digits. The first ticket in a package is `01`. The next ticket is one more than the highest number already present under that package's `doc/issues/`. Within one breakdown, assign numbers in dependency order, blockers first. Do not reuse a number. Do not restart the sequence for a new feature or sub-feature.
+- `feature.md`, the contract, `specs/`, and `plans/` stay under `packages/<package>/doc/features/NNNN-<slug>/`. `feature.md` links the current ticket.
 
 ## When a skill says "publish to the issue tracker"
 
-Create the file in that feature folder. `to-spec` writes `<slug>.md`. `to-tickets` writes one file per ticket under `issues/`.
+Create the ticket under `packages/<package>/doc/issues/`. `to-spec` still writes `<slug>.md` in the feature folder. `to-tickets` writes one file per ticket in the package issues folder.
+
+A ticket names the feature it belongs to, as a link to that feature's `feature.md`, so the contract and the spec stay findable.
 
 ## When a skill says "fetch the relevant ticket"
 
-Read the file at the path the user gives. A bare number means the `issues/<NN>-*.md` file in the feature under discussion.
+Read the file at the path the user gives. A bare number means the `packages/<package>/doc/issues/<NN>-*.md` file for the package under discussion.
 
 ## Status, labels, and comments
 

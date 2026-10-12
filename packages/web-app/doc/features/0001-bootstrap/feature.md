@@ -18,7 +18,7 @@ packages/web-app/
   src/                  # application code; empty until the namespace is chosen
   tests/                # PHPUnit; empty until the namespace is chosen
   bin/                  # php-cs-fixer lists this directory
-  doc/features/bootstrap/
+  doc/features/0001-bootstrap/
 ```
 
 `src/` and `tests/` contain no PHP. `./bin/quality web-app` therefore skips Composer and exits 0. The first class adds the autoload keys and the PHP files together.

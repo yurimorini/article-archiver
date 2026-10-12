@@ -8,7 +8,7 @@
 
 **Tech Stack:** PHP 8.5, Symfony 8.1, existing PHPUnit 11, `symfony/browser-kit` `8.1.*`, `bin/docker-run`, `bin/test`, `bin/quality`.
 
-**Spec:** `packages/web-app/doc/features/server/specs/EmptyRoute.md`
+**Spec:** `packages/web-app/doc/features/0002-server/specs/EmptyRoute.md`
 
 ## Global Constraints
 
@@ -52,7 +52,7 @@
 - Create: `bin/docker-serve` — foreground server for `web-app` only.
 - Create: `packages/web-app/router.php` — built-in-server router. It lives outside `public` so it is not a URL.
 - Create: `packages/web-app/README.md` — command, base URL, one curl.
-- Modify: `packages/web-app/doc/features/server/feature.md` — slice 2 status, at the start and at the end.
+- Modify: `packages/web-app/doc/features/0002-server/feature.md` — slice 2 status, at the start and at the end.
 
 ---
 
@@ -61,7 +61,7 @@
 **Files:**
 - Create: `packages/web-app/tests/Integration/KernelTest.php`
 - Delete: `packages/web-app/tests/KernelTest.php`
-- Modify: `packages/web-app/doc/features/server/feature.md`
+- Modify: `packages/web-app/doc/features/0002-server/feature.md`
 
 **Interfaces:**
 - Consumes: nothing from an earlier task.
@@ -69,7 +69,7 @@
 
 - [ ] **Step 1: Mark slice 2 in progress**
 
-In `packages/web-app/doc/features/server/feature.md`, set the Empty route status cell to `In progress`.
+In `packages/web-app/doc/features/0002-server/feature.md`, set the Empty route status cell to `In progress`.
 
 - [ ] **Step 2: Move the boot test**
 
@@ -83,7 +83,7 @@ Expected: exit code 0. `test_boot_sees_test_environment` passes.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add packages/web-app/tests/Integration/KernelTest.php packages/web-app/tests/KernelTest.php packages/web-app/doc/features/server/feature.md
+git add packages/web-app/tests/Integration/KernelTest.php packages/web-app/tests/KernelTest.php packages/web-app/doc/features/0002-server/feature.md
 git commit -m "$(cat <<'EOF'
 Move the kernel boot test into tests/Integration.
 
@@ -290,7 +290,7 @@ Stage `symfony.lock` only if it changed. Do not stage `vendor/` or `var/`.
 - Create: `bin/docker-serve`
 - Create: `packages/web-app/router.php`
 - Create: `packages/web-app/README.md`
-- Modify: `packages/web-app/doc/features/server/feature.md`
+- Modify: `packages/web-app/doc/features/0002-server/feature.md`
 - Test: `bin/tests/launcher_test.sh`
 
 **Interfaces:**
@@ -390,7 +390,7 @@ Expected: exit code 0.
 
 - [ ] **Step 7: Record slice 2 done**
 
-In `packages/web-app/doc/features/server/feature.md`:
+In `packages/web-app/doc/features/0002-server/feature.md`:
 
 - Empty route status cell: `Done`.
 - Next slice: `3 — Logging. Not started.`
@@ -400,7 +400,7 @@ In `packages/web-app/doc/features/server/feature.md`:
 - [ ] **Step 8: Commit**
 
 ```bash
-git add bin/lib/container.sh bin/docker-run bin/docker-serve bin/tests/launcher_test.sh packages/web-app/router.php packages/web-app/README.md packages/web-app/doc/features/server/feature.md
+git add bin/lib/container.sh bin/docker-run bin/docker-serve bin/tests/launcher_test.sh packages/web-app/router.php packages/web-app/README.md packages/web-app/doc/features/0002-server/feature.md
 git commit -m "$(cat <<'EOF'
 Serve Eleanor on loopback with PHP's built-in server.
 

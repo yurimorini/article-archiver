@@ -68,9 +68,9 @@ Add one stateless JSON route, `POST /api/archives`, that answers before any arch
 ## Implementation Decisions
 
 - This contract adopts the stateless `/api` import in adr/0005. The ADR stays proposed until the module spec adopts it.
-- API controllers live in the namespace `Yumo\Eleanor\Controller\Api`, on the directory that namespace maps to. One import loads that directory with prefix `/api`, `trailing_slash_on_root` false, and `stateless` true.
+- API controllers live in `src/Api/Controller/` (`Yumo\Eleanor\Api\Controller`). One import loads that directory, not `src/Api/`, with prefix `/api`, `trailing_slash_on_root` false, and `stateless` true. The directory was `src/Controller/Api/`. The application code keeps the old directory until the payload slice moves the class.
 - The catch-all that loads every routed controller service is removed. It is not restored when a later HTML import is added. That later import has no `/api` prefix and is not stateless. This slice does not add it.
-- The action is `Yumo\Eleanor\Controller\Api\CreateArchiveController::create`. Its path is `/archives`, its name is `create_archive`, its only method is POST, and its format is `json`. It has no alias.
+- The action is `Yumo\Eleanor\Api\Controller\CreateArchiveController::create`. Its path is `/archives`, its name is `create_archive`, its only method is POST, and its format is `json`. It has no alias.
 - POST and the format are declared on the action. The import does not set methods or format. An import method list would replace the action’s methods.
 - The finished path is `/api/archives`, with no trailing slash and no version segment. A POST to the slash form is not this route. The query string is not part of the match.
 - The action returns 200 and the JSON object `{"ok":true}` with content type `application/json`. It returns that for every body: absent, not JSON, a JSON URL pointer of any JSON type, a JSON object without `url`, a JSON array, and a JSON scalar. It returns that for a missing request content type, a non-JSON content type, and an `Accept` that is not JSON.

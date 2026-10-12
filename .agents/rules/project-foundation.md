@@ -42,6 +42,7 @@ alwaysApply: true
 ## Working with the agent
 
 - When requirements, scope, or trade-offs are **ambiguous**, **ask** rather than guess. Offer sensible defaults only after stating assumptions.
+- In grill or brainstorming, a closed spec stays binding until you and the user revise it. When that choice would split this design across two layouts, or would block a simpler structure you can name, stop. Name the spec path, the locked choice, and one alternative. Ask: "Spec <path> locks <choice>. Alternative: <alternative>. Revise that spec?" Edit the spec only after the user says yes.
 - **Use tools** to inspect the codebase, configuration, and tests before changing behavior; do not rely on memory alone.
 - When behavior or public surfaces change, **update the relevant documentation** in the same change when it exists (README, inline docs users rely on).
 

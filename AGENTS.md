@@ -36,7 +36,7 @@ The project uses Docker. `bin/` at the git root is the launcher for the packages
 
 ### Issue tracker
 
-Feature work lives in the owning package's feature folder. See `.agents/rules/issue-tracker.md`.
+Tickets live in the owning package's `doc/issues` folder. Contracts and specs stay in the feature folder. See `.agents/rules/issue-tracker.md`.
 
 ### Triage labels
 

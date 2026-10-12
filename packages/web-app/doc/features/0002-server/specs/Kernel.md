@@ -1,6 +1,6 @@
 # Kernel
 
-Module design for [ticket 01](../issues/01-boot-eleanor-kernel.md). The decisions in [symfony-skeleton.md](../symfony-skeleton.md) and that ticket are closed. This slice adds no glossary term. The boot test namespace follows [adr/0006](../../../adr/0006-kernel-tests-live-in-integration.md).
+Module design for [ticket 01](../../../issues/01-boot-eleanor-kernel.md). The decisions in [symfony-skeleton.md](../symfony-skeleton.md) and that ticket are closed. This slice adds no glossary term. The boot test namespace follows [adr/0006](../../../adr/0006-kernel-tests-live-in-integration.md).
 
 ## Module
 
