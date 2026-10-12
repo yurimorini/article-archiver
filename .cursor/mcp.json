@@ -2,7 +2,7 @@
   "mcpServers": {
     "codegraph": {
       "type": "stdio",
-      "command": "codegraph",
+      "command": "/home/yuri/.nvm/versions/node/v26.10.0/lib/node_modules/@colbymchenry/codegraph/node_modules/@colbymchenry/codegraph-linux-x64/bin/codegraph",
       "args": [
         "serve",
         "--mcp",
