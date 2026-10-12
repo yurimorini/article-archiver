@@ -14,7 +14,7 @@ final class UuidRequestIdFactory implements RequestIdFactory
      */
     public function fromHeader(?string $value): string
     {
-        if ($value !== null && preg_match('/^[A-Za-z0-9._-]{1,128}$/', $value) === 1) {
+        if ($value !== null && preg_match('/^[A-Za-z0-9._-]{1,128}\z/', $value) === 1) {
             return $value;
         }
 

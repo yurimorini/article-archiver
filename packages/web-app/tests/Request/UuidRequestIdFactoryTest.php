@@ -33,6 +33,8 @@ final class UuidRequestIdFactoryTest extends TestCase
         yield 'space' => [' '];
         yield 'padded' => [' a '];
         yield 'newline' => ["\n"];
+        yield 'trailing newline' => ["kept-id\n"];
+        yield '128 characters then newline' => [str_repeat('A1._-', 25) . "b9Z\n"];
         yield 'non-ascii' => ['é'];
         yield 'length 129' => [str_repeat('A1._-', 25) . 'b9Za'];
     }
