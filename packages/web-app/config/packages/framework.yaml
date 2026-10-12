@@ -15,3 +15,9 @@ when@test:
         test: true
         session:
             storage_factory_id: session.storage.factory.mock_file
+        # The fallback logger writes error and above to stderr. A 404 or 405 is an expected miss, and PHPUnit prints that line in the progress.
+        exceptions:
+            Symfony\Component\HttpKernel\Exception\NotFoundHttpException:
+                log_level: debug
+            Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException:
+                log_level: debug
