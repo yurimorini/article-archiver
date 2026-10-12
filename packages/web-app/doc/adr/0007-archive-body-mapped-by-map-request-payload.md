@@ -8,4 +8,4 @@ A required `string $url` misses the resolver's catch list: `MissingConstructorAr
 
 Malformed JSON, an empty body sent as `application/json`, a missing `url`, a non-string `url`, and a JSON value that is not that object are 400. A missing `Content-Type`, or a media type other than JSON, is 415. [0001](0001-archive-outcome-status.md) still owns the archive outcomes. 415 is the media type, before that command. The refusal body is Symfony's JSON error. Eleanor's problem document, with `cause`, waits for the response slice. Until that slice, an accepted body still returns the empty-route `200` `{"ok":true}`. The action does not call the archive service.
 
-Reading the body in the action was the alternative. The resolver already stops before `__invoke`, ignores unknown fields, and turns type failures into the validation status.
+Reading the body in the action was the alternative. The resolver already stops before `create`, ignores unknown fields, and turns type failures into the validation status.

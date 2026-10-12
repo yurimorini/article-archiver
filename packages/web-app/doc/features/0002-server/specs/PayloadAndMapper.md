@@ -25,7 +25,7 @@ create(
 
 The resolver maps the body before `create` runs. `create` does not read `$body->url`. It returns `JsonResponse::fromJsonString('{"ok":true}')`. It calls no archive service, fetches no page, and does not touch the session.
 
-Unknown JSON properties stay ignored by the serializer default. This slice adds no serializer config and no validator config by hand. A Flex recipe that `symfony/serializer` or `symfony/validator` installs may stay. `symfony/property-access` is also a direct package at `8.1.*`, because FrameworkBundle removes the object normalizer without it and `symfony/serializer` does not require it. `symfony/property-info` and `symfony/type-info` stay lock-only. No other direct package is added.
+Unknown JSON properties stay ignored by the serializer default. This slice adds no serializer config and no validator config by hand. A Flex recipe that `symfony/serializer` or `symfony/validator` installs may stay. The property-info Flex recipe `config/packages/property_info.yaml` may stay too. `with_constructor_extractor` already defaults to true. `symfony/property-access` is also a direct package at `8.1.*`, because FrameworkBundle removes the object normalizer without it and `symfony/serializer` does not require it. `symfony/property-info` and `symfony/type-info` stay lock-only. No other direct package is added.
 
 `symfony/serializer`, `symfony/validator`, and `symfony/property-access` are added at `8.1.*`.
 

@@ -57,8 +57,8 @@ The same route accepts a JSON object whose `url` is a string, including an empty
 45. As a developer of Eleanor, I want `acceptFormat` limited to `json`, so that another media type is 415.
 46. As a developer of Eleanor, I want `validationFailedStatusCode` set to 400, so that a shape failure is not 422.
 47. As a developer of Eleanor, I want unknown JSON properties ignored by the serializer default, so that the route does not reject them.
-48. As a developer of Eleanor, I want `symfony/serializer` and `symfony/validator` on `8.1.*`, so that the resolver and `NotNull` exist.
-49. As a developer of Eleanor, I want no other package added, so that the dependency set stays these two plus what the app already has.
+48. As a developer of Eleanor, I want `symfony/serializer`, `symfony/validator`, and `symfony/property-access` on `8.1.*`, so that the resolver and `NotNull` exist.
+49. As a developer of Eleanor, I want no other direct package added, so that the dependency set stays these three plus what the app already has. `symfony/property-info` and `symfony/type-info` stay lock-only.
 50. As a developer of Eleanor, I want the action to receive the DTO and not use `url` in the response, so that the stub stays `{"ok":true}`.
 51. As a developer of Eleanor, I want the action to call no archive service, so that the service slice is the first caller.
 52. As a developer of Eleanor, I want the existing kernel HTTP test of this route to be the only automated seam, so that a second test of the resolver is not added.
