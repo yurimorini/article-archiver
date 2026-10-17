@@ -22,12 +22,12 @@
     },
     "autoload": {
         "psr-4": {
-            "Yumo\\LogRead\\": "src/"
+            "Yumo\\ArtcleReader\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Yumo\\LogRead\\Tests\\": "tests/"
+            "Yumo\\ArtcleReader\\Tests\\": "tests/"
         }
     },
     "scripts": {

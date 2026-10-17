@@ -2,30 +2,30 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\Orchestrator;
+namespace Yumo\ArtcleReader\Tests\Orchestrator;
 
 use GuzzleHttp\Psr7\Response;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\AbstractLogger;
-use Yumo\LogRead\ArticleExtractor\ArticleExtractorException;
-use Yumo\LogRead\ArticleExtractor\ExtractPolicy;
-use Yumo\LogRead\EncodingNormalizer\EncodingError;
-use Yumo\LogRead\EncodingNormalizer\EncodingNormalizer;
-use Yumo\LogRead\EncodingNormalizer\EncodingNormalizerException;
-use Yumo\LogRead\HtmlSanitizer\HtmlSanitizer;
-use Yumo\LogRead\HtmlSanitizer\HtmlSanitizerException;
-use Yumo\LogRead\HtmlSanitizer\PurifyPolicy;
-use Yumo\LogRead\HttpFetcher\HttpFetcherError;
-use Yumo\LogRead\HttpFetcher\HttpFetcherException;
-use Yumo\LogRead\Orchestrator\OrchestratorError;
-use Yumo\LogRead\Orchestrator\OrchestratorException;
-use Yumo\LogRead\Orchestrator\PipelineEmptyReason;
-use Yumo\LogRead\Orchestrator\PipelineNoContent;
-use Yumo\LogRead\Orchestrator\PipelineSuccess;
-use Yumo\LogRead\Orchestrator\PipelineWarningCode;
-use Yumo\LogRead\Tests\ArticleExtractor\RecordingLogger;
-use Yumo\LogRead\Tests\EncodingNormalizer\FakeUtf8Converter;
-use Yumo\LogRead\UrlGuard\UrlGuardException;
+use Yumo\ArtcleReader\ArticleExtractor\ArticleExtractorException;
+use Yumo\ArtcleReader\ArticleExtractor\ExtractPolicy;
+use Yumo\ArtcleReader\EncodingNormalizer\EncodingError;
+use Yumo\ArtcleReader\EncodingNormalizer\EncodingNormalizer;
+use Yumo\ArtcleReader\EncodingNormalizer\EncodingNormalizerException;
+use Yumo\ArtcleReader\HtmlSanitizer\HtmlSanitizer;
+use Yumo\ArtcleReader\HtmlSanitizer\HtmlSanitizerException;
+use Yumo\ArtcleReader\HtmlSanitizer\PurifyPolicy;
+use Yumo\ArtcleReader\HttpFetcher\HttpFetcherError;
+use Yumo\ArtcleReader\HttpFetcher\HttpFetcherException;
+use Yumo\ArtcleReader\Orchestrator\OrchestratorError;
+use Yumo\ArtcleReader\Orchestrator\OrchestratorException;
+use Yumo\ArtcleReader\Orchestrator\PipelineEmptyReason;
+use Yumo\ArtcleReader\Orchestrator\PipelineNoContent;
+use Yumo\ArtcleReader\Orchestrator\PipelineSuccess;
+use Yumo\ArtcleReader\Orchestrator\PipelineWarningCode;
+use Yumo\ArtcleReader\Tests\ArticleExtractor\RecordingLogger;
+use Yumo\ArtcleReader\Tests\EncodingNormalizer\FakeUtf8Converter;
+use Yumo\ArtcleReader\UrlGuard\UrlGuardException;
 
 final class OrchestratorTest extends TestCase
 {

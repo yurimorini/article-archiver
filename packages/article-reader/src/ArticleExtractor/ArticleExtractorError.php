@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\ArticleExtractor;
+namespace Yumo\ArtcleReader\ArticleExtractor;
 
 /**
  * This enum names hard failures that abort article extraction for one document.

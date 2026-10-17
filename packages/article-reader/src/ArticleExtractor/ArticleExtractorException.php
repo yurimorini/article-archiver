@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\ArticleExtractor;
+namespace Yumo\ArtcleReader\ArticleExtractor;
 
 /**
  * This exception reports that article extraction aborted for one document.

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\ArticleExtractor;
+namespace Yumo\ArtcleReader\ArticleExtractor;
 
 /**
  * This class holds one piece of metadata as plain text, with tags already removed.

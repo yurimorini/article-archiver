@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\ArticleExtractor;
+namespace Yumo\ArtcleReader\Tests\ArticleExtractor;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Yumo\LogRead\ArticleExtractor\ArticleExtractorError;
-use Yumo\LogRead\ArticleExtractor\ArticleExtractorException;
+use Yumo\ArtcleReader\ArticleExtractor\ArticleExtractorError;
+use Yumo\ArtcleReader\ArticleExtractor\ArticleExtractorException;
 
 final class ArticleExtractorExceptionTest extends TestCase
 {

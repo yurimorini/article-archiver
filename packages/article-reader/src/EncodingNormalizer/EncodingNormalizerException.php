@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\EncodingNormalizer;
+namespace Yumo\ArtcleReader\EncodingNormalizer;
 
 /**
  * This exception reports that UTF-8 HTML could not be produced from the response bytes.

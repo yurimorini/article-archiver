@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Orchestrator;
+namespace Yumo\ArtcleReader\Orchestrator;
 
 /**
  * This exception reports that fetching one URL aborted.

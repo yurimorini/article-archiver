@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Orchestrator;
+namespace Yumo\ArtcleReader\Orchestrator;
 
 use Psr\Log\NullLogger;
-use Yumo\LogRead\ArticleExtractor\ArticleExtractor;
-use Yumo\LogRead\ArticleExtractor\ExtractPolicy;
-use Yumo\LogRead\EncodingNormalizer\EncodingNormalizer;
-use Yumo\LogRead\HtmlSanitizer\HtmlSanitizer;
-use Yumo\LogRead\HtmlSanitizer\PurifyPolicy;
-use Yumo\LogRead\HttpFetcher\FetchPolicy;
-use Yumo\LogRead\HttpFetcher\HttpFetcher;
-use Yumo\LogRead\UrlGuard\UrlGuard;
+use Yumo\ArtcleReader\ArticleExtractor\ArticleExtractor;
+use Yumo\ArtcleReader\ArticleExtractor\ExtractPolicy;
+use Yumo\ArtcleReader\EncodingNormalizer\EncodingNormalizer;
+use Yumo\ArtcleReader\HtmlSanitizer\HtmlSanitizer;
+use Yumo\ArtcleReader\HtmlSanitizer\PurifyPolicy;
+use Yumo\ArtcleReader\HttpFetcher\FetchPolicy;
+use Yumo\ArtcleReader\HttpFetcher\HttpFetcher;
+use Yumo\ArtcleReader\UrlGuard\UrlGuard;
 
 /**
  * This class builds an `Orchestrator` with the production defaults.

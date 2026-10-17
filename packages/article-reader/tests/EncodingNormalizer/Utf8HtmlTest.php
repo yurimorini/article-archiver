@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\EncodingNormalizer;
+namespace Yumo\ArtcleReader\Tests\EncodingNormalizer;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Yumo\LogRead\EncodingNormalizer\EncodingSource;
-use Yumo\LogRead\EncodingNormalizer\Utf8Html;
+use Yumo\ArtcleReader\EncodingNormalizer\EncodingSource;
+use Yumo\ArtcleReader\EncodingNormalizer\Utf8Html;
 
 final class Utf8HtmlTest extends TestCase
 {

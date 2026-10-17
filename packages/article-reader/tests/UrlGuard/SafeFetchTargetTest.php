@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\UrlGuard;
+namespace Yumo\ArtcleReader\Tests\UrlGuard;
 
 use PHPUnit\Framework\TestCase;
-use Yumo\LogRead\UrlGuard\GuardResult;
-use Yumo\LogRead\UrlGuard\SafeFetchTarget;
+use Yumo\ArtcleReader\UrlGuard\GuardResult;
+use Yumo\ArtcleReader\UrlGuard\SafeFetchTarget;
 
 final class SafeFetchTargetTest extends TestCase
 {

@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\UrlGuard;
+namespace Yumo\ArtcleReader\Tests\UrlGuard;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Yumo\LogRead\UrlGuard\UrlGuard;
-use Yumo\LogRead\UrlGuard\UrlGuardError;
-use Yumo\LogRead\UrlGuard\UrlGuardException;
+use Yumo\ArtcleReader\UrlGuard\UrlGuard;
+use Yumo\ArtcleReader\UrlGuard\UrlGuardError;
+use Yumo\ArtcleReader\UrlGuard\UrlGuardException;
 
 final class UrlGuardTest extends TestCase
 {

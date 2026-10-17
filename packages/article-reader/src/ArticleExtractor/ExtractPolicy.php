@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\ArticleExtractor;
+namespace Yumo\ArtcleReader\ArticleExtractor;
 
 /**
  * This class holds the Readability knobs for one `ArticleExtractor`.

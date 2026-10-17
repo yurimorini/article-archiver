@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\ArticleExtractor;
+namespace Yumo\ArtcleReader\Tests\ArticleExtractor;
 
 use fivefilters\Readability\ParseException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Yumo\LogRead\ArticleExtractor\ArticleExtractor;
-use Yumo\LogRead\ArticleExtractor\ArticleExtractorError;
-use Yumo\LogRead\ArticleExtractor\ArticleExtractorException;
-use Yumo\LogRead\ArticleExtractor\ExtractPolicy;
-use Yumo\LogRead\ArticleExtractor\ExtractStatus;
-use Yumo\LogRead\EncodingNormalizer\EncodingSource;
-use Yumo\LogRead\EncodingNormalizer\Utf8Html;
+use Yumo\ArtcleReader\ArticleExtractor\ArticleExtractor;
+use Yumo\ArtcleReader\ArticleExtractor\ArticleExtractorError;
+use Yumo\ArtcleReader\ArticleExtractor\ArticleExtractorException;
+use Yumo\ArtcleReader\ArticleExtractor\ExtractPolicy;
+use Yumo\ArtcleReader\ArticleExtractor\ExtractStatus;
+use Yumo\ArtcleReader\EncodingNormalizer\EncodingSource;
+use Yumo\ArtcleReader\EncodingNormalizer\Utf8Html;
 
 final class ArticleExtractorTest extends TestCase
 {

@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Orchestrator;
+namespace Yumo\ArtcleReader\Orchestrator;
 
-use Yumo\LogRead\ArticleExtractor\ExtractResult;
-use Yumo\LogRead\ArticleExtractor\PlainText;
-use Yumo\LogRead\HtmlSanitizer\SafeDocument;
+use Yumo\ArtcleReader\ArticleExtractor\ExtractResult;
+use Yumo\ArtcleReader\ArticleExtractor\PlainText;
+use Yumo\ArtcleReader\HtmlSanitizer\SafeDocument;
 
 /**
  * This class is a finished fetch that has no article body to store.

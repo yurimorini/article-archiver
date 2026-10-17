@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\HttpFetcher;
+namespace Yumo\ArtcleReader\HttpFetcher;
 
 /**
  * Bounded result of a successful `HttpFetcher::fetch()` call.

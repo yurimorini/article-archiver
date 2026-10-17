@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\UrlGuard;
+namespace Yumo\ArtcleReader\UrlGuard;
 
 use CraftCms\UrlValidator\UrlValidator;
 

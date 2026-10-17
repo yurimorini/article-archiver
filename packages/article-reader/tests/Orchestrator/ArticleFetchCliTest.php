@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\Orchestrator;
+namespace Yumo\ArtcleReader\Tests\Orchestrator;
 
 use GuzzleHttp\Psr7\Response;
 use PHPUnit\Framework\TestCase;
-use Yumo\LogRead\ArticleExtractor\ExtractPolicy;
-use Yumo\LogRead\EncodingNormalizer\EncodingNormalizer;
-use Yumo\LogRead\HtmlSanitizer\HtmlSanitizer;
-use Yumo\LogRead\HtmlSanitizer\PurifyPolicy;
-use Yumo\LogRead\Orchestrator\ArticleFetchCli;
-use Yumo\LogRead\Tests\EncodingNormalizer\FakeUtf8Converter;
+use Yumo\ArtcleReader\ArticleExtractor\ExtractPolicy;
+use Yumo\ArtcleReader\EncodingNormalizer\EncodingNormalizer;
+use Yumo\ArtcleReader\HtmlSanitizer\HtmlSanitizer;
+use Yumo\ArtcleReader\HtmlSanitizer\PurifyPolicy;
+use Yumo\ArtcleReader\Orchestrator\ArticleFetchCli;
+use Yumo\ArtcleReader\Tests\EncodingNormalizer\FakeUtf8Converter;
 
 final class ArticleFetchCliTest extends TestCase
 {

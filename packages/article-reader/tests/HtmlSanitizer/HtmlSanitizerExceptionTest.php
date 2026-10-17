@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\HtmlSanitizer;
+namespace Yumo\ArtcleReader\Tests\HtmlSanitizer;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Yumo\LogRead\HtmlSanitizer\HtmlSanitizerError;
-use Yumo\LogRead\HtmlSanitizer\HtmlSanitizerException;
+use Yumo\ArtcleReader\HtmlSanitizer\HtmlSanitizerError;
+use Yumo\ArtcleReader\HtmlSanitizer\HtmlSanitizerException;
 
 final class HtmlSanitizerExceptionTest extends TestCase
 {

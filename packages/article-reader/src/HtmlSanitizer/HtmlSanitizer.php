@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\HtmlSanitizer;
+namespace Yumo\ArtcleReader\HtmlSanitizer;
 
 use HTMLPurifier;
 use HTMLPurifier_Config;
 use HTMLPurifier_Exception;
-use Yumo\LogRead\ArticleExtractor\ReadableDocument;
+use Yumo\ArtcleReader\ArticleExtractor\ReadableDocument;
 
 /**
  * This class purifies extracted article HTML and returns a document that is safe to store or emit as HTML.

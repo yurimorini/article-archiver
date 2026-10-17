@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\Orchestrator;
+namespace Yumo\ArtcleReader\Tests\Orchestrator;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Handler\MockHandler;
@@ -10,17 +10,17 @@ use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Psr7\Response;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
-use Yumo\LogRead\ArticleExtractor\ArticleExtractor;
-use Yumo\LogRead\ArticleExtractor\ExtractPolicy;
-use Yumo\LogRead\EncodingNormalizer\EncodingNormalizer;
-use Yumo\LogRead\HtmlSanitizer\HtmlSanitizer;
-use Yumo\LogRead\HtmlSanitizer\PurifyPolicy;
-use Yumo\LogRead\HttpFetcher\FetchPolicy;
-use Yumo\LogRead\HttpFetcher\HttpFetcher;
-use Yumo\LogRead\Orchestrator\Orchestrator;
-use Yumo\LogRead\Tests\UrlGuard\FakeSsrfUrlValidator;
-use Yumo\LogRead\UrlGuard\SsrfUrlValidator;
-use Yumo\LogRead\UrlGuard\UrlGuard;
+use Yumo\ArtcleReader\ArticleExtractor\ArticleExtractor;
+use Yumo\ArtcleReader\ArticleExtractor\ExtractPolicy;
+use Yumo\ArtcleReader\EncodingNormalizer\EncodingNormalizer;
+use Yumo\ArtcleReader\HtmlSanitizer\HtmlSanitizer;
+use Yumo\ArtcleReader\HtmlSanitizer\PurifyPolicy;
+use Yumo\ArtcleReader\HttpFetcher\FetchPolicy;
+use Yumo\ArtcleReader\HttpFetcher\HttpFetcher;
+use Yumo\ArtcleReader\Orchestrator\Orchestrator;
+use Yumo\ArtcleReader\Tests\UrlGuard\FakeSsrfUrlValidator;
+use Yumo\ArtcleReader\UrlGuard\SsrfUrlValidator;
+use Yumo\ArtcleReader\UrlGuard\UrlGuard;
 
 /**
  * This helper wires the real pipeline stages around a mocked HTTP client and a fake SSRF validator.

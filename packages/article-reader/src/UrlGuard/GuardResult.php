@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\UrlGuard;
+namespace Yumo\ArtcleReader\UrlGuard;
 
 /**
  * Result of a successful `UrlGuard::guard()` call: the trusted destination and the original input.

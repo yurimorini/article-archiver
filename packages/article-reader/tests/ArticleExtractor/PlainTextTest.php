@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\ArticleExtractor;
+namespace Yumo\ArtcleReader\Tests\ArticleExtractor;
 
 use PHPUnit\Framework\TestCase;
-use Yumo\LogRead\ArticleExtractor\PlainText;
+use Yumo\ArtcleReader\ArticleExtractor\PlainText;
 
 final class PlainTextTest extends TestCase
 {

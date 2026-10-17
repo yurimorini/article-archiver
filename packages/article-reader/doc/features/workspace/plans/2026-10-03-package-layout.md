@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - One git repository. The git root stays the Cursor workspace.
-- Composer package name stays `yumo/log-read`. PSR-4 stays `Yumo\LogRead\` → `src/` and `Yumo\LogRead\Tests\` → `tests/`.
+- Composer package name stays `yumo/log-read`. PSR-4 stays `Yumo\ArtcleReader\` → `src/` and `Yumo\ArtcleReader\Tests\` → `tests/`.
 - Do not redesign `src/`, the namespace, or foundation feature specs. Do not rewrite `bin/run` (it is not in this tree).
 - Do not create `packages/web-app/composer.json`, `vendor/`, or `doc/`. The only file there is `.gitkeep`.
 - Do not add a second `.gitignore`. Existing unanchored `vendor/`, `.composer/`, `.phpunit.cache/`, and `.php-cs-fixer.cache` cover the package.

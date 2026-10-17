@@ -2,27 +2,27 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Orchestrator;
+namespace Yumo\ArtcleReader\Orchestrator;
 
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
-use Yumo\LogRead\ArticleExtractor\ArticleExtractor;
-use Yumo\LogRead\ArticleExtractor\ArticleExtractorException;
-use Yumo\LogRead\ArticleExtractor\ExtractResult;
-use Yumo\LogRead\ArticleExtractor\ReadableDocument;
-use Yumo\LogRead\EncodingNormalizer\EncodingError;
-use Yumo\LogRead\EncodingNormalizer\EncodingNormalizer;
-use Yumo\LogRead\EncodingNormalizer\EncodingNormalizerException;
-use Yumo\LogRead\EncodingNormalizer\Utf8Html;
-use Yumo\LogRead\HtmlSanitizer\HtmlSanitizer;
-use Yumo\LogRead\HtmlSanitizer\HtmlSanitizerException;
-use Yumo\LogRead\HtmlSanitizer\SafeDocument;
-use Yumo\LogRead\HttpFetcher\FetchedPage;
-use Yumo\LogRead\HttpFetcher\HttpFetcher;
-use Yumo\LogRead\HttpFetcher\HttpFetcherException;
-use Yumo\LogRead\UrlGuard\SafeFetchTarget;
-use Yumo\LogRead\UrlGuard\UrlGuard;
-use Yumo\LogRead\UrlGuard\UrlGuardException;
+use Yumo\ArtcleReader\ArticleExtractor\ArticleExtractor;
+use Yumo\ArtcleReader\ArticleExtractor\ArticleExtractorException;
+use Yumo\ArtcleReader\ArticleExtractor\ExtractResult;
+use Yumo\ArtcleReader\ArticleExtractor\ReadableDocument;
+use Yumo\ArtcleReader\EncodingNormalizer\EncodingError;
+use Yumo\ArtcleReader\EncodingNormalizer\EncodingNormalizer;
+use Yumo\ArtcleReader\EncodingNormalizer\EncodingNormalizerException;
+use Yumo\ArtcleReader\EncodingNormalizer\Utf8Html;
+use Yumo\ArtcleReader\HtmlSanitizer\HtmlSanitizer;
+use Yumo\ArtcleReader\HtmlSanitizer\HtmlSanitizerException;
+use Yumo\ArtcleReader\HtmlSanitizer\SafeDocument;
+use Yumo\ArtcleReader\HttpFetcher\FetchedPage;
+use Yumo\ArtcleReader\HttpFetcher\HttpFetcher;
+use Yumo\ArtcleReader\HttpFetcher\HttpFetcherException;
+use Yumo\ArtcleReader\UrlGuard\SafeFetchTarget;
+use Yumo\ArtcleReader\UrlGuard\UrlGuard;
+use Yumo\ArtcleReader\UrlGuard\UrlGuardException;
 
 /**
  * This class fetches one URL and returns either a purified article or a typed empty outcome.

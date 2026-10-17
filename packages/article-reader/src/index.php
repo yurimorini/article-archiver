@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use Yumo\LogRead\Orchestrator\ArticleFetchCli;
-use Yumo\LogRead\Orchestrator\OrchestratorFactory;
+use Yumo\ArtcleReader\Orchestrator\ArticleFetchCli;
+use Yumo\ArtcleReader\Orchestrator\OrchestratorFactory;
 
 require __DIR__ . '/../vendor/autoload.php';
 

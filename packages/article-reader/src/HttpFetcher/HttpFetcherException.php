@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\HttpFetcher;
+namespace Yumo\ArtcleReader\HttpFetcher;
 
 /**
  * Thrown when `HttpFetcher` cannot produce a `FetchedPage`.

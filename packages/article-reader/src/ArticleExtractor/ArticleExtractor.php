@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\ArticleExtractor;
+namespace Yumo\ArtcleReader\ArticleExtractor;
 
 use fivefilters\Readability\Configuration;
 use fivefilters\Readability\ParseException;
 use fivefilters\Readability\Readability;
 use Psr\Log\LoggerInterface;
-use Yumo\LogRead\EncodingNormalizer\Utf8Html;
+use Yumo\ArtcleReader\EncodingNormalizer\Utf8Html;
 
 /**
  * This class extracts article HTML and a few metadata fields from a UTF-8 page.

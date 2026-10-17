@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\Orchestrator;
+namespace Yumo\ArtcleReader\Tests\Orchestrator;
 
 use PHPUnit\Framework\TestCase;
-use Yumo\LogRead\ArticleExtractor\ExtractResult;
-use Yumo\LogRead\ArticleExtractor\PlainText;
-use Yumo\LogRead\ArticleExtractor\ReadableDocument;
-use Yumo\LogRead\HtmlSanitizer\SafeDocument;
-use Yumo\LogRead\Orchestrator\PipelineEmptyReason;
-use Yumo\LogRead\Orchestrator\PipelineNoContent;
-use Yumo\LogRead\Orchestrator\PipelineWarning;
-use Yumo\LogRead\Orchestrator\PipelineWarningCode;
+use Yumo\ArtcleReader\ArticleExtractor\ExtractResult;
+use Yumo\ArtcleReader\ArticleExtractor\PlainText;
+use Yumo\ArtcleReader\ArticleExtractor\ReadableDocument;
+use Yumo\ArtcleReader\HtmlSanitizer\SafeDocument;
+use Yumo\ArtcleReader\Orchestrator\PipelineEmptyReason;
+use Yumo\ArtcleReader\Orchestrator\PipelineNoContent;
+use Yumo\ArtcleReader\Orchestrator\PipelineWarning;
+use Yumo\ArtcleReader\Orchestrator\PipelineWarningCode;
 
 final class PipelineNoContentTest extends TestCase
 {

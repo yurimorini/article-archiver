@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Orchestrator;
+namespace Yumo\ArtcleReader\Orchestrator;
 
-use Yumo\LogRead\HttpFetcher\HttpFetcherError;
-use Yumo\LogRead\HttpFetcher\HttpFetcherException;
+use Yumo\ArtcleReader\HttpFetcher\HttpFetcherError;
+use Yumo\ArtcleReader\HttpFetcher\HttpFetcherException;
 
 /**
  * This class is the command-line entry for fetching one article URL.

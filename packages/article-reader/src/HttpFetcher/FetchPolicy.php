@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\HttpFetcher;
+namespace Yumo\ArtcleReader\HttpFetcher;
 
 /**
  * Fixed timeouts, body size cap, and outgoing headers for one `HttpFetcher`.

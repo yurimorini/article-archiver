@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\HtmlSanitizer;
+namespace Yumo\ArtcleReader\HtmlSanitizer;
 
-use Yumo\LogRead\ArticleExtractor\PlainText;
+use Yumo\ArtcleReader\ArticleExtractor\PlainText;
 
 /**
  * This class holds article HTML that has been purified, plus the metadata that belongs with it.

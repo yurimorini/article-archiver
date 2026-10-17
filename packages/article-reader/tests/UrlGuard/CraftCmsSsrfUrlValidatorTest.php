@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\UrlGuard;
+namespace Yumo\ArtcleReader\Tests\UrlGuard;
 
 use CraftCms\UrlValidator\UrlValidationException;
 use PHPUnit\Framework\TestCase;
-use Yumo\LogRead\UrlGuard\CraftCmsSsrfUrlValidator;
-use Yumo\LogRead\UrlGuard\UrlGuard;
-use Yumo\LogRead\UrlGuard\UrlGuardError;
-use Yumo\LogRead\UrlGuard\UrlGuardException;
+use Yumo\ArtcleReader\UrlGuard\CraftCmsSsrfUrlValidator;
+use Yumo\ArtcleReader\UrlGuard\UrlGuard;
+use Yumo\ArtcleReader\UrlGuard\UrlGuardError;
+use Yumo\ArtcleReader\UrlGuard\UrlGuardException;
 
 final class CraftCmsSsrfUrlValidatorTest extends TestCase
 {

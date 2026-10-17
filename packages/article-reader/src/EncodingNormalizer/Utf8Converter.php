@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\EncodingNormalizer;
+namespace Yumo\ArtcleReader\EncodingNormalizer;
 
 use Ddeboer\Transcoder\Exception\UnsupportedEncodingException;
 

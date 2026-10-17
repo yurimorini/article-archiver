@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\HtmlSanitizer;
+namespace Yumo\ArtcleReader\HtmlSanitizer;
 
 /**
  * This enum names hard failures that stop HTML purification for one article.

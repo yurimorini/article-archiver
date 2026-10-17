@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\HtmlSanitizer;
+namespace Yumo\ArtcleReader\Tests\HtmlSanitizer;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Yumo\LogRead\ArticleExtractor\PlainText;
-use Yumo\LogRead\ArticleExtractor\ReadableDocument;
-use Yumo\LogRead\HtmlSanitizer\HtmlSanitizer;
-use Yumo\LogRead\HtmlSanitizer\HtmlSanitizerError;
-use Yumo\LogRead\HtmlSanitizer\HtmlSanitizerException;
-use Yumo\LogRead\HtmlSanitizer\PurifyPolicy;
-use Yumo\LogRead\HtmlSanitizer\SafeDocument;
+use Yumo\ArtcleReader\ArticleExtractor\PlainText;
+use Yumo\ArtcleReader\ArticleExtractor\ReadableDocument;
+use Yumo\ArtcleReader\HtmlSanitizer\HtmlSanitizer;
+use Yumo\ArtcleReader\HtmlSanitizer\HtmlSanitizerError;
+use Yumo\ArtcleReader\HtmlSanitizer\HtmlSanitizerException;
+use Yumo\ArtcleReader\HtmlSanitizer\PurifyPolicy;
+use Yumo\ArtcleReader\HtmlSanitizer\SafeDocument;
 
 final class HtmlSanitizerTest extends TestCase
 {

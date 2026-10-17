@@ -6,15 +6,15 @@
 
 **Architecture:** `HtmlSanitizer` is a thin adapter over `HTMLPurifier` (lockfile v4.19.1). It builds an `HTMLPurifier_Config` from `PurifyPolicy` plus a definition-cache directory, purifies only `ReadableDocument::$content`, and copies `PlainText` metadata and `sourceUrl` onto `SafeDocument`. Vendor types and vendor throwables stay inside the class. Stripping dangerous markup is success, including an empty fragment. `PurifyPolicy` rejects any scheme outside `http`, `https`, and `mailto` at construction.
 
-**Tech Stack:** PHP `^8.5`, PHPUnit `^11`, `ezyang/htmlpurifier` `^4.19` (lockfile v4.19.1), PSR-4 `Yumo\LogRead\` → `src/`.
+**Tech Stack:** PHP `^8.5`, PHPUnit `^11`, `ezyang/htmlpurifier` `^4.19` (lockfile v4.19.1), PSR-4 `Yumo\ArtcleReader\` → `src/`.
 
 **Spec:** `doc/features/foundation/specs/HtmlSanitizer.md` (also `doc/features/foundation/feature.md` Phase 5)
 
 ## Global Constraints
 
-- PHP `^8.5`. Namespace root: `Yumo\LogRead\` → `src/`; tests: `Yumo\LogRead\Tests\` → `tests/`.
+- PHP `^8.5`. Namespace root: `Yumo\ArtcleReader\` → `src/`; tests: `Yumo\ArtcleReader\Tests\` → `tests/`.
 - Documentation, identifiers, commit messages, and PHPDoc in **English**. Follow `.cursor/rules/php-docs.mdc`: complete sentences; do **not** describe types as “the fifth pipeline stage”.
-- **Prerequisite:** `Yumo\LogRead\ArticleExtractor\PlainText` and `Yumo\LogRead\ArticleExtractor\ReadableDocument` must already exist, as specified in `doc/features/foundation/plans/2026-09-22-article-extractor.md`. Do not reimplement them. If either file is missing, stop and finish that plan first.
+- **Prerequisite:** `Yumo\ArtcleReader\ArticleExtractor\PlainText` and `Yumo\ArtcleReader\ArticleExtractor\ReadableDocument` must already exist, as specified in `doc/features/foundation/plans/2026-09-22-article-extractor.md`. Do not reimplement them. If either file is missing, stop and finish that plan first.
 - **Parse, don’t validate:** `purify()` returns `SafeDocument`. The safety invariant is “`$html` was purified under this policy”, not a boolean. Do not add an `EncodingOutcome`-style soft status.
 - Input is `ReadableDocument` only. Do not accept `string` or `Utf8Html` on `purify()`.
 - Only `$document->content` is passed to `HTMLPurifier::purify()`. Copy `title`, `excerpt`, and `siteName` as the same `PlainText` instances. Do not purify, strip, or escape them again.
@@ -73,12 +73,12 @@ Create `tests/HtmlSanitizer/HtmlSanitizerExceptionTest.php`:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\HtmlSanitizer;
+namespace Yumo\ArtcleReader\Tests\HtmlSanitizer;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Yumo\LogRead\HtmlSanitizer\HtmlSanitizerError;
-use Yumo\LogRead\HtmlSanitizer\HtmlSanitizerException;
+use Yumo\ArtcleReader\HtmlSanitizer\HtmlSanitizerError;
+use Yumo\ArtcleReader\HtmlSanitizer\HtmlSanitizerException;
 
 final class HtmlSanitizerExceptionTest extends TestCase
 {
@@ -140,7 +140,7 @@ Create `src/HtmlSanitizer/HtmlSanitizerError.php`:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\HtmlSanitizer;
+namespace Yumo\ArtcleReader\HtmlSanitizer;
 
 /**
  * This enum names hard failures that stop HTML purification for one article.
@@ -177,7 +177,7 @@ Create `src/HtmlSanitizer/HtmlSanitizerException.php`:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\HtmlSanitizer;
+namespace Yumo\ArtcleReader\HtmlSanitizer;
 
 /**
  * This exception reports that HTML purification aborted for one article.
@@ -252,11 +252,11 @@ Create `tests/HtmlSanitizer/PurifyPolicyTest.php`:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\HtmlSanitizer;
+namespace Yumo\ArtcleReader\Tests\HtmlSanitizer;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Yumo\LogRead\HtmlSanitizer\PurifyPolicy;
+use Yumo\ArtcleReader\HtmlSanitizer\PurifyPolicy;
 
 final class PurifyPolicyTest extends TestCase
 {
@@ -321,7 +321,7 @@ Create `src/HtmlSanitizer/PurifyPolicy.php`:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\HtmlSanitizer;
+namespace Yumo\ArtcleReader\HtmlSanitizer;
 
 /**
  * This class holds the URI schemes and the debug switch for one HTML purifier.
@@ -394,7 +394,7 @@ EOF
 - Test: `tests/HtmlSanitizer/SafeDocumentTest.php`
 
 **Interfaces:**
-- Consumes: `Yumo\LogRead\ArticleExtractor\PlainText` (`fromUntrusted()`, `raw()`)
+- Consumes: `Yumo\ArtcleReader\ArticleExtractor\PlainText` (`fromUntrusted()`, `raw()`)
 - Produces:
   - `final readonly class SafeDocument`
   - `public function __construct(public string $html, public PlainText $title, public ?PlainText $excerpt, public ?PlainText $siteName, public string $sourceUrl)`
@@ -416,11 +416,11 @@ Create `tests/HtmlSanitizer/SafeDocumentTest.php`:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\HtmlSanitizer;
+namespace Yumo\ArtcleReader\Tests\HtmlSanitizer;
 
 use PHPUnit\Framework\TestCase;
-use Yumo\LogRead\ArticleExtractor\PlainText;
-use Yumo\LogRead\HtmlSanitizer\SafeDocument;
+use Yumo\ArtcleReader\ArticleExtractor\PlainText;
+use Yumo\ArtcleReader\HtmlSanitizer\SafeDocument;
 
 final class SafeDocumentTest extends TestCase
 {
@@ -473,9 +473,9 @@ Create `src/HtmlSanitizer/SafeDocument.php`:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\HtmlSanitizer;
+namespace Yumo\ArtcleReader\HtmlSanitizer;
 
-use Yumo\LogRead\ArticleExtractor\PlainText;
+use Yumo\ArtcleReader\ArticleExtractor\PlainText;
 
 /**
  * This class holds article HTML that has been purified, plus the metadata that belongs with it.
@@ -555,15 +555,15 @@ Create `tests/HtmlSanitizer/HtmlSanitizerTest.php`:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\HtmlSanitizer;
+namespace Yumo\ArtcleReader\Tests\HtmlSanitizer;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Yumo\LogRead\ArticleExtractor\PlainText;
-use Yumo\LogRead\ArticleExtractor\ReadableDocument;
-use Yumo\LogRead\HtmlSanitizer\HtmlSanitizer;
-use Yumo\LogRead\HtmlSanitizer\PurifyPolicy;
-use Yumo\LogRead\HtmlSanitizer\SafeDocument;
+use Yumo\ArtcleReader\ArticleExtractor\PlainText;
+use Yumo\ArtcleReader\ArticleExtractor\ReadableDocument;
+use Yumo\ArtcleReader\HtmlSanitizer\HtmlSanitizer;
+use Yumo\ArtcleReader\HtmlSanitizer\PurifyPolicy;
+use Yumo\ArtcleReader\HtmlSanitizer\SafeDocument;
 
 final class HtmlSanitizerTest extends TestCase
 {
@@ -731,12 +731,12 @@ Create `src/HtmlSanitizer/HtmlSanitizer.php`:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\HtmlSanitizer;
+namespace Yumo\ArtcleReader\HtmlSanitizer;
 
 use HTMLPurifier;
 use HTMLPurifier_Config;
 use HTMLPurifier_Exception;
-use Yumo\LogRead\ArticleExtractor\ReadableDocument;
+use Yumo\ArtcleReader\ArticleExtractor\ReadableDocument;
 
 /**
  * This class purifies extracted article HTML and returns a document that is safe to store or emit as HTML.
@@ -940,8 +940,8 @@ public function test_debug_does_not_require_a_cache_directory_and_strips_the_sam
 Add the missing import at the top of the test file:
 
 ```php
-use Yumo\LogRead\HtmlSanitizer\HtmlSanitizerException;
-use Yumo\LogRead\HtmlSanitizer\HtmlSanitizerError;
+use Yumo\ArtcleReader\HtmlSanitizer\HtmlSanitizerException;
+use Yumo\ArtcleReader\HtmlSanitizer\HtmlSanitizerError;
 ```
 
 Keep imports ordered alphabetically: `HtmlSanitizer`, `HtmlSanitizerError`, `HtmlSanitizerException`, `PurifyPolicy`, `SafeDocument`.

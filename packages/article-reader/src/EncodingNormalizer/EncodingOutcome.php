@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\EncodingNormalizer;
+namespace Yumo\ArtcleReader\EncodingNormalizer;
 
 /**
  * This class represents the result of turning fetched HTML bytes into UTF-8.

@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\Orchestrator;
+namespace Yumo\ArtcleReader\Tests\Orchestrator;
 
 use PHPUnit\Framework\TestCase;
-use Yumo\LogRead\ArticleExtractor\PlainText;
-use Yumo\LogRead\HtmlSanitizer\SafeDocument;
-use Yumo\LogRead\Orchestrator\PipelineSuccess;
-use Yumo\LogRead\Orchestrator\PipelineWarning;
-use Yumo\LogRead\Orchestrator\PipelineWarningCode;
+use Yumo\ArtcleReader\ArticleExtractor\PlainText;
+use Yumo\ArtcleReader\HtmlSanitizer\SafeDocument;
+use Yumo\ArtcleReader\Orchestrator\PipelineSuccess;
+use Yumo\ArtcleReader\Orchestrator\PipelineWarning;
+use Yumo\ArtcleReader\Orchestrator\PipelineWarningCode;
 
 final class PipelineSuccessTest extends TestCase
 {

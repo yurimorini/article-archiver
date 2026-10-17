@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\EncodingNormalizer;
+namespace Yumo\ArtcleReader\EncodingNormalizer;
 
 /**
  * This class holds the encoding name chosen from a BOM, HTTP charset, HTML meta, UTF-8 validity, or a guess.

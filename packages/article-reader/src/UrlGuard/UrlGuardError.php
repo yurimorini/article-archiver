@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\UrlGuard;
+namespace Yumo\ArtcleReader\UrlGuard;
 
 /**
  * Kind of failure reported by `UrlGuardException`.

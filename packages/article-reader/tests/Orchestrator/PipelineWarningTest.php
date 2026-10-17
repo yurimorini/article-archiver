@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\Orchestrator;
+namespace Yumo\ArtcleReader\Tests\Orchestrator;
 
 use PHPUnit\Framework\TestCase;
-use Yumo\LogRead\Orchestrator\PipelineWarning;
-use Yumo\LogRead\Orchestrator\PipelineWarningCode;
+use Yumo\ArtcleReader\Orchestrator\PipelineWarning;
+use Yumo\ArtcleReader\Orchestrator\PipelineWarningCode;
 
 final class PipelineWarningTest extends TestCase
 {

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\HttpFetcher;
+namespace Yumo\ArtcleReader\Tests\HttpFetcher;
 
 use PHPUnit\Framework\TestCase;
-use Yumo\LogRead\HttpFetcher\FetchedPage;
+use Yumo\ArtcleReader\HttpFetcher\FetchedPage;
 
 final class FetchedPageTest extends TestCase
 {

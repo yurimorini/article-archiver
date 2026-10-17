@@ -6,13 +6,13 @@
 
 **Architecture:** `ArticleExtractor` is a thin adapter over `fivefilters\Readability\Readability` (installed v4.1.0). It builds a `Configuration` from `ExtractPolicy` plus `Utf8Html::$sourceUrl`, maps the vendor `Article` onto `PlainText` and `ReadableDocument`, and never lets vendor types or vendor exceptions leave the class. Empty and whitespace-only HTML return `ExtractResult::noContent()` before Readability runs. A metadata-only vendor article (`hasContent() === false`) is the same soft result. `ParseException::tooManyElements()` becomes `ArticleExtractorError::TooLarge`.
 
-**Tech Stack:** PHP `^8.5`, PHPUnit `^11`, `fivefilters/readability.php` `^4.0` (lockfile v4.1.0), PSR-3 `Psr\Log\LoggerInterface` (already installed via `psr/log` 3.0.2), PSR-4 `Yumo\LogRead\` → `src/`.
+**Tech Stack:** PHP `^8.5`, PHPUnit `^11`, `fivefilters/readability.php` `^4.0` (lockfile v4.1.0), PSR-3 `Psr\Log\LoggerInterface` (already installed via `psr/log` 3.0.2), PSR-4 `Yumo\ArtcleReader\` → `src/`.
 
 **Spec:** `doc/features/foundation/specs/ArticleExtractor.md` (also `doc/features/foundation/feature.md` Phase 4)
 
 ## Global Constraints
 
-- PHP `^8.5`. Namespace root: `Yumo\LogRead\` → `src/`; tests: `Yumo\LogRead\Tests\` → `tests/`.
+- PHP `^8.5`. Namespace root: `Yumo\ArtcleReader\` → `src/`; tests: `Yumo\ArtcleReader\Tests\` → `tests/`.
 - Documentation, identifiers, commit messages, and PHPDoc in **English**. Follow `.cursor/rules/php-docs.mdc`: complete sentences; do **not** describe types as “the fourth pipeline stage”.
 - **Parse, don’t validate:** `extract()` returns `ExtractResult`. `ReadableDocument` exists only when article HTML was found. Soft “nothing to extract” is `ExtractResult::NoContent`, including empty / whitespace-only HTML. There is no `EmptyInput` error kind.
 - `ArticleExtractorException` is for hard failures only: `TooLarge` (over `maxElemsToParse`) and `Unexpected` (any other throwable from the adapter).
@@ -77,12 +77,12 @@ Create `tests/ArticleExtractor/ArticleExtractorExceptionTest.php`:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\ArticleExtractor;
+namespace Yumo\ArtcleReader\Tests\ArticleExtractor;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Yumo\LogRead\ArticleExtractor\ArticleExtractorError;
-use Yumo\LogRead\ArticleExtractor\ArticleExtractorException;
+use Yumo\ArtcleReader\ArticleExtractor\ArticleExtractorError;
+use Yumo\ArtcleReader\ArticleExtractor\ArticleExtractorException;
 
 final class ArticleExtractorExceptionTest extends TestCase
 {
@@ -144,7 +144,7 @@ Create `src/ArticleExtractor/ArticleExtractorError.php`:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\ArticleExtractor;
+namespace Yumo\ArtcleReader\ArticleExtractor;
 
 /**
  * This enum names hard failures that abort article extraction for one document.
@@ -180,7 +180,7 @@ Create `src/ArticleExtractor/ArticleExtractorException.php`:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\ArticleExtractor;
+namespace Yumo\ArtcleReader\ArticleExtractor;
 
 /**
  * This exception reports that article extraction aborted for one document.
@@ -252,10 +252,10 @@ Create `tests/ArticleExtractor/PlainTextTest.php`:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\ArticleExtractor;
+namespace Yumo\ArtcleReader\Tests\ArticleExtractor;
 
 use PHPUnit\Framework\TestCase;
-use Yumo\LogRead\ArticleExtractor\PlainText;
+use Yumo\ArtcleReader\ArticleExtractor\PlainText;
 
 final class PlainTextTest extends TestCase
 {
@@ -315,7 +315,7 @@ Create `src/ArticleExtractor/PlainText.php`:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\ArticleExtractor;
+namespace Yumo\ArtcleReader\ArticleExtractor;
 
 /**
  * This class holds one piece of metadata as plain text, with tags already removed.
@@ -435,11 +435,11 @@ Create `tests/ArticleExtractor/ExtractPolicyTest.php`:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\ArticleExtractor;
+namespace Yumo\ArtcleReader\Tests\ArticleExtractor;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Yumo\LogRead\ArticleExtractor\ExtractPolicy;
+use Yumo\ArtcleReader\ArticleExtractor\ExtractPolicy;
 
 final class ExtractPolicyTest extends TestCase
 {
@@ -503,7 +503,7 @@ Create `src/ArticleExtractor/ExtractPolicy.php`:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\ArticleExtractor;
+namespace Yumo\ArtcleReader\ArticleExtractor;
 
 /**
  * This class holds the Readability knobs for one `ArticleExtractor`.
@@ -582,11 +582,11 @@ Create `tests/ArticleExtractor/ReadableDocumentTest.php`:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\ArticleExtractor;
+namespace Yumo\ArtcleReader\Tests\ArticleExtractor;
 
 use PHPUnit\Framework\TestCase;
-use Yumo\LogRead\ArticleExtractor\PlainText;
-use Yumo\LogRead\ArticleExtractor\ReadableDocument;
+use Yumo\ArtcleReader\ArticleExtractor\PlainText;
+use Yumo\ArtcleReader\ArticleExtractor\ReadableDocument;
 
 final class ReadableDocumentTest extends TestCase
 {
@@ -626,7 +626,7 @@ Create `src/ArticleExtractor/ReadableDocument.php`:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\ArticleExtractor;
+namespace Yumo\ArtcleReader\ArticleExtractor;
 
 /**
  * This class holds extracted article HTML plus the metadata that belongs with it.
@@ -705,13 +705,13 @@ Create `tests/ArticleExtractor/ExtractResultTest.php`:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\ArticleExtractor;
+namespace Yumo\ArtcleReader\Tests\ArticleExtractor;
 
 use PHPUnit\Framework\TestCase;
-use Yumo\LogRead\ArticleExtractor\ExtractResult;
-use Yumo\LogRead\ArticleExtractor\ExtractStatus;
-use Yumo\LogRead\ArticleExtractor\PlainText;
-use Yumo\LogRead\ArticleExtractor\ReadableDocument;
+use Yumo\ArtcleReader\ArticleExtractor\ExtractResult;
+use Yumo\ArtcleReader\ArticleExtractor\ExtractStatus;
+use Yumo\ArtcleReader\ArticleExtractor\PlainText;
+use Yumo\ArtcleReader\ArticleExtractor\ReadableDocument;
 
 final class ExtractResultTest extends TestCase
 {
@@ -787,7 +787,7 @@ Create `src/ArticleExtractor/ExtractStatus.php`:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\ArticleExtractor;
+namespace Yumo\ArtcleReader\ArticleExtractor;
 
 /**
  * This enum distinguishes an extracted article from a page that had no article body.
@@ -809,7 +809,7 @@ Create `src/ArticleExtractor/ExtractResult.php`:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\ArticleExtractor;
+namespace Yumo\ArtcleReader\ArticleExtractor;
 
 /**
  * This class is the outcome of extracting an article from UTF-8 HTML.
@@ -933,7 +933,7 @@ EOF
   - `ExtractResult`, `ExtractStatus` from Task 5
   - `PlainText` from Task 2
   - `ArticleExtractorException`, `ArticleExtractorError` from Task 1
-  - `Yumo\LogRead\EncodingNormalizer\Utf8Html` constructor: `(string $html, string $sourceUrl, string $sourceEncoding, EncodingSource $source)`
+  - `Yumo\ArtcleReader\EncodingNormalizer\Utf8Html` constructor: `(string $html, string $sourceUrl, string $sourceEncoding, EncodingSource $source)`
   - `fivefilters\Readability\Readability::parse(string): Article`
   - `fivefilters\Readability\Configuration` named args used here: `charThreshold`, `fixRelativeURLs`, `originalURL`, `maxElemsToParse`
 - Produces (signature is final; later tasks only fill in branches):
@@ -965,14 +965,14 @@ Create `tests/ArticleExtractor/ArticleExtractorTest.php`:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\ArticleExtractor;
+namespace Yumo\ArtcleReader\Tests\ArticleExtractor;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Yumo\LogRead\ArticleExtractor\ArticleExtractor;
-use Yumo\LogRead\ArticleExtractor\ExtractStatus;
-use Yumo\LogRead\EncodingNormalizer\EncodingSource;
-use Yumo\LogRead\EncodingNormalizer\Utf8Html;
+use Yumo\ArtcleReader\ArticleExtractor\ArticleExtractor;
+use Yumo\ArtcleReader\ArticleExtractor\ExtractStatus;
+use Yumo\ArtcleReader\EncodingNormalizer\EncodingSource;
+use Yumo\ArtcleReader\EncodingNormalizer\Utf8Html;
 
 final class ArticleExtractorTest extends TestCase
 {
@@ -1070,12 +1070,12 @@ Create `src/ArticleExtractor/ArticleExtractor.php`:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\ArticleExtractor;
+namespace Yumo\ArtcleReader\ArticleExtractor;
 
 use fivefilters\Readability\Configuration;
 use fivefilters\Readability\Readability;
 use Psr\Log\LoggerInterface;
-use Yumo\LogRead\EncodingNormalizer\Utf8Html;
+use Yumo\ArtcleReader\EncodingNormalizer\Utf8Html;
 
 /**
  * This class extracts article HTML and a few metadata fields from a UTF-8 page.
@@ -1325,7 +1325,7 @@ Create `tests/ArticleExtractor/RecordingLogger.php`:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\ArticleExtractor;
+namespace Yumo\ArtcleReader\Tests\ArticleExtractor;
 
 use Psr\Log\AbstractLogger;
 
@@ -1358,9 +1358,9 @@ Add these imports to `ArticleExtractorTest.php` (ordered imports: `fivefilters` 
 
 ```php
 use fivefilters\Readability\ParseException;
-use Yumo\LogRead\ArticleExtractor\ArticleExtractorError;
-use Yumo\LogRead\ArticleExtractor\ArticleExtractorException;
-use Yumo\LogRead\ArticleExtractor\ExtractPolicy;
+use Yumo\ArtcleReader\ArticleExtractor\ArticleExtractorError;
+use Yumo\ArtcleReader\ArticleExtractor\ArticleExtractorException;
+use Yumo\ArtcleReader\ArticleExtractor\ExtractPolicy;
 ```
 
 Append these methods to `ArticleExtractorTest`:

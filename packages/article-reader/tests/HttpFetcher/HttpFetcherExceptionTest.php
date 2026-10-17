@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\HttpFetcher;
+namespace Yumo\ArtcleReader\Tests\HttpFetcher;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Yumo\LogRead\HttpFetcher\HttpFetcherError;
-use Yumo\LogRead\HttpFetcher\HttpFetcherException;
+use Yumo\ArtcleReader\HttpFetcher\HttpFetcherError;
+use Yumo\ArtcleReader\HttpFetcher\HttpFetcherException;
 
 final class HttpFetcherExceptionTest extends TestCase
 {

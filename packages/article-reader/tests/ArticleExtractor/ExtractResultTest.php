@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\ArticleExtractor;
+namespace Yumo\ArtcleReader\Tests\ArticleExtractor;
 
 use PHPUnit\Framework\TestCase;
-use Yumo\LogRead\ArticleExtractor\ExtractResult;
-use Yumo\LogRead\ArticleExtractor\ExtractStatus;
-use Yumo\LogRead\ArticleExtractor\PlainText;
-use Yumo\LogRead\ArticleExtractor\ReadableDocument;
+use Yumo\ArtcleReader\ArticleExtractor\ExtractResult;
+use Yumo\ArtcleReader\ArticleExtractor\ExtractStatus;
+use Yumo\ArtcleReader\ArticleExtractor\PlainText;
+use Yumo\ArtcleReader\ArticleExtractor\ReadableDocument;
 
 final class ExtractResultTest extends TestCase
 {

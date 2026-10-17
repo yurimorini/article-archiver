@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\EncodingNormalizer;
+namespace Yumo\ArtcleReader\EncodingNormalizer;
 
 /**
  * This enum records where the source encoding name was taken from.

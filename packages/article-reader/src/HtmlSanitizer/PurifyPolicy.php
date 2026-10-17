@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\HtmlSanitizer;
+namespace Yumo\ArtcleReader\HtmlSanitizer;
 
 /**
  * This class holds the URI schemes and the debug switch for one HTML purifier.

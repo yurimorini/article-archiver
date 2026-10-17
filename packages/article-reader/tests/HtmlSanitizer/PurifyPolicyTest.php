@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\HtmlSanitizer;
+namespace Yumo\ArtcleReader\Tests\HtmlSanitizer;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Yumo\LogRead\HtmlSanitizer\PurifyPolicy;
+use Yumo\ArtcleReader\HtmlSanitizer\PurifyPolicy;
 
 final class PurifyPolicyTest extends TestCase
 {

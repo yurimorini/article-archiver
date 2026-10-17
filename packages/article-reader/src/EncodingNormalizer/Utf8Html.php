@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\EncodingNormalizer;
+namespace Yumo\ArtcleReader\EncodingNormalizer;
 
 /**
  * This class holds UTF-8 HTML from one fetched page together with the request URL, source encoding name, and {@see EncodingSource} provenance.

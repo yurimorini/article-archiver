@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\HttpFetcher;
+namespace Yumo\ArtcleReader\HttpFetcher;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
@@ -14,7 +14,7 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
-use Yumo\LogRead\UrlGuard\SafeFetchTarget;
+use Yumo\ArtcleReader\UrlGuard\SafeFetchTarget;
 
 /**
  * Downloads one already-guarded URL with hard limits and returns a bounded byte payload, or throws.

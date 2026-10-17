@@ -4,16 +4,16 @@
 
 **Goal:** Implement Phase 3 EncodingNormalizer so a `FetchedPage` of opaque HTML bytes becomes an `EncodingOutcome` carrying `Utf8Html` (quality `Ok` or `Degraded`) or a tagged `EncodingNormalizerException` when even lossy UTF-8 is impossible.
 
-**Architecture:** Detection is a local cascade owned by `EncodingNormalizer` (UTF-8 BOM, then HTTP `Content-Type` charset, then a 1024-byte HTML meta prescan, then UTF-8 validity, then optional `mb_detect_encoding`). HTTP charset wins over a conflicting meta declaration. Conversion uses `Ddeboer\Transcoder\Transcoder` (from `fossar/transcoder`, already pulled in by `fossar/guzzle-transcoder`) behind a small `Utf8Converter` port so tests can stub both strict and lossy conversion. Header and meta parsing reuse `Fossar\GuzzleTranscoder\ContentTypeExtractor` as a library — never as Guzzle middleware, and never `GuzzleTranscoder::convertResponse()` (that helper prefers body charset over header). Types live under `Yumo\LogRead\EncodingNormalizer\`.
+**Architecture:** Detection is a local cascade owned by `EncodingNormalizer` (UTF-8 BOM, then HTTP `Content-Type` charset, then a 1024-byte HTML meta prescan, then UTF-8 validity, then optional `mb_detect_encoding`). HTTP charset wins over a conflicting meta declaration. Conversion uses `Ddeboer\Transcoder\Transcoder` (from `fossar/transcoder`, already pulled in by `fossar/guzzle-transcoder`) behind a small `Utf8Converter` port so tests can stub both strict and lossy conversion. Header and meta parsing reuse `Fossar\GuzzleTranscoder\ContentTypeExtractor` as a library — never as Guzzle middleware, and never `GuzzleTranscoder::convertResponse()` (that helper prefers body charset over header). Types live under `Yumo\ArtcleReader\EncodingNormalizer\`.
 
-**Tech Stack:** PHP `^8.5`, PHPUnit `^11`, `ext-mbstring`, `fossar/guzzle-transcoder` `^0.3.2` (`ContentTypeExtractor`), `fossar/transcoder` `^3.0` (`Ddeboer\Transcoder\TranscoderInterface`; this package `replace`s `ddeboer/transcoder`), PSR-4 `Yumo\LogRead\` → `src/`.
+**Tech Stack:** PHP `^8.5`, PHPUnit `^11`, `ext-mbstring`, `fossar/guzzle-transcoder` `^0.3.2` (`ContentTypeExtractor`), `fossar/transcoder` `^3.0` (`Ddeboer\Transcoder\TranscoderInterface`; this package `replace`s `ddeboer/transcoder`), PSR-4 `Yumo\ArtcleReader\` → `src/`.
 
 **Spec:** `doc/features/foundation/specs/EncodingNormalizer.md` (also `doc/features/foundation/feature.md` Phase 3)
 
 ## Global Constraints
 
 - PHP `^8.5`; `ext-mbstring` is a hard Composer requirement (validity checks, BOM-safe conversion, `mb_scrub`).
-- Namespace root: `Yumo\LogRead\` → `src/`; tests: `Yumo\LogRead\Tests\` → `tests/`.
+- Namespace root: `Yumo\ArtcleReader\` → `src/`; tests: `Yumo\ArtcleReader\Tests\` → `tests/`.
 - Documentation, identifiers, commit messages, and PHPDoc in **English**. Follow `.cursor/rules/php-docs.mdc`: complete sentences; do **not** describe types as “the third pipeline stage”.
 - **Parse, don’t validate:** `normalize()` returns `EncodingOutcome` with a `Utf8Html`. `Utf8Html::$html` is always valid UTF-8 with no leading UTF-8 BOM. Quality (`Ok` / `Degraded`) lives on the outcome, not by weakening `Utf8Html`.
 - **HTTP charset wins over meta** when both exist (HTML5-oriented project policy).
@@ -76,12 +76,12 @@ Create `tests/EncodingNormalizer/EncodingNormalizerExceptionTest.php`:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\EncodingNormalizer;
+namespace Yumo\ArtcleReader\Tests\EncodingNormalizer;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Yumo\LogRead\EncodingNormalizer\EncodingError;
-use Yumo\LogRead\EncodingNormalizer\EncodingNormalizerException;
+use Yumo\ArtcleReader\EncodingNormalizer\EncodingError;
+use Yumo\ArtcleReader\EncodingNormalizer\EncodingNormalizerException;
 
 final class EncodingNormalizerExceptionTest extends TestCase
 {
@@ -139,7 +139,7 @@ Create `src/EncodingNormalizer/EncodingError.php`:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\EncodingNormalizer;
+namespace Yumo\ArtcleReader\EncodingNormalizer;
 
 /**
  * Kind of encoding problem reported as a degraded-outcome warning or on a hard-failure exception.
@@ -180,7 +180,7 @@ Create `src/EncodingNormalizer/EncodingNormalizerException.php`:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\EncodingNormalizer;
+namespace Yumo\ArtcleReader\EncodingNormalizer;
 
 /**
  * Thrown when `EncodingNormalizer` cannot produce UTF-8 HTML at all.
@@ -256,13 +256,13 @@ Create `tests/EncodingNormalizer/EncodingOutcomeTest.php`:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\EncodingNormalizer;
+namespace Yumo\ArtcleReader\Tests\EncodingNormalizer;
 
 use PHPUnit\Framework\TestCase;
-use Yumo\LogRead\EncodingNormalizer\EncodingError;
-use Yumo\LogRead\EncodingNormalizer\EncodingOutcome;
-use Yumo\LogRead\EncodingNormalizer\EncodingQuality;
-use Yumo\LogRead\EncodingNormalizer\Utf8Html;
+use Yumo\ArtcleReader\EncodingNormalizer\EncodingError;
+use Yumo\ArtcleReader\EncodingNormalizer\EncodingOutcome;
+use Yumo\ArtcleReader\EncodingNormalizer\EncodingQuality;
+use Yumo\ArtcleReader\EncodingNormalizer\Utf8Html;
 
 final class EncodingOutcomeTest extends TestCase
 {
@@ -326,7 +326,7 @@ Create `src/EncodingNormalizer/EncodingQuality.php`:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\EncodingNormalizer;
+namespace Yumo\ArtcleReader\EncodingNormalizer;
 
 /**
  * How callers should treat an `EncodingOutcome`.
@@ -348,7 +348,7 @@ Create `src/EncodingNormalizer/Utf8Html.php` (stub; Task 3 adds `EncodingSource`
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\EncodingNormalizer;
+namespace Yumo\ArtcleReader\EncodingNormalizer;
 
 /**
  * UTF-8 HTML taken from one fetched page, plus the URL that page was requested as.
@@ -377,7 +377,7 @@ Create `src/EncodingNormalizer/EncodingOutcome.php`:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\EncodingNormalizer;
+namespace Yumo\ArtcleReader\EncodingNormalizer;
 
 /**
  * Result of turning fetched HTML bytes into UTF-8.
@@ -493,12 +493,12 @@ Create `tests/EncodingNormalizer/Utf8HtmlTest.php`:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\EncodingNormalizer;
+namespace Yumo\ArtcleReader\Tests\EncodingNormalizer;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Yumo\LogRead\EncodingNormalizer\EncodingSource;
-use Yumo\LogRead\EncodingNormalizer\Utf8Html;
+use Yumo\ArtcleReader\EncodingNormalizer\EncodingSource;
+use Yumo\ArtcleReader\EncodingNormalizer\Utf8Html;
 
 final class Utf8HtmlTest extends TestCase
 {
@@ -593,7 +593,7 @@ final class Utf8HtmlTest extends TestCase
 }
 ```
 
-Update `tests/EncodingNormalizer/EncodingOutcomeTest.php` private helper to pass `source`. Add `use Yumo\LogRead\EncodingNormalizer\EncodingSource;` to that test file and replace `html()` with:
+Update `tests/EncodingNormalizer/EncodingOutcomeTest.php` private helper to pass `source`. Add `use Yumo\ArtcleReader\EncodingNormalizer\EncodingSource;` to that test file and replace `html()` with:
 
 ```php
     private function html(): Utf8Html
@@ -622,7 +622,7 @@ Create `src/EncodingNormalizer/EncodingSource.php`:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\EncodingNormalizer;
+namespace Yumo\ArtcleReader\EncodingNormalizer;
 
 /**
  * Where `Utf8Html::$sourceEncoding` was taken from.
@@ -659,7 +659,7 @@ Replace `src/EncodingNormalizer/Utf8Html.php` with:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\EncodingNormalizer;
+namespace Yumo\ArtcleReader\EncodingNormalizer;
 
 /**
  * UTF-8 HTML taken from one fetched page, plus the URL that page was requested as.
@@ -729,7 +729,7 @@ EOF
 - Test: `tests/EncodingNormalizer/EncodingNormalizerTest.php`
 
 **Interfaces:**
-- Consumes: `FetchedPage` (`Yumo\LogRead\HttpFetcher\FetchedPage`), Task 1–3 types
+- Consumes: `FetchedPage` (`Yumo\ArtcleReader\HttpFetcher\FetchedPage`), Task 1–3 types
 - Produces:
   - `interface Utf8Converter { public function convert(string $bytes, string $fromEncoding): string; }`
   - `final class TranscoderUtf8Converter implements Utf8Converter` wrapping `Ddeboer\Transcoder\Transcoder::create()`
@@ -754,13 +754,13 @@ Create `tests/EncodingNormalizer/EncodingNormalizerTest.php`:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\EncodingNormalizer;
+namespace Yumo\ArtcleReader\Tests\EncodingNormalizer;
 
 use PHPUnit\Framework\TestCase;
-use Yumo\LogRead\EncodingNormalizer\EncodingNormalizer;
-use Yumo\LogRead\EncodingNormalizer\EncodingOutcome;
-use Yumo\LogRead\EncodingNormalizer\EncodingSource;
-use Yumo\LogRead\HttpFetcher\FetchedPage;
+use Yumo\ArtcleReader\EncodingNormalizer\EncodingNormalizer;
+use Yumo\ArtcleReader\EncodingNormalizer\EncodingOutcome;
+use Yumo\ArtcleReader\EncodingNormalizer\EncodingSource;
+use Yumo\ArtcleReader\HttpFetcher\FetchedPage;
 
 final class EncodingNormalizerTest extends TestCase
 {
@@ -923,7 +923,7 @@ Create `src/EncodingNormalizer/Utf8Converter.php`:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\EncodingNormalizer;
+namespace Yumo\ArtcleReader\EncodingNormalizer;
 
 use Ddeboer\Transcoder\Exception\UnsupportedEncodingException;
 
@@ -952,7 +952,7 @@ Create `src/EncodingNormalizer/TranscoderUtf8Converter.php`:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\EncodingNormalizer;
+namespace Yumo\ArtcleReader\EncodingNormalizer;
 
 use Ddeboer\Transcoder\Transcoder;
 use Ddeboer\Transcoder\TranscoderInterface;
@@ -987,11 +987,11 @@ Create `src/EncodingNormalizer/EncodingNormalizer.php`:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\EncodingNormalizer;
+namespace Yumo\ArtcleReader\EncodingNormalizer;
 
 use Ddeboer\Transcoder\Exception\UnsupportedEncodingException;
 use Fossar\GuzzleTranscoder\ContentTypeExtractor;
-use Yumo\LogRead\HttpFetcher\FetchedPage;
+use Yumo\ArtcleReader\HttpFetcher\FetchedPage;
 
 /**
  * Turns opaque HTML response bytes into a UTF-8 HTML document, or throws.
@@ -1209,7 +1209,7 @@ EOF
 Append to `tests/EncodingNormalizer/EncodingNormalizerTest.php` (keep the Task 4 tests; add the import for `EncodingError`):
 
 ```php
-use Yumo\LogRead\EncodingNormalizer\EncodingError;
+use Yumo\ArtcleReader\EncodingNormalizer\EncodingError;
 ```
 
 ```php
@@ -1300,7 +1300,7 @@ Replace `src/EncodingNormalizer/Utf8Converter.php` with:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\EncodingNormalizer;
+namespace Yumo\ArtcleReader\EncodingNormalizer;
 
 use Ddeboer\Transcoder\Exception\UnsupportedEncodingException;
 
@@ -1339,7 +1339,7 @@ Replace `src/EncodingNormalizer/TranscoderUtf8Converter.php` with:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\EncodingNormalizer;
+namespace Yumo\ArtcleReader\EncodingNormalizer;
 
 use Ddeboer\Transcoder\Transcoder;
 use Ddeboer\Transcoder\TranscoderInterface;
@@ -1408,11 +1408,11 @@ Replace `src/EncodingNormalizer/EncodingNormalizer.php` with:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\EncodingNormalizer;
+namespace Yumo\ArtcleReader\EncodingNormalizer;
 
 use Ddeboer\Transcoder\Exception\UnsupportedEncodingException;
 use Fossar\GuzzleTranscoder\ContentTypeExtractor;
-use Yumo\LogRead\HttpFetcher\FetchedPage;
+use Yumo\ArtcleReader\HttpFetcher\FetchedPage;
 
 /**
  * Turns opaque HTML response bytes into a UTF-8 HTML document, or throws.
@@ -1729,9 +1729,9 @@ Create `tests/EncodingNormalizer/FakeUtf8Converter.php`:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\EncodingNormalizer;
+namespace Yumo\ArtcleReader\Tests\EncodingNormalizer;
 
-use Yumo\LogRead\EncodingNormalizer\Utf8Converter;
+use Yumo\ArtcleReader\EncodingNormalizer\Utf8Converter;
 
 /**
  * Test double that fails strict conversion and either fails or returns a fixed lossy result.
@@ -1768,7 +1768,7 @@ final class FakeUtf8Converter implements Utf8Converter
 Append to `tests/EncodingNormalizer/EncodingNormalizerTest.php`:
 
 ```php
-use Yumo\LogRead\EncodingNormalizer\EncodingNormalizerException;
+use Yumo\ArtcleReader\EncodingNormalizer\EncodingNormalizerException;
 ```
 
 ```php

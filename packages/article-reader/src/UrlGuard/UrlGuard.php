@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\UrlGuard;
+namespace Yumo\ArtcleReader\UrlGuard;
 
 /**
  * Checks an untrusted URL string and, if it is acceptable, returns a trusted fetch plan.

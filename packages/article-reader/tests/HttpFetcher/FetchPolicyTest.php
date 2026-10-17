@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\HttpFetcher;
+namespace Yumo\ArtcleReader\Tests\HttpFetcher;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Yumo\LogRead\HttpFetcher\FetchPolicy;
+use Yumo\ArtcleReader\HttpFetcher\FetchPolicy;
 
 final class FetchPolicyTest extends TestCase
 {

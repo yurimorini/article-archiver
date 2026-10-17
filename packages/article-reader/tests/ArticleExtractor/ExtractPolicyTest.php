@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\ArticleExtractor;
+namespace Yumo\ArtcleReader\Tests\ArticleExtractor;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Yumo\LogRead\ArticleExtractor\ExtractPolicy;
+use Yumo\ArtcleReader\ArticleExtractor\ExtractPolicy;
 
 final class ExtractPolicyTest extends TestCase
 {

@@ -4,16 +4,16 @@
 
 **Goal:** Implement Phase 2 HttpFetcher so a pinned `SafeFetchTarget` becomes a bounded `FetchedPage` (body, Content-Type, status, request URI) or a tagged `HttpFetcherException`.
 
-**Architecture:** A single Guzzle GET, pinned to `UrlGuard`'s already-checked IPs via `CURLOPT_RESOLVE`, with redirects and HTTP-error exceptions disabled at the client so status is checked explicitly. Content-Type and body size are enforced as local gates after the transfer. Production builds its own cURL-backed Guzzle client; unit tests inject a client backed by Guzzle's `MockHandler` so no real network I/O runs. Types live under `Yumo\LogRead\HttpFetcher\`.
+**Architecture:** A single Guzzle GET, pinned to `UrlGuard`'s already-checked IPs via `CURLOPT_RESOLVE`, with redirects and HTTP-error exceptions disabled at the client so status is checked explicitly. Content-Type and body size are enforced as local gates after the transfer. Production builds its own cURL-backed Guzzle client; unit tests inject a client backed by Guzzle's `MockHandler` so no real network I/O runs. Types live under `Yumo\ArtcleReader\HttpFetcher\`.
 
-**Tech Stack:** PHP `^8.5`, PHPUnit `^11`, Guzzle `^8.0` (already required in `composer.json`), PSR-3 (`psr/log`, already a transitive dependency), PSR-4 `Yumo\LogRead\` → `src/`.
+**Tech Stack:** PHP `^8.5`, PHPUnit `^11`, Guzzle `^8.0` (already required in `composer.json`), PSR-3 (`psr/log`, already a transitive dependency), PSR-4 `Yumo\ArtcleReader\` → `src/`.
 
 **Spec:** `doc/features/foundation/specs/HttpFetcher.md` (also `doc/features/foundation/feature.md` Phase 2)
 
 ## Global Constraints
 
 - PHP `^8.5`; `ext-curl` is a hard Composer requirement (DNS pinning depends on it).
-- Namespace root: `Yumo\LogRead\` → `src/`; tests: `Yumo\LogRead\Tests\` → `tests/`.
+- Namespace root: `Yumo\ArtcleReader\` → `src/`; tests: `Yumo\ArtcleReader\Tests\` → `tests/`.
 - Documentation, identifiers, commit messages, and PHPDoc in **English**.
 - Fail closed: every fetch problem throws `HttpFetcherException` tagged with `HttpFetcherError` — never return a partial or unbounded payload.
 - **No redirects (MVP):** a `3xx` status throws `HttpFetcherError::Redirect`; `Location` is never fetched.
@@ -63,11 +63,11 @@ Create `tests/HttpFetcher/FetchPolicyTest.php`:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\HttpFetcher;
+namespace Yumo\ArtcleReader\Tests\HttpFetcher;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Yumo\LogRead\HttpFetcher\FetchPolicy;
+use Yumo\ArtcleReader\HttpFetcher\FetchPolicy;
 
 final class FetchPolicyTest extends TestCase
 {
@@ -159,7 +159,7 @@ Create `src/HttpFetcher/FetchPolicy.php`:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\HttpFetcher;
+namespace Yumo\ArtcleReader\HttpFetcher;
 
 /**
  * Fixed timeouts, body size cap, and outgoing headers for one `HttpFetcher`.
@@ -245,12 +245,12 @@ Create `tests/HttpFetcher/HttpFetcherExceptionTest.php`:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\HttpFetcher;
+namespace Yumo\ArtcleReader\Tests\HttpFetcher;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Yumo\LogRead\HttpFetcher\HttpFetcherError;
-use Yumo\LogRead\HttpFetcher\HttpFetcherException;
+use Yumo\ArtcleReader\HttpFetcher\HttpFetcherError;
+use Yumo\ArtcleReader\HttpFetcher\HttpFetcherException;
 
 final class HttpFetcherExceptionTest extends TestCase
 {
@@ -301,7 +301,7 @@ Create `src/HttpFetcher/HttpFetcherError.php`:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\HttpFetcher;
+namespace Yumo\ArtcleReader\HttpFetcher;
 
 /**
  * Kind of failure reported by `HttpFetcherException`.
@@ -349,7 +349,7 @@ Create `src/HttpFetcher/HttpFetcherException.php`:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\HttpFetcher;
+namespace Yumo\ArtcleReader\HttpFetcher;
 
 /**
  * Thrown when `HttpFetcher` cannot produce a `FetchedPage`.
@@ -412,10 +412,10 @@ Create `tests/HttpFetcher/FetchedPageTest.php`:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\HttpFetcher;
+namespace Yumo\ArtcleReader\Tests\HttpFetcher;
 
 use PHPUnit\Framework\TestCase;
-use Yumo\LogRead\HttpFetcher\FetchedPage;
+use Yumo\ArtcleReader\HttpFetcher\FetchedPage;
 
 final class FetchedPageTest extends TestCase
 {
@@ -457,7 +457,7 @@ Create `src/HttpFetcher/FetchedPage.php`:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\HttpFetcher;
+namespace Yumo\ArtcleReader\HttpFetcher;
 
 /**
  * Bounded result of a successful `HttpFetcher::fetch()` call.
@@ -509,7 +509,7 @@ EOF
 - Create: `tests/HttpFetcher/HttpFetcherTest.php`
 
 **Interfaces:**
-- Consumes: `FetchPolicy`, `FetchedPage`, `HttpFetcherError`, `HttpFetcherException`, `Yumo\LogRead\UrlGuard\SafeFetchTarget` (already implemented; see `src/UrlGuard/SafeFetchTarget.php`)
+- Consumes: `FetchPolicy`, `FetchedPage`, `HttpFetcherError`, `HttpFetcherException`, `Yumo\ArtcleReader\UrlGuard\SafeFetchTarget` (already implemented; see `src/UrlGuard/SafeFetchTarget.php`)
 - Produces:
   - `final class HttpFetcher { public function __construct(FetchPolicy $policy, ClientInterface $client, ?LoggerInterface $logger = null); public function fetch(SafeFetchTarget $target): FetchedPage }`
   - Task 4 keeps `$policy` and `$client` **required** so tests compile without a production client factory. Task 5 adds the body-size gates that consume `$policy->maxBytes`. Task 6 makes both optional (`?FetchPolicy $policy = null, ?ClientInterface $client = null`), matching the spec's final public constructor.
@@ -533,7 +533,7 @@ Create `tests/HttpFetcher/HttpFetcherTest.php`:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\HttpFetcher;
+namespace Yumo\ArtcleReader\Tests\HttpFetcher;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ConnectException;
@@ -545,11 +545,11 @@ use GuzzleHttp\Psr7\Response;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
-use Yumo\LogRead\HttpFetcher\FetchPolicy;
-use Yumo\LogRead\HttpFetcher\HttpFetcher;
-use Yumo\LogRead\HttpFetcher\HttpFetcherError;
-use Yumo\LogRead\HttpFetcher\HttpFetcherException;
-use Yumo\LogRead\UrlGuard\SafeFetchTarget;
+use Yumo\ArtcleReader\HttpFetcher\FetchPolicy;
+use Yumo\ArtcleReader\HttpFetcher\HttpFetcher;
+use Yumo\ArtcleReader\HttpFetcher\HttpFetcherError;
+use Yumo\ArtcleReader\HttpFetcher\HttpFetcherException;
+use Yumo\ArtcleReader\UrlGuard\SafeFetchTarget;
 
 final class HttpFetcherTest extends TestCase
 {
@@ -768,12 +768,12 @@ Create `src/HttpFetcher/HttpFetcher.php`:
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\HttpFetcher;
+namespace Yumo\ArtcleReader\HttpFetcher;
 
 use GuzzleHttp\ClientInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
-use Yumo\LogRead\UrlGuard\SafeFetchTarget;
+use Yumo\ArtcleReader\UrlGuard\SafeFetchTarget;
 
 /**
  * Downloads one already-guarded URL with hard limits and returns a bounded byte payload, or throws.
@@ -1184,7 +1184,7 @@ Replace the top of `src/HttpFetcher/HttpFetcher.php` (imports through the constr
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\HttpFetcher;
+namespace Yumo\ArtcleReader\HttpFetcher;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
@@ -1195,7 +1195,7 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
-use Yumo\LogRead\UrlGuard\SafeFetchTarget;
+use Yumo\ArtcleReader\UrlGuard\SafeFetchTarget;
 
 /**
  * Downloads one already-guarded URL with hard limits and returns a bounded byte payload, or throws.

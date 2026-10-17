@@ -2,7 +2,7 @@
 
 This document is the design spec for splitting the repository into two Composer packages under one git root, and for the shared launcher that runs their tooling.
 
-The library pipeline is unfinished. This spec moves the library as it exists today. It does not redesign `src/`, the `Yumo\LogRead\` namespace, or the foundation feature specs. Further pipeline work adds files under the library package after the move.
+The library pipeline is unfinished. This spec moves the library as it exists today. It does not redesign `src/`, the `Yumo\ArtcleReader\` namespace, or the foundation feature specs. Further pipeline work adds files under the library package after the move.
 
 ## Layout
 
@@ -30,7 +30,7 @@ Moved as they are:
 - `phpstan.neon.dist`, `phpunit.xml.dist`, `.php-cs-fixer.dist.php`
 - `doc/` → `packages/article-reader/doc/`, same internal tree (`features/foundation/specs`, `plans`, `context`, and this file)
 
-The Composer package name stays `yumo/log-read`. The PSR-4 namespace stays `Yumo\LogRead\` → `src/` and `Yumo\LogRead\Tests\` → `tests/`. PHPStan, php-cs-fixer, and PHPUnit configs keep paths relative to the package (`src`, `tests`). They work because the launcher sets the working directory to the package.
+The Composer package name stays `yumo/log-read`. The PSR-4 namespace stays `Yumo\ArtcleReader\` → `src/` and `Yumo\ArtcleReader\Tests\` → `tests/`. PHPStan, php-cs-fixer, and PHPUnit configs keep paths relative to the package (`src`, `tests`). They work because the launcher sets the working directory to the package.
 
 `src/` will keep receiving pipeline feature files. Those features stay specified by `packages/article-reader/doc/features/foundation/specs/`.
 

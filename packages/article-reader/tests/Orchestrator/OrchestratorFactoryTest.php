@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\Orchestrator;
+namespace Yumo\ArtcleReader\Tests\Orchestrator;
 
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
-use Yumo\LogRead\ArticleExtractor\ArticleExtractor;
-use Yumo\LogRead\ArticleExtractor\ExtractPolicy;
-use Yumo\LogRead\HtmlSanitizer\HtmlSanitizer;
-use Yumo\LogRead\HtmlSanitizer\PurifyPolicy;
-use Yumo\LogRead\HttpFetcher\FetchPolicy;
-use Yumo\LogRead\HttpFetcher\HttpFetcher;
-use Yumo\LogRead\Orchestrator\OrchestratorFactory;
-use Yumo\LogRead\Orchestrator\PipelineOptions;
-use Yumo\LogRead\Tests\ArticleExtractor\RecordingLogger;
+use Yumo\ArtcleReader\ArticleExtractor\ArticleExtractor;
+use Yumo\ArtcleReader\ArticleExtractor\ExtractPolicy;
+use Yumo\ArtcleReader\HtmlSanitizer\HtmlSanitizer;
+use Yumo\ArtcleReader\HtmlSanitizer\PurifyPolicy;
+use Yumo\ArtcleReader\HttpFetcher\FetchPolicy;
+use Yumo\ArtcleReader\HttpFetcher\HttpFetcher;
+use Yumo\ArtcleReader\Orchestrator\OrchestratorFactory;
+use Yumo\ArtcleReader\Orchestrator\PipelineOptions;
+use Yumo\ArtcleReader\Tests\ArticleExtractor\RecordingLogger;
 
 final class OrchestratorFactoryTest extends TestCase
 {

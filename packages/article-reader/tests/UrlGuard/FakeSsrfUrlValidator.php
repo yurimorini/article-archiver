@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\UrlGuard;
+namespace Yumo\ArtcleReader\Tests\UrlGuard;
 
-use Yumo\LogRead\UrlGuard\SsrfUrlValidator;
+use Yumo\ArtcleReader\UrlGuard\SsrfUrlValidator;
 
 /**
  * Test double: returns fixed IPs or throws. No DNS.

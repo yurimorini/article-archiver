@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\HtmlSanitizer;
+namespace Yumo\ArtcleReader\Tests\HtmlSanitizer;
 
 use PHPUnit\Framework\TestCase;
-use Yumo\LogRead\ArticleExtractor\PlainText;
-use Yumo\LogRead\HtmlSanitizer\SafeDocument;
+use Yumo\ArtcleReader\ArticleExtractor\PlainText;
+use Yumo\ArtcleReader\HtmlSanitizer\SafeDocument;
 
 final class SafeDocumentTest extends TestCase
 {

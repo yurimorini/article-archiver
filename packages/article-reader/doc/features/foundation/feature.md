@@ -76,7 +76,7 @@ Stack (from research / `composer.json`): Guzzle, `craftcms/url-validator` (plann
 | Area              | State                                                                                                                                                                                                 |
 | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Specs             | **Done** for UrlGuard, HttpFetcher, EncodingNormalizer, ArticleExtractor, HtmlSanitizer, Orchestrator.                                                                                                 |
-| Application code  | `src/` and `tests/` are **empty** (PSR-4 `Yumo\LogRead\` ready, no classes yet).                                                                                                                      |
+| Application code  | `src/` and `tests/` are **empty** (PSR-4 `Yumo\ArtcleReader\` ready, no classes yet).                                                                                                                      |
 | Spike / prototype | `bin/run` sketches fetch + Readability + Purifier, but mixes stages, follows redirects, uses GuzzleTranscoder middleware, and has incomplete UrlGuard/pinning — **not** the target design.            |
 | Dependencies      | Present: Guzzle, Readability, HTMLPurifier, guzzle-transcoder. **Missing from Composer:** `craftcms/url-validator` (required by UrlGuard production adapter). PHPUnit is available as dev dependency. |
 

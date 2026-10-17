@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\UrlGuard;
+namespace Yumo\ArtcleReader\UrlGuard;
 
 /**
  * Thrown when `UrlGuard` refuses a URL.

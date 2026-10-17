@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\Orchestrator;
+namespace Yumo\ArtcleReader\Tests\Orchestrator;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Yumo\LogRead\Orchestrator\OrchestratorError;
-use Yumo\LogRead\Orchestrator\OrchestratorException;
+use Yumo\ArtcleReader\Orchestrator\OrchestratorError;
+use Yumo\ArtcleReader\Orchestrator\OrchestratorException;
 
 final class OrchestratorExceptionTest extends TestCase
 {

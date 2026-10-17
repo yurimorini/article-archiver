@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Orchestrator;
+namespace Yumo\ArtcleReader\Orchestrator;
 
-use Yumo\LogRead\HtmlSanitizer\SafeDocument;
+use Yumo\ArtcleReader\HtmlSanitizer\SafeDocument;
 
 /**
  * This class is a finished fetch whose article HTML is safe to store or display.

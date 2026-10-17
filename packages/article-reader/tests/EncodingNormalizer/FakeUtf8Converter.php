@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\EncodingNormalizer;
+namespace Yumo\ArtcleReader\Tests\EncodingNormalizer;
 
-use Yumo\LogRead\EncodingNormalizer\Utf8Converter;
+use Yumo\ArtcleReader\EncodingNormalizer\Utf8Converter;
 
 /**
  * This class fails strict conversion and either fails or returns a fixed lossy result.

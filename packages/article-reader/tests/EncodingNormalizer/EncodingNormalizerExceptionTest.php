@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\Tests\EncodingNormalizer;
+namespace Yumo\ArtcleReader\Tests\EncodingNormalizer;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Yumo\LogRead\EncodingNormalizer\EncodingError;
-use Yumo\LogRead\EncodingNormalizer\EncodingNormalizerException;
+use Yumo\ArtcleReader\EncodingNormalizer\EncodingError;
+use Yumo\ArtcleReader\EncodingNormalizer\EncodingNormalizerException;
 
 final class EncodingNormalizerExceptionTest extends TestCase
 {

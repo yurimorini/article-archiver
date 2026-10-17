@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Yumo\LogRead\EncodingNormalizer;
+namespace Yumo\ArtcleReader\EncodingNormalizer;
 
 use Ddeboer\Transcoder\Exception\UnsupportedEncodingException;
 use Fossar\GuzzleTranscoder\ContentTypeExtractor;
-use Yumo\LogRead\HttpFetcher\FetchedPage;
+use Yumo\ArtcleReader\HttpFetcher\FetchedPage;
 
 /**
  * This class turns opaque HTML response bytes into a UTF-8 HTML document, or throws.
