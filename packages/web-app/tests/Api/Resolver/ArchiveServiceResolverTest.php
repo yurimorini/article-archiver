@@ -18,6 +18,7 @@ use Yumo\Eleanor\Archive\InMemory\InMemoryArchiveStoreFactory;
 use Yumo\Eleanor\Archive\Owner;
 use Yumo\Eleanor\Tests\Support\FakeArticleFetcher;
 use Yumo\Eleanor\Tests\Support\PipelineFixtures;
+use Yumo\Eleanor\Tests\Support\SwitchableOwnerProvider;
 
 /**
  * Proves that the resolver hands the owner's archive service to an action argument and ignores every other argument.
@@ -38,15 +39,41 @@ final class ArchiveServiceResolverTest extends TestCase
     public function test_builds_the_service_for_the_owner_of_the_provider(): void
     {
         $ada = $this->resolverFor('ada@example.com');
-        $bob = $this->resolverFor('bob@example.com');
 
         $first = $this->resolveService($ada)->archive(self::URL);
         $second = $this->resolveService($ada)->archive(self::URL);
-        $other = $this->resolveService($bob)->archive(self::URL);
 
         self::assertSame(ArchiveOutcome::Written, $first->outcome);
         self::assertSame(ArchiveOutcome::AlreadyStored, $second->outcome);
-        self::assertSame(ArchiveOutcome::Written, $other->outcome);
+    }
+
+    public function test_asks_the_provider_on_every_call_and_keeps_no_service(): void
+    {
+        $provider = new SwitchableOwnerProvider(new Owner('ada@example.com'));
+        $resolver = new ArchiveServiceResolver($provider, $this->factory);
+
+        $adaResult = $this->resolveService($resolver)->archive(self::URL);
+        $provider->current = new Owner('bob@example.com');
+        $bobResult = $this->resolveService($resolver)->archive(self::URL);
+
+        self::assertSame(ArchiveOutcome::Written, $adaResult->outcome);
+        self::assertSame(ArchiveOutcome::Written, $bobResult->outcome);
+    }
+
+    public function test_lets_an_owner_failure_escape_before_any_service_is_built(): void
+    {
+        $provider = new class () implements OwnerProvider {
+            public function owner(): Owner
+            {
+                throw new \RuntimeException('No owner.');
+            }
+        };
+        $resolver = new ArchiveServiceResolver($provider, $this->factory);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('No owner.');
+
+        $resolver->resolve(new Request(), $this->argument(ArchiveService::class));
     }
 
     public function test_returns_a_single_archive_service(): void
@@ -73,19 +100,7 @@ final class ArchiveServiceResolverTest extends TestCase
 
     private function resolverFor(string $email): ArchiveServiceResolver
     {
-        $owner = new Owner($email);
-        $provider = new class ($owner) implements OwnerProvider {
-            public function __construct(private readonly Owner $owner)
-            {
-            }
-
-            public function owner(): Owner
-            {
-                return $this->owner;
-            }
-        };
-
-        return new ArchiveServiceResolver($provider, $this->factory);
+        return new ArchiveServiceResolver(new SwitchableOwnerProvider(new Owner($email)), $this->factory);
     }
 
     private function resolveService(ArchiveServiceResolver $resolver): ArchiveService
