@@ -29,6 +29,10 @@ alwaysApply: true
 
 - Follow **clear, project-visible conventions** (naming, folder layout, error handling). When none exist, align with the **dominant style already in the repo** and common patterns for the stack.
 - Prefer **structural and implementation consistency** within a feature area over one-off shortcuts.
+- A folder groups an adapter that can be replaced, or a group the rest of the module does not name. Open one when that group has at least two classes. A single class stays beside the port it implements.
+- The port stays in the module namespace. The adapter implementation lives in a sub-namespace. Callers depend on the port.
+- Do not open a folder to sort files by kind (entity, interface, service). Domain, application, and adapter in the design priorities above are responsibilities, not directory names.
+- A layout chosen for one slice is not a template for the next slice. The next slice applies this rule to its own classes.
 
 ## Coding principles 
 
