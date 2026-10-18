@@ -1,6 +1,9 @@
 parameters:
     eleanor.owner_email: 'owner@example.test'
 
+    # Each test that boots the kernel sets ELEANOR_DATA_DIR first. See ArchiveDirectories::isolate().
+    eleanor.data_dir: '%env(ELEANOR_DATA_DIR)%'
+
 services:
     Yumo\Eleanor\Tests\Support\FakeArticleFetcher:
         public: true

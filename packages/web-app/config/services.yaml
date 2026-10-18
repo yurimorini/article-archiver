@@ -10,6 +10,9 @@ parameters:
     # The email of the one owner. The firewall slice replaces this with the authenticated caller.
     eleanor.owner_email: 'owner@example.com'
 
+    # The directory that holds one SQLite file per owner.
+    eleanor.data_dir: '%kernel.project_dir%/var/data'
+
     # The directory that holds the per-url lock files.
     eleanor.lock_dir: '%kernel.project_dir%/var/lock'
 
@@ -37,3 +40,7 @@ services:
     Yumo\Eleanor\Archive\Lock\FlockArchiveLockFactory:
         arguments:
             $lockDirectory: '%eleanor.lock_dir%'
+
+    Yumo\Eleanor\Archive\Sqlite\SqliteArchiveStoreFactory:
+        arguments:
+            $dataDirectory: '%eleanor.data_dir%'

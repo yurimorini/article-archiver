@@ -6,9 +6,9 @@ namespace Yumo\Eleanor\Tests\Archive\InMemory;
 
 use PHPUnit\Framework\TestCase;
 use Yumo\Eleanor\Archive\Archive;
-use Yumo\Eleanor\Archive\InMemory\InMemoryArchiveShelf;
-use Yumo\Eleanor\Archive\InMemory\InMemoryArchiveStoreFactory;
 use Yumo\Eleanor\Archive\Owner;
+use Yumo\Eleanor\Tests\Support\InMemory\InMemoryArchiveShelf;
+use Yumo\Eleanor\Tests\Support\InMemory\InMemoryArchiveStoreFactory;
 
 /**
  * Proves which stores made by the in-memory factory share rows.

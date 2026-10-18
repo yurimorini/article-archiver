@@ -14,6 +14,7 @@ use Yumo\ArtcleReader\Orchestrator\OrchestratorException;
 use Yumo\ArtcleReader\Orchestrator\PipelineNoContent;
 use Yumo\ArtcleReader\UrlGuard\UrlGuardError;
 use Yumo\ArtcleReader\UrlGuard\UrlGuardException;
+use Yumo\Eleanor\Tests\Support\ArchiveDirectories;
 use Yumo\Eleanor\Tests\Support\FakeArticleFetcher;
 use Yumo\Eleanor\Tests\Support\PipelineFixtures;
 
@@ -23,6 +24,12 @@ use Yumo\Eleanor\Tests\Support\PipelineFixtures;
 final class ErrorResponseRouteTest extends WebTestCase
 {
     private const string URL = 'https://example.com/a';
+
+    protected function setUp(): void
+    {
+        ArchiveDirectories::isolate();
+        parent::setUp();
+    }
 
     /**
      * @return iterable<string, array{\Throwable|PipelineNoContent, int, string, string}>
@@ -211,7 +218,7 @@ final class ErrorResponseRouteTest extends WebTestCase
     /**
      * Reads the fake fetcher from the test container.
      *
-     * A test that posts twice must call `$client->disableReboot()` first, or the fake and the shelf are lost.
+     * A test that posts twice must call `$client->disableReboot()` first, or the container builds a new fake.
      */
     private function fetcher(): FakeArticleFetcher
     {

@@ -9,6 +9,7 @@ use Symfony\Component\BrowserKit\Response as BrowserResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Yumo\Eleanor\Request\EnrichedRequest;
+use Yumo\Eleanor\Tests\Support\ArchiveDirectories;
 use Yumo\Eleanor\Tests\Support\FakeArticleFetcher;
 use Yumo\Eleanor\Tests\Support\PipelineFixtures;
 
@@ -39,6 +40,12 @@ final class LogApiRequestTest extends WebTestCase
         $client->setServerParameters($server);
 
         return $client;
+    }
+
+    protected function setUp(): void
+    {
+        ArchiveDirectories::isolate();
+        parent::setUp();
     }
 
     protected function tearDown(): void

@@ -7,9 +7,9 @@ namespace Yumo\Eleanor\Tests\Archive\InMemory;
 use PHPUnit\Framework\TestCase;
 use Yumo\Eleanor\Archive\Archive;
 use Yumo\Eleanor\Archive\ArchiveSummary;
-use Yumo\Eleanor\Archive\InMemory\InMemoryArchiveShelf;
-use Yumo\Eleanor\Archive\InMemory\InMemoryArchiveStore;
 use Yumo\Eleanor\Archive\Owner;
+use Yumo\Eleanor\Tests\Support\InMemory\InMemoryArchiveShelf;
+use Yumo\Eleanor\Tests\Support\InMemory\InMemoryArchiveStore;
 
 /**
  * Proves what the in-memory store keeps for one owner.

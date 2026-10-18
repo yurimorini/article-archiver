@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Yumo\Eleanor\Archive\InMemory;
+namespace Yumo\Eleanor\Tests\Support\InMemory;
 
 use Yumo\Eleanor\Archive\Archive;
 use Yumo\Eleanor\Archive\ArchiveSummary;
@@ -11,7 +11,7 @@ use Yumo\Eleanor\Archive\Owner;
 /**
  * Holds every owner's archives in memory.
  *
- * This is a temporary stand-in for the directory of owner files that the SQLite slice adds.
+ * Test support that stands in for the directory of owner database files.
  * It lives as long as its container, so a new process starts empty.
  */
 final class InMemoryArchiveShelf

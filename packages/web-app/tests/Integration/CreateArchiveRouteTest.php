@@ -9,6 +9,7 @@ use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\BrowserKit\Response;
 use Symfony\Component\HttpFoundation\Request;
+use Yumo\Eleanor\Tests\Support\ArchiveDirectories;
 use Yumo\Eleanor\Tests\Support\FakeArticleFetcher;
 use Yumo\Eleanor\Tests\Support\PipelineFixtures;
 
@@ -17,6 +18,12 @@ use Yumo\Eleanor\Tests\Support\PipelineFixtures;
  */
 final class CreateArchiveRouteTest extends WebTestCase
 {
+    protected function setUp(): void
+    {
+        ArchiveDirectories::isolate();
+        parent::setUp();
+    }
+
     /**
      * @return iterable<string, array{string, array<string, string>, string}>
      */
@@ -46,8 +53,8 @@ final class CreateArchiveRouteTest extends WebTestCase
     public function test_same_url_again_returns_200_with_the_same_body_and_one_fetch(): void
     {
         $client = static::createClient();
-        $client->disableReboot();
-        $this->fetcher()->willReturn('https://example.com/a', PipelineFixtures::success());
+        $firstFetcher = $this->fetcher();
+        $firstFetcher->willReturn('https://example.com/a', PipelineFixtures::success());
 
         $this->postUrl($client, 'https://example.com/a');
         $first = $this->responseBody($client->getInternalResponse());
@@ -56,7 +63,24 @@ final class CreateArchiveRouteTest extends WebTestCase
         self::assertResponseStatusCodeSame(200);
         self::assertResponseHeaderSame('content-type', 'application/json');
         self::assertSame($first, $this->responseBody($client->getInternalResponse()));
-        self::assertSame(1, $this->fetcher()->fetchCount());
+        self::assertSame(1, $firstFetcher->fetchCount());
+        self::assertSame(0, $this->fetcher()->fetchCount());
+    }
+
+    public function test_second_kernel_on_the_same_directory_returns_200_without_a_fetch(): void
+    {
+        $client = static::createClient();
+        $this->fetcher()->willReturn('https://example.com/a', PipelineFixtures::success());
+        $this->postUrl($client, 'https://example.com/a');
+        self::assertResponseStatusCodeSame(201);
+        static::ensureKernelShutdown();
+
+        $second = static::createClient();
+        $this->postUrl($second, 'https://example.com/a');
+
+        self::assertResponseStatusCodeSame(200);
+        self::assertSame('{"url":"https://example.com/a","title":"Title"}', $this->responseBody($second->getInternalResponse()));
+        self::assertSame(0, $this->fetcher()->fetchCount());
     }
 
     public function test_a_different_url_returns_201_and_fetches_again(): void
@@ -128,8 +152,10 @@ final class CreateArchiveRouteTest extends WebTestCase
     /**
      * Reads the fake fetcher from the test container.
      *
-     * A test that posts twice must call `$client->disableReboot()` first. Otherwise the browser reboots
-     * the kernel before the second request, and the fake and the in-memory shelf would be lost.
+     * A test that posts twice and needs the fake to keep its table of outcomes must call
+     * `$client->disableReboot()` first. Otherwise the browser reboots the kernel before the second
+     * request and the container builds a new fake. The archives survive a reboot, because they live
+     * in the isolated data directory.
      */
     private function fetcher(): FakeArticleFetcher
     {

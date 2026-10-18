@@ -15,10 +15,10 @@ use Yumo\Eleanor\Archive\ArchiveFailure;
 use Yumo\Eleanor\Archive\ArchiveOutcome;
 use Yumo\Eleanor\Archive\ArchiveService;
 use Yumo\Eleanor\Archive\ArchiveSummary;
-use Yumo\Eleanor\Archive\InMemory\InMemoryArchiveShelf;
-use Yumo\Eleanor\Archive\InMemory\InMemoryArchiveStore;
 use Yumo\Eleanor\Archive\Owner;
 use Yumo\Eleanor\Tests\Support\FakeArticleFetcher;
+use Yumo\Eleanor\Tests\Support\InMemory\InMemoryArchiveShelf;
+use Yumo\Eleanor\Tests\Support\InMemory\InMemoryArchiveStore;
 use Yumo\Eleanor\Tests\Support\PipelineFixtures;
 
 /**

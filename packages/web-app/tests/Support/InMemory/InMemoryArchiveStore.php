@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Yumo\Eleanor\Archive\InMemory;
+namespace Yumo\Eleanor\Tests\Support\InMemory;
 
 use Symfony\Component\DependencyInjection\Attribute\Exclude;
 use Yumo\Eleanor\Archive\Archive;
@@ -13,7 +13,7 @@ use Yumo\Eleanor\Archive\Owner;
 /**
  * Keeps one owner's archives on an in-memory shelf.
  *
- * This is a temporary stand-in for the SQLite store of a later slice.
+ * Test support that stands in for the SQLite store.
  */
 #[Exclude]
 final class InMemoryArchiveStore implements ArchiveStore
