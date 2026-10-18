@@ -165,4 +165,14 @@ final class SqliteArchiveStore implements ArchiveStore
         );
         $statement->execute(['id' => $id, 'html' => $html]);
     }
+
+    /**
+     * Returns the path of this owner's database file.
+     *
+     * The file is not opened and is not created.
+     */
+    public function location(): ?string
+    {
+        return $this->connection->path;
+    }
 }

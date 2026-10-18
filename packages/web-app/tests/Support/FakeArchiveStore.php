@@ -29,6 +29,9 @@ final class FakeArchiveStore implements ArchiveStore
     /** The throwable `save` raises, or null. */
     public ?\Throwable $saveFailure = null;
 
+    /** The file `location` returns, or null when this store has no file. */
+    public ?string $location = null;
+
     /** @var array<string, Archive> */
     private array $archives = [];
 
@@ -73,5 +76,15 @@ final class FakeArchiveStore implements ArchiveStore
         }
 
         $this->archives[$archive->url] = $archive;
+    }
+
+    /**
+     * Returns the file this store was told to name, or null.
+     *
+     * This method does not open a file.
+     */
+    public function location(): ?string
+    {
+        return $this->location;
     }
 }

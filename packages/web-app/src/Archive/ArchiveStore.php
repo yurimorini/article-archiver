@@ -23,4 +23,11 @@ interface ArchiveStore
      * Stores `$archive` under its URL for this owner.
      */
     public function save(Archive $archive): void;
+
+    /**
+     * Returns the file this store writes, or null when the store has no file.
+     *
+     * This method does not open the file.
+     */
+    public function location(): ?string;
 }

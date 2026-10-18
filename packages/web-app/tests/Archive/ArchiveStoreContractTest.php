@@ -231,6 +231,20 @@ final class ArchiveStoreContractTest extends TestCase
         self::assertSame('<p>New</p>', $after[0]['html']);
     }
 
+    public function test_location_names_the_sqlite_file_and_memory_has_none(): void
+    {
+        $owner = new Owner('ada@example.com');
+        $memory = $this->factory('memory')->create($owner);
+        $sqlite = $this->factory('sqlite')->create($owner);
+
+        self::assertNull($memory->location());
+        self::assertSame(
+            $this->directory . '/' . hash('sha256', 'ada@example.com') . '.sqlite',
+            $sqlite->location(),
+        );
+        self::assertSame([], $this->databaseFiles());
+    }
+
     /**
      * Reads the archive rows of the only database file with a connection of its own.
      *

@@ -53,4 +53,12 @@ final class InMemoryArchiveStore implements ArchiveStore
     {
         $this->shelf->save($this->owner, $archive);
     }
+
+    /**
+     * Returns null. This store has no file.
+     */
+    public function location(): ?string
+    {
+        return null;
+    }
 }
