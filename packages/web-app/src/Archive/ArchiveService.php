@@ -55,94 +55,33 @@ final class ArchiveService
      */
     private function archiveLocked(UrlPointer $url): ArchiveResult
     {
-        $this->write('info', 'archive.start', $this->context($url));
+        $this->log('info', 'archive.start', $this->context($url));
 
         $stored = $this->store->findSummary($url);
         if ($stored !== null) {
-            $this->write('info', 'archive.already_stored', $this->context($url));
+            $this->log('info', 'archive.already_stored', $this->context($url));
 
             return new ArchiveResult($stored, ArchiveOutcome::AlreadyStored);
         }
 
-        $this->write('info', 'archive.fetch', $this->context($url));
+        $this->log('info', 'archive.fetch', $this->context($url));
 
         try {
             $fetched = $this->fetch($url);
         } catch (ArchiveException $failure) {
-            $this->write('warning', 'archive.failed', $this->context($url, $failure->failure->value));
+            $this->log('warning', 'archive.failed', $this->context($url, $failure->failure->value));
 
             throw $failure;
         }
 
         $archive = $this->fromSuccess($url, $fetched);
         $this->save($url, $archive);
-        $this->write('info', 'archive.written', $this->context($url, store: true));
+        $this->log('info', 'archive.written', $this->context($url, store: true));
 
         return new ArchiveResult(
             ArchiveSummary::fromArchive($archive),
             ArchiveOutcome::Written,
         );
-    }
-
-    /**
-     * Stores `$archive`. A missing data directory and a database failure both become `ArchiveFailure::NotWritten`.
-     *
-     * @throws ArchiveException
-     */
-    private function save(UrlPointer $url, Archive $archive): void
-    {
-        try {
-            $this->store->save($archive);
-        } catch (DirectoryException $error) {
-            $this->notWritten($url, $error);
-        } catch (\PDOException $error) {
-            $this->notWritten($url, $error);
-        }
-    }
-
-    /**
-     * Logs a save that did not stick, then raises `NotWritten` with `$error` as the cause.
-     *
-     * @throws ArchiveException
-     */
-    private function notWritten(UrlPointer $url, \Throwable $error): never
-    {
-        $this->write('warning', 'archive.failed', $this->context($url, ArchiveFailure::NotWritten->value, true));
-
-        throw new ArchiveException(ArchiveFailure::NotWritten, $error);
-    }
-
-    /**
-     * Writes one domain line. A logger that throws does not change the archive outcome.
-     *
-     * @param array<string, string> $context
-     */
-    private function write(string $level, string $message, array $context): void
-    {
-        try {
-            $this->logger->log($level, $message, $context);
-        } catch (\Throwable) {
-            // A failed write must not change the archive outcome.
-        }
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    private function context(UrlPointer $url, ?string $code = null, bool $store = false): array
-    {
-        $context = ['url' => $url->toString()];
-        if ($code !== null) {
-            $context['code'] = $code;
-        }
-        if ($store) {
-            $location = $this->store->location();
-            if (is_string($location)) {
-                $context['store'] = $location;
-            }
-        }
-
-        return $context;
     }
 
     /**
@@ -180,5 +119,66 @@ final class ArchiveService
             $document->siteName?->raw(),
             $document->html,
         );
+    }
+
+    /**
+     * Stores `$archive`. A missing data directory and a database failure both become `ArchiveFailure::NotWritten`.
+     *
+     * @throws ArchiveException
+     */
+    private function save(UrlPointer $url, Archive $archive): void
+    {
+        try {
+            $this->store->save($archive);
+        } catch (DirectoryException $error) {
+            $this->notWritten($url, $error);
+        } catch (\PDOException $error) {
+            $this->notWritten($url, $error);
+        }
+    }
+
+    /**
+     * Logs a save that did not stick, then raises `NotWritten` with `$error` as the cause.
+     *
+     * @throws ArchiveException
+     */
+    private function notWritten(UrlPointer $url, \Throwable $error): never
+    {
+        $this->log('warning', 'archive.failed', $this->context($url, ArchiveFailure::NotWritten->value, true));
+
+        throw new ArchiveException(ArchiveFailure::NotWritten, $error);
+    }
+
+    /**
+     * Logs one domain line. A logger that throws does not change the archive outcome.
+     *
+     * @param array<string, string> $context
+     */
+    private function log(string $level, string $message, array $context): void
+    {
+        try {
+            $this->logger->log($level, $message, $context);
+        } catch (\Throwable) {
+            // A failed write must not change the archive outcome.
+        }
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function context(UrlPointer $url, ?string $code = null, bool $store = false): array
+    {
+        $context = ['url' => $url->toString()];
+        if ($code !== null) {
+            $context['code'] = $code;
+        }
+        if ($store) {
+            $location = $this->store->location();
+            if (is_string($location)) {
+                $context['store'] = $location;
+            }
+        }
+
+        return $context;
     }
 }
