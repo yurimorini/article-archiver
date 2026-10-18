@@ -71,6 +71,17 @@ final class ArchiveServiceTest extends TestCase
         self::assertEquals(new Archive(self::URL, 'Title', 'Excerpt', 'Site', '<p>Body</p>'), $archive);
     }
 
+    public function test_text_fields_are_stored_as_raw_text_not_escaped_html(): void
+    {
+        $this->fetcher->willReturn(self::URL, PipelineFixtures::success('A & "B"', 'C & <b>D</b>', 'E & F'));
+
+        $archive = $this->service->archive(self::URL)->archive;
+
+        self::assertSame('A & "B"', $archive->title);
+        self::assertSame('C & D', $archive->excerpt);
+        self::assertSame('E & F', $archive->siteName);
+    }
+
     public function test_excerpt_and_site_name_stay_null_when_missing(): void
     {
         $this->fetcher->willReturn(self::URL, PipelineFixtures::success());

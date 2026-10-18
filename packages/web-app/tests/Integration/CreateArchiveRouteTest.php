@@ -118,6 +118,7 @@ final class CreateArchiveRouteTest extends WebTestCase
 
         $this->postUrl($client, $url);
 
+        self::assertSame(1, $this->fetcher()->fetchCount());
         $response = $client->getResponse();
         self::assertNotSame(201, $response->getStatusCode());
         self::assertNotSame(200, $response->getStatusCode());
