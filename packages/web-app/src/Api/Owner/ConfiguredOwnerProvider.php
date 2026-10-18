@@ -13,12 +13,18 @@ use Yumo\Eleanor\Archive\Owner;
  */
 final class ConfiguredOwnerProvider implements OwnerProvider
 {
+    /**
+     * Creates the provider from the configured owner email.
+     */
     public function __construct(
         /** The configured owner email. */
         private string $email,
     ) {
     }
 
+    /**
+     * Returns an owner built from the configured email.
+     */
     public function owner(): Owner
     {
         return new Owner($this->email);

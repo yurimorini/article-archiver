@@ -13,12 +13,18 @@ use Yumo\ArtcleReader\Orchestrator\PipelineSuccess;
  */
 final class ArticleReaderAdapter implements ArticleFetcher
 {
+    /**
+     * Creates the adapter around the library orchestrator.
+     */
     public function __construct(
         /** The library orchestrator that checks, downloads, extracts, and purifies a page. */
         private Orchestrator $orchestrator,
     ) {
     }
 
+    /**
+     * Fetches `$url` through the library orchestrator and returns its outcome unchanged.
+     */
     public function fetch(string $url): PipelineSuccess|PipelineNoContent
     {
         return $this->orchestrator->fetchArticle($url);

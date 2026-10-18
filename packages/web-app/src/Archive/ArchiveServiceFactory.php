@@ -11,6 +11,9 @@ namespace Yumo\Eleanor\Archive;
  */
 final class ArchiveServiceFactory
 {
+    /**
+     * Creates the factory from the shared fetcher and the factory of per-owner stores.
+     */
     public function __construct(
         /** The fetcher every service shares. */
         private ArticleFetcher $fetcher,

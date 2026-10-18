@@ -12,6 +12,9 @@ use Symfony\Component\DependencyInjection\Attribute\Exclude;
 #[Exclude]
 final readonly class ArchiveResult
 {
+    /**
+     * Creates the answer of one archive command.
+     */
     public function __construct(
         /** The stored copy. */
         public Archive $archive,

@@ -16,6 +16,9 @@ use Yumo\ArtcleReader\Orchestrator\PipelineSuccess;
 #[Exclude]
 final class ArchiveService
 {
+    /**
+     * Creates the service from the store of one owner and the fetcher that downloads pages.
+     */
     public function __construct(
         /** The store of the owner this service works for. */
         private ArchiveStore $store,

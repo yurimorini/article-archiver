@@ -187,6 +187,12 @@ final class CreateArchiveRouteTest extends WebTestCase
         self::assertNotSame('create_archive', $this->matchedRoute($client->getRequest()));
     }
 
+    /**
+     * Reads the fake fetcher from the test container.
+     *
+     * A test that posts twice must call `$client->disableReboot()` first. Otherwise the browser reboots
+     * the kernel before the second request, and the fake and the in-memory shelf would be lost.
+     */
     private function fetcher(): FakeArticleFetcher
     {
         $fetcher = static::getContainer()->get(FakeArticleFetcher::class);

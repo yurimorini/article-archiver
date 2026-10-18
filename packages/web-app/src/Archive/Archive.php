@@ -14,6 +14,9 @@ use Symfony\Component\DependencyInjection\Attribute\Exclude;
 #[Exclude]
 final readonly class Archive
 {
+    /**
+     * Creates the stored copy of one fetched page.
+     */
     public function __construct(
         /** The URL string the client sent. It names the archive. */
         public string $url,

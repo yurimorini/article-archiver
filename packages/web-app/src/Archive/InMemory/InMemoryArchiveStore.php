@@ -17,6 +17,9 @@ use Yumo\Eleanor\Archive\Owner;
 #[Exclude]
 final class InMemoryArchiveStore implements ArchiveStore
 {
+    /**
+     * Creates a store that works on the archives of `$owner` held by `$shelf`.
+     */
     public function __construct(
         /** The owner whose archives this store reads and writes. */
         private Owner $owner,
@@ -25,11 +28,17 @@ final class InMemoryArchiveStore implements ArchiveStore
     ) {
     }
 
+    /**
+     * Returns the archive this owner stored for `$url`, or null when there is none.
+     */
     public function find(string $url): ?Archive
     {
         return $this->shelf->find($this->owner, $url);
     }
 
+    /**
+     * Stores `$archive` on the shelf under its URL for this owner.
+     */
     public function save(Archive $archive): void
     {
         $this->shelf->save($this->owner, $archive);

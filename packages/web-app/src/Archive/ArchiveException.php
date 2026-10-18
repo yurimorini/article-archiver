@@ -14,6 +14,9 @@ use Symfony\Component\DependencyInjection\Attribute\Exclude;
 #[Exclude]
 final class ArchiveException extends \RuntimeException
 {
+    /**
+     * Creates the exception from a message and the original failure that caused it, if any.
+     */
     public function __construct(string $message, ?\Throwable $previous = null)
     {
         parent::__construct($message, 0, $previous);

@@ -15,12 +15,18 @@ use Yumo\Eleanor\Archive\Owner;
  */
 final class InMemoryArchiveStoreFactory implements ArchiveStoreFactory
 {
+    /**
+     * Creates the factory around the shelf that all its stores share.
+     */
     public function __construct(
         /** The shelf every store made here reads and writes. */
         private InMemoryArchiveShelf $shelf,
     ) {
     }
 
+    /**
+     * Returns a new in-memory store for `$owner` on the shared shelf.
+     */
     public function create(Owner $owner): ArchiveStore
     {
         return new InMemoryArchiveStore($owner, $this->shelf);
