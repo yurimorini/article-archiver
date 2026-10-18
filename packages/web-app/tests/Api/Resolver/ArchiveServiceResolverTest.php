@@ -84,6 +84,16 @@ final class ArchiveServiceResolverTest extends TestCase
         self::assertInstanceOf(ArchiveService::class, $resolved[0]);
     }
 
+    public function test_answers_a_nullable_argument_and_an_argument_with_a_default(): void
+    {
+        $resolver = $this->resolverFor('ada@example.com');
+        $nullable = new ArgumentMetadata('archives', ArchiveService::class, false, false, null, true);
+        $withDefault = new ArgumentMetadata('archives', ArchiveService::class, false, true, null, true);
+
+        self::assertCount(1, $resolver->resolve(new Request(), $nullable));
+        self::assertCount(1, $resolver->resolve(new Request(), $withDefault));
+    }
+
     public function test_ignores_an_argument_of_another_type(): void
     {
         $resolved = $this->resolverFor('ada@example.com')->resolve(new Request(), $this->argument(CreateArchiveBody::class));

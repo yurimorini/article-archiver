@@ -33,7 +33,7 @@ $json = $serializer->serialize($responseDto);
 return JsonResponse::fromJsonString($json);
 ```
 
-The controller does not extend `AbstractController`. The serializer arrives through the constructor. `fromJsonString` accepts the HTTP status as its second argument. That status is recorded in [Flow.md](Flow.md).
+The controller does not extend `AbstractController`. The serializer is a service the action needs. The slice that adds it decides whether it arrives through a constructor or an argument. Slice 5b removed the controller's constructor for the archive service, so a resolver is an option for it as well. `fromJsonString` accepts the HTTP status as its second argument. That status is recorded in [Flow.md](Flow.md).
 
 A listener that serializes a returned object on its own waits until actions repeat this call and do nothing else.
 

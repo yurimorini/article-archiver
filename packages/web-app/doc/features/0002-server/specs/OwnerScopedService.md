@@ -33,7 +33,7 @@ When a second owner-scoped service exists, extract the shared step "owner, then 
 
 No change to `config/services.yaml` or `config/services_test.yaml`. The `Yumo\Eleanor\` resource registers the resolver. A class that implements `ValueResolverInterface` receives the tag `controller.argument_value_resolver` automatically. `OwnerProvider` and `ArchiveServiceFactory` autowire as before.
 
-The default priority is used. The built-in `RequestAttributeValueResolver` runs at priority 100 and reads attributes, which this resolver does not. The plan checks the order with `php bin/console debug:container debug.argument_resolver.inner`.
+The default priority is used. Observed in slice 5b with `debug:container debug.argument_resolver.inner`: the resolver runs after `request_attribute` (100) and before `service` (-50) and `default` (-100). An argument that is nullable or has a default is still answered, so the default is never used. The built-in `RequestAttributeValueResolver` runs at priority 100 and reads attributes, which this resolver does not. The plan checks the order with `php bin/console debug:container debug.argument_resolver.inner`.
 
 ## Data flow
 

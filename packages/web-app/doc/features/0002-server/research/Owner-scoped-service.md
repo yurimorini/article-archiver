@@ -53,7 +53,7 @@ Source: [Extending Action Argument Resolving](https://symfony.com/doc/current/co
 - A resolver can be targeted instead of global. `#[AsTargetedValueResolver('name')]` on the resolver plus `#[ValueResolver('name')]` on the argument means it runs only when named. This avoids any clash with `ServiceValueResolver`.
 - `RequestPayloadValueResolver` is already targeted. It runs only with `#[MapRequestPayload]` or `#[MapQueryString]`. The existing controller uses this pattern for the body DTO.
 
-Not verified: the exact priority of `ServiceValueResolver`. The debug command above shows it.
+Checked in slice 5b: `ServiceValueResolver` has priority `-50` and `DefaultValueResolver` has `-100`, in `vendor/symfony/framework-bundle/Resources/config/web.php`. With `debug:container debug.argument_resolver.inner`, `ArchiveServiceResolver` (default priority 0) runs after `request_attribute` and before `service`. `ArchiveService` is `#[Exclude]`, so `ServiceValueResolver` never competes for it. An argument that is nullable or has a default is still answered by the resolver, so the default is never used. `ArchiveServiceResolverTest` pins this.
 
 ## Context object or service per type
 
@@ -73,10 +73,14 @@ Not verified: the exact priority of `ServiceValueResolver`. The debug command ab
 - Resolvers run after `kernel.request`, so after the firewall. The authenticated owner will be available.
 - They run after `kernel.controller`, so after `LogApiRequest` has stored `EnrichedRequest`.
 
-## Open for the next session
+## Resolved by slice 5b
 
-- Targeted resolver or global resolver for `ArchiveService`.
-- Whether `ArchiveService` stays a container service or only the factory is registered.
-- Which slice owns the change: a new slice, or part of slice 8 (Firewall) where `OwnerProvider` changes.
-- How the unresolved-owner failure maps to a status, which belongs to slice 6 (Problem document).
-- The change revises a locked choice in [Controller.md](Controller.md) and in the [Archive command](../specs/ArchiveCommand.md) spec. Ask before adopting.
+[OwnerScopedService.md](../specs/OwnerScopedService.md) adopts the resolver option.
+
+- Global resolver, not targeted. `ArchiveService` stays `#[Exclude]`. Only the factory is a service.
+- Own slice 5b, not part of slice 8.
+- The revised choices in [Controller.md](Controller.md) and in the [Archive command](../specs/ArchiveCommand.md) spec were revised with the user's agreement.
+
+## Still open
+
+- How the unresolved-owner failure maps to a status. Slice 6 (Problem document) and slice 8 (Firewall) own it.
