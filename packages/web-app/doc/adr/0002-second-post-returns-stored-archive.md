@@ -1,6 +1,6 @@
 # A second POST of the same URL returns the archive already stored
 
-Status: proposed. This is a research direction, not a final decision. A later session can replace it. A spec adopts it when implementation starts. This refines the success row of [0001](0001-archive-outcome-status.md): 201 is only the request that wrote the copy.
+Status: accepted by [Archive command](../features/0002-server/specs/ArchiveCommand.md). This refines the success row of [0001](0001-archive-outcome-status.md): 201 is only the request that wrote the copy.
 
 One owner has one archive of a page, named by its URL. When that archive is already stored, Eleanor does not fetch and does not write. The response is 200 with the same JSON body a 201 would have carried, read from the stored record. Refreshing a page that has changed is a later command, not this POST.
 
