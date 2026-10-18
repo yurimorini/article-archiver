@@ -114,6 +114,7 @@ final class HttpFetcher
             throw new HttpFetcherException(
                 HttpFetcherError::Redirect,
                 sprintf('HTTP redirect (status %d) is not followed', $statusCode),
+                statusCode: $statusCode,
             );
         }
 
@@ -121,6 +122,7 @@ final class HttpFetcher
             throw new HttpFetcherException(
                 HttpFetcherError::HttpStatus,
                 sprintf('HTTP response status %d is not successful', $statusCode),
+                statusCode: $statusCode,
             );
         }
     }

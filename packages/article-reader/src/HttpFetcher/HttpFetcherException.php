@@ -16,6 +16,8 @@ final class HttpFetcherException extends \RuntimeException
         public readonly HttpFetcherError $error,
         string $message = '',
         ?\Throwable $previous = null,
+        /** HTTP status number the site answered with. Set for `HttpStatus` and `Redirect`, null otherwise. */
+        public readonly ?int $statusCode = null,
     ) {
         parent::__construct(
             $message !== '' ? $message : $error->defaultMessage(),

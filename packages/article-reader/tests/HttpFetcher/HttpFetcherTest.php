@@ -166,6 +166,7 @@ final class HttpFetcherTest extends TestCase
             self::fail('Expected HttpFetcherException');
         } catch (HttpFetcherException $e) {
             self::assertSame(HttpFetcherError::Redirect, $e->error);
+            self::assertSame($status, $e->statusCode);
         }
     }
 
@@ -194,6 +195,7 @@ final class HttpFetcherTest extends TestCase
             self::fail('Expected HttpFetcherException');
         } catch (HttpFetcherException $e) {
             self::assertSame(HttpFetcherError::HttpStatus, $e->error);
+            self::assertSame($status, $e->statusCode);
         }
     }
 

@@ -40,4 +40,18 @@ final class HttpFetcherExceptionTest extends TestCase
         self::assertSame('connect refused', $e->getMessage());
         self::assertSame($previous, $e->getPrevious());
     }
+
+    public function test_status_code_is_null_by_default(): void
+    {
+        $e = new HttpFetcherException(HttpFetcherError::Transport);
+
+        self::assertNull($e->statusCode);
+    }
+
+    public function test_status_code_is_kept(): void
+    {
+        $e = new HttpFetcherException(HttpFetcherError::HttpStatus, statusCode: 503);
+
+        self::assertSame(503, $e->statusCode);
+    }
 }
