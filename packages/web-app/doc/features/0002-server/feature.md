@@ -61,6 +61,16 @@ Slice 5 absorbs the old application-service, ArticleReader, and storage-interfac
 
 Slice 6 owns the problem document, the statuses 400, 422, 502, and 500, Eleanor's serializer, and the schema. Slice 7 owns the SQLite file. Slice 9 owns the bearer token. The email parameter already exists.
 
+## Leftovers
+
+Findings from the slice 5 review that the slice did not fix. Each names the slice that handles it. Delete a line when that slice does it.
+
+| Leftover | Handled in |
+| -------- | ---------- |
+| `ArchiveService` catches `\Throwable` around the fetch, so a programming `Error` in the fetcher also becomes `ArchiveException` with the message "The page could not be fetched." and nothing logs the cause. Decide whether to catch `\Exception` only, and log the cause. | Slice 6, Problem document |
+| The success body is written with `json_encode` and `JSON_UNESCAPED_UNICODE`, with no test for a non-ASCII title such as `Café`. Add the case, or drop it when Eleanor's serializer replaces `json_encode`. | Slice 6, Problem document |
+| `ArchiveServiceFactoryTest` has no case where a service for a second owner gets `Written` for a URL the first owner already stored. | Slice 7, SQLite store, when a real store factory makes the owner separation observable |
+
 ## Backlog
 
 Deferred. No slice owns these until this file says one does. When a need shows up, decide then, or leave the item in the package [backlog](../../backlog/) and reprioritize it.
