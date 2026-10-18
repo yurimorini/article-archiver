@@ -1,0 +1,40 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Yumo\Eleanor\Archive\InMemory;
+
+use Yumo\Eleanor\Archive\Archive;
+use Yumo\Eleanor\Archive\Owner;
+
+/**
+ * Holds every owner's archives in memory.
+ *
+ * This is a temporary stand-in for the directory of owner files that the SQLite slice adds.
+ * It lives as long as its container, so a new process starts empty.
+ */
+final class InMemoryArchiveShelf
+{
+    /**
+     * The archives by owner email, then by URL.
+     *
+     * @var array<string, array<string, Archive>>
+     */
+    private array $archives = [];
+
+    /**
+     * Returns the archive of `$owner` stored for `$url`, or null.
+     */
+    public function find(Owner $owner, string $url): ?Archive
+    {
+        return $this->archives[$owner->email][$url] ?? null;
+    }
+
+    /**
+     * Stores `$archive` for `$owner` under the archive's URL.
+     */
+    public function save(Owner $owner, Archive $archive): void
+    {
+        $this->archives[$owner->email][$archive->url] = $archive;
+    }
+}
