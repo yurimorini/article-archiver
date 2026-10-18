@@ -32,6 +32,7 @@ final class ArchiveServiceFactoryTest extends TestCase
             $fetcher,
             new InMemoryArchiveStoreFactory(new InMemoryArchiveShelf()),
             new FakeArchiveLockFactory(),
+            new NullLogger(),
         );
         $owner = new Owner('ada@example.com');
 
@@ -52,6 +53,7 @@ final class ArchiveServiceFactoryTest extends TestCase
             $fetcher,
             new SqliteArchiveStoreFactory($root . '/data'),
             new FlockArchiveLockFactory($root . '/lock', new NullLogger()),
+            new NullLogger(),
         );
 
         $first = $factory->create(new Owner('ada@example.com'))->archive(new UrlPointer('https://example.com/a'));

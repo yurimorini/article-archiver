@@ -1,6 +1,6 @@
 # SQLite store
 
-Module design for [sqlite-store.md](../sqlite-store.md). The decisions in that contract are closed. This spec adopts [adr/0003](../../../adr/0003-owner-database-is-wal.md) and [adr/0008](../../../adr/0008-owner-database-schema-splits-body-from-metadata.md). It revises [ArchiveCommand.md](ArchiveCommand.md). Revised by [UrlPointer.md](UrlPointer.md): the service no longer trims the URL, and the lock, the fetch, and the store take a `UrlPointer`. The glossary already says that two addresses that differ only in letter case name the same owner. This slice adds no glossary term.
+Module design for [sqlite-store.md](../sqlite-store.md). The decisions in that contract are closed. This spec adopts [adr/0003](../../../adr/0003-owner-database-is-wal.md) and [adr/0008](../../../adr/0008-owner-database-schema-splits-body-from-metadata.md). It revises [ArchiveCommand.md](ArchiveCommand.md). Revised by [UrlPointer.md](UrlPointer.md): the service no longer trims the URL, and the lock, the fetch, and the store take a `UrlPointer`. Revised by [ArchiveLog.md](ArchiveLog.md): `ArchiveStore` gains `location()`. The glossary already says that two addresses that differ only in letter case name the same owner. This slice adds no glossary term.
 
 Folder layout follows the rule in [project-foundation](../../../../../../.agents/rules/project-foundation.md). This spec lists only the folders this slice opens. That list is not a template for a later slice.
 

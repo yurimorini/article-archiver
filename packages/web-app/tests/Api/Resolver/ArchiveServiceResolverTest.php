@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Yumo\Eleanor\Tests\Api\Resolver;
 
 use PHPUnit\Framework\TestCase;
+use Psr\Log\NullLogger;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\ControllerMetadata\ArgumentMetadata;
 use Yumo\Eleanor\Api\Dto\CreateArchiveBody;
@@ -39,6 +40,7 @@ final class ArchiveServiceResolverTest extends TestCase
             $fetcher,
             new InMemoryArchiveStoreFactory(new InMemoryArchiveShelf()),
             new FakeArchiveLockFactory(),
+            new NullLogger(),
         );
     }
 

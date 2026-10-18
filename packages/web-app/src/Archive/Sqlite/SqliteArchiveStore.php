@@ -171,7 +171,7 @@ final class SqliteArchiveStore implements ArchiveStore
      *
      * The file is not opened and is not created.
      */
-    public function location(): ?string
+    public function location(): string
     {
         return $this->connection->path;
     }

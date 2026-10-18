@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Yumo\Eleanor\Archive;
 
+use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Exclude;
 use Yumo\ArtcleReader\Orchestrator\OrchestratorException;
 use Yumo\ArtcleReader\Orchestrator\PipelineNoContent;
@@ -19,7 +20,7 @@ use Yumo\Eleanor\Archive\Sqlite\DirectoryException;
 final class ArchiveService
 {
     /**
-     * Creates the service from the store of one owner, the fetcher that downloads pages, the lock of that owner, and the failure mapper.
+     * Creates the service from the store of one owner, the fetcher that downloads pages, the lock of that owner, the domain logger, and the failure mapper.
      */
     public function __construct(
         /** The store of the owner this service works for. */
@@ -28,6 +29,8 @@ final class ArchiveService
         private ArticleFetcher $fetcher,
         /** The lock that lets one caller at a time work on one URL. */
         private ArchiveLock $lock,
+        /** The domain logger that records what this command does. */
+        private LoggerInterface $logger,
         /** The mapper that turns library failures into archive failures. */
         private ArchiveFailureMapper $failures = new ArchiveFailureMapper(),
     ) {
@@ -52,13 +55,28 @@ final class ArchiveService
      */
     private function archiveLocked(UrlPointer $url): ArchiveResult
     {
+        $this->write('info', 'archive.start', $this->context($url));
+
         $stored = $this->store->findSummary($url);
         if ($stored !== null) {
+            $this->write('info', 'archive.already_stored', $this->context($url));
+
             return new ArchiveResult($stored, ArchiveOutcome::AlreadyStored);
         }
 
-        $archive = $this->fromSuccess($url, $this->fetch($url));
-        $this->save($archive);
+        $this->write('info', 'archive.fetch', $this->context($url));
+
+        try {
+            $fetched = $this->fetch($url);
+        } catch (ArchiveException $failure) {
+            $this->write('warning', 'archive.failed', $this->context($url, $failure->failure->value));
+
+            throw $failure;
+        }
+
+        $archive = $this->fromSuccess($url, $fetched);
+        $this->save($url, $archive);
+        $this->write('info', 'archive.written', $this->context($url, store: true));
 
         return new ArchiveResult(
             ArchiveSummary::fromArchive($archive),
@@ -71,15 +89,60 @@ final class ArchiveService
      *
      * @throws ArchiveException
      */
-    private function save(Archive $archive): void
+    private function save(UrlPointer $url, Archive $archive): void
     {
         try {
             $this->store->save($archive);
         } catch (DirectoryException $error) {
-            throw new ArchiveException(ArchiveFailure::NotWritten, $error);
+            $this->notWritten($url, $error);
         } catch (\PDOException $error) {
-            throw new ArchiveException(ArchiveFailure::NotWritten, $error);
+            $this->notWritten($url, $error);
         }
+    }
+
+    /**
+     * Logs a save that did not stick, then raises `NotWritten` with `$error` as the cause.
+     *
+     * @throws ArchiveException
+     */
+    private function notWritten(UrlPointer $url, \Throwable $error): never
+    {
+        $this->write('warning', 'archive.failed', $this->context($url, ArchiveFailure::NotWritten->value, true));
+
+        throw new ArchiveException(ArchiveFailure::NotWritten, $error);
+    }
+
+    /**
+     * Writes one domain line. A logger that throws does not change the archive outcome.
+     *
+     * @param array<string, string> $context
+     */
+    private function write(string $level, string $message, array $context): void
+    {
+        try {
+            $this->logger->log($level, $message, $context);
+        } catch (\Throwable) {
+            // A failed write must not change the archive outcome.
+        }
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function context(UrlPointer $url, ?string $code = null, bool $store = false): array
+    {
+        $context = ['url' => $url->toString()];
+        if ($code !== null) {
+            $context['code'] = $code;
+        }
+        if ($store) {
+            $location = $this->store->location();
+            if (is_string($location)) {
+                $context['store'] = $location;
+            }
+        }
+
+        return $context;
     }
 
     /**

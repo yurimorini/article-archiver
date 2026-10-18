@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Yumo\Eleanor\Tests\Archive;
 
 use PHPUnit\Framework\TestCase;
+use Psr\Log\AbstractLogger;
 use Yumo\ArtcleReader\Orchestrator\OrchestratorError;
 use Yumo\ArtcleReader\Orchestrator\OrchestratorException;
 use Yumo\ArtcleReader\Orchestrator\PipelineNoContent;
@@ -40,6 +41,8 @@ final class ArchiveServiceTest extends TestCase
 
     private ArchiveService $service;
 
+    private RecordingLogger $logger;
+
     /** @var \ArrayObject<int, string> */
     private \ArrayObject $log;
 
@@ -49,6 +52,7 @@ final class ArchiveServiceTest extends TestCase
         $this->fetcher = new FakeArticleFetcher();
         $this->store = new FakeArchiveStore($this->log);
         $this->lock = new FakeArchiveLock($this->log);
+        $this->logger = new RecordingLogger();
         $this->service = $this->serviceWith($this->lock);
     }
 
@@ -248,7 +252,7 @@ final class ArchiveServiceTest extends TestCase
     public function test_lookup_fetch_and_save_run_inside_the_lock(): void
     {
         $this->fetcher->willReturn(self::URL, PipelineFixtures::success());
-        $service = new ArchiveService($this->store, $this->loggingFetcher(), $this->lock);
+        $service = new ArchiveService($this->store, $this->loggingFetcher(), $this->lock, $this->logger);
 
         $service->archive(new UrlPointer(self::URL));
 
@@ -270,7 +274,7 @@ final class ArchiveServiceTest extends TestCase
     public function test_lock_is_released_when_the_fetch_throws(): void
     {
         $this->fetcher->willThrow(self::URL, new OrchestratorException(OrchestratorError::Fetch));
-        $service = new ArchiveService($this->store, $this->loggingFetcher(), $this->lock);
+        $service = new ArchiveService($this->store, $this->loggingFetcher(), $this->lock, $this->logger);
 
         try {
             $service->archive(new UrlPointer(self::URL));
@@ -340,9 +344,191 @@ final class ArchiveServiceTest extends TestCase
         $this->service->archive(new UrlPointer(self::URL));
     }
 
+    public function test_a_miss_logs_start_fetch_and_written(): void
+    {
+        $this->store->location = '/data/ada.sqlite';
+        $this->fetcher->willReturn(self::URL, PipelineFixtures::success());
+
+        $result = $this->service->archive(new UrlPointer(self::URL));
+
+        self::assertSame(ArchiveOutcome::Written, $result->outcome);
+        self::assertSame([
+            ['info', 'archive.start', ['url' => self::URL]],
+            ['info', 'archive.fetch', ['url' => self::URL]],
+            ['info', 'archive.written', ['url' => self::URL, 'store' => '/data/ada.sqlite']],
+        ], $this->logger->records);
+    }
+
+    public function test_a_miss_without_a_location_omits_store(): void
+    {
+        $this->fetcher->willReturn(self::URL, PipelineFixtures::success());
+
+        $this->service->archive(new UrlPointer(self::URL));
+
+        self::assertSame(
+            ['info', 'archive.written', ['url' => self::URL]],
+            $this->logger->records[2],
+        );
+    }
+
+    public function test_a_hit_logs_start_and_already_stored(): void
+    {
+        $this->fetcher->willReturn(self::URL, PipelineFixtures::success());
+        $this->service->archive(new UrlPointer(self::URL));
+        $this->logger->records = [];
+
+        $result = $this->service->archive(new UrlPointer(self::URL));
+
+        self::assertSame(ArchiveOutcome::AlreadyStored, $result->outcome);
+        self::assertSame([
+            ['info', 'archive.start', ['url' => self::URL]],
+            ['info', 'archive.already_stored', ['url' => self::URL]],
+        ], $this->logger->records);
+        self::assertSame(1, $this->fetcher->fetchCount());
+    }
+
+    public function test_a_mapped_fetch_failure_logs_failed_without_store(): void
+    {
+        $this->store->location = '/data/ada.sqlite';
+        $this->fetcher->willThrow(self::URL, new OrchestratorException(OrchestratorError::Fetch));
+
+        try {
+            $this->service->archive(new UrlPointer(self::URL));
+            self::fail('Expected an ArchiveException.');
+        } catch (ArchiveException) {
+            self::assertSame([
+                ['info', 'archive.start', ['url' => self::URL]],
+                ['info', 'archive.fetch', ['url' => self::URL]],
+                ['warning', 'archive.failed', ['url' => self::URL, 'code' => 'unexpected']],
+            ], $this->logger->records);
+        }
+    }
+
+    public function test_an_empty_page_logs_failed_without_store(): void
+    {
+        $this->store->location = '/data/ada.sqlite';
+        $this->fetcher->willReturn(self::URL, PipelineFixtures::noContent());
+
+        try {
+            $this->service->archive(new UrlPointer(self::URL));
+            self::fail('Expected an ArchiveException.');
+        } catch (ArchiveException) {
+            self::assertSame(
+                ['warning', 'archive.failed', ['url' => self::URL, 'code' => 'sanitized_empty']],
+                $this->logger->records[2],
+            );
+        }
+    }
+
+    public function test_a_pdo_exception_from_save_logs_failed_with_store(): void
+    {
+        $this->store->location = '/data/ada.sqlite';
+        $this->store->saveFailure = new \PDOException('locked');
+        $this->fetcher->willReturn(self::URL, PipelineFixtures::success());
+
+        try {
+            $this->service->archive(new UrlPointer(self::URL));
+            self::fail('Expected an ArchiveException.');
+        } catch (ArchiveException $exception) {
+            self::assertSame(ArchiveFailure::NotWritten, $exception->failure);
+            self::assertSame(
+                ['warning', 'archive.failed', ['url' => self::URL, 'code' => 'archive_not_written', 'store' => '/data/ada.sqlite']],
+                $this->logger->records[2],
+            );
+        }
+    }
+
+    public function test_a_directory_exception_from_save_logs_failed_with_store(): void
+    {
+        $this->store->location = '/data/ada.sqlite';
+        $this->store->saveFailure = new DirectoryException('The data directory could not be created.');
+        $this->fetcher->willReturn(self::URL, PipelineFixtures::success());
+
+        try {
+            $this->service->archive(new UrlPointer(self::URL));
+            self::fail('Expected an ArchiveException.');
+        } catch (ArchiveException $exception) {
+            self::assertSame(ArchiveFailure::NotWritten, $exception->failure);
+            self::assertSame(
+                ['warning', 'archive.failed', ['url' => self::URL, 'code' => 'archive_not_written', 'store' => '/data/ada.sqlite']],
+                $this->logger->records[2],
+            );
+        }
+    }
+
+    public function test_a_save_failure_without_a_location_omits_store(): void
+    {
+        $this->store->saveFailure = new \PDOException('locked');
+        $this->fetcher->willReturn(self::URL, PipelineFixtures::success());
+
+        try {
+            $this->service->archive(new UrlPointer(self::URL));
+            self::fail('Expected an ArchiveException.');
+        } catch (ArchiveException) {
+            self::assertSame(
+                ['warning', 'archive.failed', ['url' => self::URL, 'code' => 'archive_not_written']],
+                $this->logger->records[2],
+            );
+        }
+    }
+
+    public function test_a_pdo_exception_from_find_summary_logs_start_only(): void
+    {
+        $this->store->findSummaryFailure = new \PDOException('locked');
+
+        try {
+            $this->service->archive(new UrlPointer(self::URL));
+            self::fail('Expected a PDOException.');
+        } catch (\PDOException) {
+            self::assertSame([
+                ['info', 'archive.start', ['url' => self::URL]],
+            ], $this->logger->records);
+        }
+    }
+
+    public function test_an_error_from_the_fetcher_logs_start_and_fetch(): void
+    {
+        $this->fetcher->willThrow(self::URL, new \Error('boom'));
+
+        try {
+            $this->service->archive(new UrlPointer(self::URL));
+            self::fail('Expected an Error.');
+        } catch (\Error) {
+            self::assertSame([
+                ['info', 'archive.start', ['url' => self::URL]],
+                ['info', 'archive.fetch', ['url' => self::URL]],
+            ], $this->logger->records);
+        }
+    }
+
+    public function test_a_throwing_logger_still_returns_written(): void
+    {
+        $this->fetcher->willReturn(self::URL, PipelineFixtures::success());
+        $service = new ArchiveService($this->store, $this->fetcher, $this->lock, new ThrowingLogger());
+
+        $result = $service->archive(new UrlPointer(self::URL));
+
+        self::assertSame(ArchiveOutcome::Written, $result->outcome);
+    }
+
+    public function test_a_throwing_logger_on_save_failure_still_throws_not_written(): void
+    {
+        $this->store->saveFailure = new \PDOException('locked');
+        $this->fetcher->willReturn(self::URL, PipelineFixtures::success());
+        $service = new ArchiveService($this->store, $this->fetcher, $this->lock, new ThrowingLogger());
+
+        try {
+            $service->archive(new UrlPointer(self::URL));
+            self::fail('Expected an ArchiveException.');
+        } catch (ArchiveException $exception) {
+            self::assertSame(ArchiveFailure::NotWritten, $exception->failure);
+            self::assertInstanceOf(\PDOException::class, $exception->getPrevious());
+        }
+    }
+
     private function serviceWith(FakeArchiveLock $lock): ArchiveService
     {
-        return new ArchiveService($this->store, $this->fetcher, $lock);
+        return new ArchiveService($this->store, $this->fetcher, $lock, $this->logger);
     }
 
     /**
@@ -365,5 +551,30 @@ final class ArchiveServiceTest extends TestCase
                 return $this->inner->fetch($url);
             }
         };
+    }
+}
+
+/**
+ * Records each log call as level, message, and context.
+ */
+final class RecordingLogger extends AbstractLogger
+{
+    /** @var list<array{string, string, array<string, mixed>}> */
+    public array $records = [];
+
+    public function log($level, string|\Stringable $message, array $context = []): void
+    {
+        $this->records[] = [(string) $level, (string) $message, $context];
+    }
+}
+
+/**
+ * Throws on every log call so a test can prove logging is not the outcome.
+ */
+final class ThrowingLogger extends AbstractLogger
+{
+    public function log($level, string|\Stringable $message, array $context = []): void
+    {
+        throw new \RuntimeException('disk full');
     }
 }

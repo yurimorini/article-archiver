@@ -44,3 +44,7 @@ services:
     Yumo\Eleanor\Archive\Sqlite\SqliteArchiveStoreFactory:
         arguments:
             $dataDirectory: '%eleanor.data_dir%'
+
+    Yumo\Eleanor\Request\RequestIdProcessor:
+        tags:
+            - { name: monolog.processor, handler: eleanor }

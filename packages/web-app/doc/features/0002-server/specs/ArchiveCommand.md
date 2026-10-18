@@ -137,6 +137,6 @@ HTTP test: `CreateArchiveRouteTest` stays the one automated seam, and calls `$cl
 
 ## Out of scope
 
-The contract's Out of Scope list stands. Specifically for this module: a store that survives a process, a negative cache, URL normalization, a log line for an archive, the authenticated `OwnerProvider`, and any change to the library.
+The contract's Out of Scope list stands. Specifically for this module: a store that survives a process, a negative cache, URL normalization, the authenticated `OwnerProvider`, and any change to the library. The domain lines for an archive live in [ArchiveLog.md](ArchiveLog.md).
 
 `ArticleReaderAdapter` has no test of its own. The library's tests prove the orchestrator, and the adapter has one line.

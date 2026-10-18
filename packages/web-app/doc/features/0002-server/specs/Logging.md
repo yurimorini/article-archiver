@@ -2,12 +2,13 @@
 
 Module design for [logging.md](../logging.md). This slice adds no glossary term. It adopts [adr/0005](../../../adr/0005-api-routes-are-a-stateless-import.md) and [adr/0006](../../../adr/0006-kernel-tests-live-in-integration.md).
 
+Revised by [ArchiveLog.md](ArchiveLog.md): `RequestIdProcessor` and the `domain` lines of `ArchiveService` live there. This file keeps the HTTP lines.
+
 Where this file and the contract disagree, this file wins. The replacements are:
 
 - Two `application` lines, `http.request.start` before the action and `http.request.finish` after it. Both stay level `info`.
 - The id rule is `RequestIdFactory`. The facts stored on the request are `EnrichedRequest`, built by `RequestEnricher`.
 - `LogApiRequestTest` reads that value on the request. It does not read log files, and it does not assert `X-Request-Id` on the response.
-- A Monolog processor is not part of this slice. It arrives with the first `domain` line, in the ArticleReader slice.
 
 ## Modules
 
@@ -71,4 +72,4 @@ The test sees the attribute after the call returns. It does not pause the action
 
 ## Out of scope
 
-A writer on `domain`, and the processor that would copy the stored id onto those lines. Masking an owner email. The firewall, the bearer token, and the owner. Reading a URL pointer, refusing a payload, fetching a page, purifying an article, and storing an archive. Changing the empty-route body, status, or content type. A fourth environment. Filtering Symfony's matched-route line, or changing the level of Symfony's exception record. An automated proof of the log files, of rotation, of the `dev` line formatter, of stderr deprecations, or of a stack trace. PHP-FPM, the reverse proxy, and the distributable image. A new glossary term.
+The request-id processor and the `domain` writer. Both are [ArchiveLog.md](ArchiveLog.md). Masking an owner email. The firewall, the bearer token, and the owner. Reading a URL pointer, refusing a payload, fetching a page, purifying an article, and storing an archive. Changing the empty-route body, status, or content type. A fourth environment. Filtering Symfony's matched-route line, or changing the level of Symfony's exception record. An automated proof of the log files, of rotation, of the `dev` line formatter, of stderr deprecations, or of a stack trace. PHP-FPM, the reverse proxy, and the distributable image. A new glossary term.
