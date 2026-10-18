@@ -119,6 +119,11 @@ final class SqliteArchiveStore implements ArchiveStore
             return;
         }
 
+        // A file in the place of the directory cannot be fixed by mkdir, which would only warn.
+        if (file_exists($directory)) {
+            throw new \PDOException('The data directory could not be created.');
+        }
+
         $error = null;
         try {
             $created = mkdir($directory, 0o777, true);
