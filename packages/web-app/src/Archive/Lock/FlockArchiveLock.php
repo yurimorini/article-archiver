@@ -48,7 +48,19 @@ final class FlockArchiveLock implements ArchiveLock
         try {
             return $action();
         } finally {
+            $this->release($held);
+        }
+    }
+
+    /**
+     * Lets go of `$held`. A failed release is logged and swallowed, so it cannot replace the action's outcome.
+     */
+    private function release(?LockInterface $held): void
+    {
+        try {
             $held?->release();
+        } catch (\Throwable $exception) {
+            $this->logger->warning('archive.lock.not_released', ['exception' => $exception]);
         }
     }
 
@@ -58,7 +70,8 @@ final class FlockArchiveLock implements ArchiveLock
     private function take(string $url): ?LockInterface
     {
         try {
-            $lock = $this->factory()->createLock($this->owner->email . "\0" . $url);
+            // No auto-release: `exclusive` releases once, and a destructor must not retry a failed release.
+            $lock = $this->factory()->createLock($this->owner->email . "\0" . $url, autoRelease: false);
 
             return $this->acquireWithin($lock) ? $lock : null;
         } catch (\Throwable $exception) {

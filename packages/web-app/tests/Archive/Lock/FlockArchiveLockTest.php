@@ -119,11 +119,57 @@ final class FlockArchiveLockTest extends TestCase
         self::assertSame(['archive.lock.not_taken'], $logger->warnings);
     }
 
+    public function test_failed_release_keeps_the_result_and_logs_a_warning(): void
+    {
+        $locks = $this->directory . '/locks';
+        $logger = new RecordingLogger();
+
+        $value = $this->lock($locks, $logger)
+            ->exclusive(self::URL_A, fn (): string => $this->closeLockFilesAnd('result', $locks));
+
+        self::assertSame('result', $value);
+        self::assertSame(['archive.lock.not_released'], $logger->warnings);
+    }
+
+    public function test_failed_release_keeps_the_action_exception(): void
+    {
+        $locks = $this->directory . '/locks';
+        $logger = new RecordingLogger();
+
+        try {
+            $this->lock($locks, $logger)->exclusive(self::URL_A, function () use ($locks): never {
+                $this->closeLockFilesAnd('unused', $locks);
+
+                throw new \RuntimeException('boom');
+            });
+            self::fail('The action exception must pass through.');
+        } catch (\RuntimeException $exception) {
+            self::assertSame('boom', $exception->getMessage());
+        }
+
+        self::assertSame(['archive.lock.not_released'], $logger->warnings);
+    }
+
     private function failingAction(): callable
     {
         return static function (): never {
             throw new \RuntimeException('boom');
         };
+    }
+
+    /**
+     * Closes the lock file handles under `$lockDirectory`, so that the later release fails, and returns `$result`.
+     */
+    private function closeLockFilesAnd(string $result, string $lockDirectory): string
+    {
+        foreach (get_resources('stream') as $stream) {
+            $uri = stream_get_meta_data($stream)['uri'] ?? '';
+            if (str_starts_with($uri, $lockDirectory . '/')) {
+                fclose($stream);
+            }
+        }
+
+        return $result;
     }
 
     private function lock(string $lockDirectory, LoggerInterface $logger, int $waitMilliseconds = 15_000): FlockArchiveLock
