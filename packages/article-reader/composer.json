@@ -1,5 +1,5 @@
 {
-    "name": "yumo/log-read",
+    "name": "yumo/article-reader",
     "description": "Log reading library",
     "type": "library",
     "license": "MIT",

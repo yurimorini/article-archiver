@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "9d0ab98fa9c91b2ba51f3973b1c8ac72",
+    "content-hash": "2a59caf12f907a8d9b4a4006362c395f",
     "packages": [
         {
             "name": "brick/math",
@@ -4730,12 +4730,12 @@
             "time": "2026-09-26T06:33:49+00:00"
         },
         {
-            "name": "yumo/log-read",
+            "name": "yumo/article-reader",
             "version": "dev-web-app",
             "dist": {
                 "type": "path",
                 "url": "../article-reader",
-                "reference": "b72814f6e92616604295b948a0df874ae4f4a596"
+                "reference": "bad23ec15a63caa9d814f9161483c220679d6a55"
             },
             "require": {
                 "craftcms/url-validator": "^1.1",
@@ -8340,7 +8340,7 @@
     "aliases": [],
     "minimum-stability": "dev",
     "stability-flags": {
-        "yumo/log-read": 20
+        "yumo/article-reader": 20
     },
     "prefer-stable": true,
     "prefer-lowest": false,

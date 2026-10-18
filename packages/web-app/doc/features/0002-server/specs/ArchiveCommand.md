@@ -70,7 +70,7 @@ Two stores for one owner share rows through the shelf. A store for another owner
 - Parameter `eleanor.owner_email` set to a test address.
 - `ArticleFetcher` is an alias of `Yumo\Eleanor\Tests\Support\FakeArticleFetcher`, a public service, so the test reads it from `static::getContainer()`.
 
-No new Composer package. `yumo/log-read` is already a direct requirement and carries the library.
+No new Composer package. `yumo/article-reader` is already a direct requirement and carries the library.
 
 ## Data flow
 

@@ -32,7 +32,7 @@ packages/web-app/
 | Area | State |
 | --- | --- |
 | Tooling | Composer, PHPUnit, PHPStan, and php-cs-fixer configs are in place. Dev dependencies match the library. |
-| Library link | Path repository on `../article-reader`, requirement `yumo/log-read`. |
+| Library link | Path repository on `../article-reader`, requirement `yumo/article-reader`. The Composer name replaced `yumo/log-read` so it matches the library directory. |
 | Namespace | `Yumo\Eleanor` mapped to `src/`. `Yumo\Eleanor\Tests` mapped to `tests/`. |
 | Application code | `Yumo\Eleanor\Kernel` boots. Framework is Symfony 8.1. |
 | Framework | Symfony 8.1 micro skeleton. Flex require `8.1.*`. |

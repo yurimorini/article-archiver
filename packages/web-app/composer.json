@@ -14,7 +14,7 @@
     ],
     "require": {
         "php": "^8.5",
-        "yumo/log-read": "@dev",
+        "yumo/article-reader": "@dev",
         "symfony/flex": "^2",
         "ext-ctype": "*",
         "ext-iconv": "*",

@@ -19,14 +19,14 @@ The Composer name is one field in `composer.json`. The PHP prefix is absent unti
 `packages/web-app/composer.json`:
 
 - `"type": "project"`
-- `"require"`: `"php": "^8.5"` and `"yumo/log-read": "@dev"`
+- `"require"`: `"php": "^8.5"` and `"yumo/article-reader": "@dev"`
 - Path repository `../article-reader` with `"symlink": true`
 - `"minimum-stability": "dev"` and `"prefer-stable": true`
 - `"require-dev"`: `phpunit/phpunit` `^11.0`, `friendsofphp/php-cs-fixer` `^3.95`, `phpstan/phpstan` `^2.2`
 - Scripts `test`, `cs-check`, `cs-fix`, `phpstan`, and `quality`, same commands as the library
 - No `autoload` and no `autoload-dev`
 
-`composer install` in this package installs the library runtime dependencies into `packages/web-app/vendor` and symlinks `vendor/yumo/log-read` to `packages/article-reader`. The library `require-dev` packages are not installed there.
+`composer install` in this package installs the library runtime dependencies into `packages/web-app/vendor` and symlinks `vendor/yumo/article-reader` to `packages/article-reader`. The library `require-dev` packages are not installed there.
 
 ## Tooling files
 

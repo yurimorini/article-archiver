@@ -30,7 +30,7 @@ Moved as they are:
 - `phpstan.neon.dist`, `phpunit.xml.dist`, `.php-cs-fixer.dist.php`
 - `doc/` → `packages/article-reader/doc/`, same internal tree (`features/foundation/specs`, `plans`, `context`, and this file)
 
-The Composer package name stays `yumo/log-read`. The PSR-4 namespace stays `Yumo\ArtcleReader\` → `src/` and `Yumo\ArtcleReader\Tests\` → `tests/`. PHPStan, php-cs-fixer, and PHPUnit configs keep paths relative to the package (`src`, `tests`). They work because the launcher sets the working directory to the package.
+The Composer package name is `yumo/article-reader`. It replaced `yumo/log-read` so the Composer name matches the package directory. The PSR-4 namespace stays `Yumo\ArtcleReader\` → `src/` and `Yumo\ArtcleReader\Tests\` → `tests/`. PHPStan, php-cs-fixer, and PHPUnit configs keep paths relative to the package (`src`, `tests`). They work because the launcher sets the working directory to the package.
 
 `src/` will keep receiving pipeline feature files. Those features stay specified by `packages/article-reader/doc/features/foundation/specs/`.
 
@@ -122,7 +122,7 @@ The layout change did not create the web app Composer file. The Eleanor bootstra
 
 The dependency is one way. The app requires the library. The library does not require the app.
 
-The library manifest is already the connectable package: `"name": "yumo/log-read"` in `packages/article-reader/composer.json`.
+The library manifest is already the connectable package: `"name": "yumo/article-reader"` in `packages/article-reader/composer.json`.
 
 `packages/web-app/composer.json` declares a path repository on the sibling directory and requires that name:
 
@@ -136,14 +136,14 @@ The library manifest is already the connectable package: `"name": "yumo/log-read
     }
   ],
   "require": {
-    "yumo/log-read": "@dev"
+    "yumo/article-reader": "@dev"
   },
   "minimum-stability": "dev",
   "prefer-stable": true
 }
 ```
 
-`../article-reader` is relative to the app `composer.json`. `composer install` in the app installs the library's runtime dependencies into `packages/web-app/vendor` and symlinks `vendor/yumo/log-read` to `packages/article-reader`. The library `require-dev` packages are not installed there. The app's PHPUnit, PHPStan, and php-cs-fixer belong in the app `require-dev`.
+`../article-reader` is relative to the app `composer.json`. `composer install` in the app installs the library's runtime dependencies into `packages/web-app/vendor` and symlinks `vendor/yumo/article-reader` to `packages/article-reader`. The library `require-dev` packages are not installed there. The app's PHPUnit, PHPStan, and php-cs-fixer belong in the app `require-dev`.
 
 `minimum-stability: dev` is required because the path package resolves as a development version. `prefer-stable: true` keeps other dependencies on stable releases.
 
