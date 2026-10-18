@@ -18,7 +18,9 @@ curl -X POST http://127.0.0.1:8000/api/archives \
   -d '{"url":"https://example.com/a"}'
 ```
 
-The response body is `{"ok":true}`.
+A new archive answers 201 with `{"url":"https://example.com/a","title":"..."}`. A second POST of the same URL answers 200 with the same body and does not fetch the page again, but only inside one PHP process.
+
+The archive belongs to the owner whose email is the `eleanor.owner_email` parameter in `config/services.yaml`. Change it there. Until the SQLite slice, archives live in memory and each request of the temporary server starts empty, so the curl above answers 201 every time. Kernel tests prove the 200.
 
 ## Tests
 
