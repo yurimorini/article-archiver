@@ -74,7 +74,7 @@ final class ArchiveServiceResolverTest extends TestCase
     private function resolverFor(string $email): ArchiveServiceResolver
     {
         $owner = new Owner($email);
-        $provider = new class($owner) implements OwnerProvider {
+        $provider = new class ($owner) implements OwnerProvider {
             public function __construct(private readonly Owner $owner)
             {
             }
