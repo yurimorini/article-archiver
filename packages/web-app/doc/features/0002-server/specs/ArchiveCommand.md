@@ -1,6 +1,6 @@
 # Archive command
 
-Module design for [archive-command.md](../archive-command.md). The decisions in that contract are closed, including the two revisions recorded in [feature.md](../feature.md) under Slice merge: `ArticleFetcher` replaces the orchestrator as the service's dependency, and `OwnerProvider` replaces the controller's own reading of the owner parameter. This spec adopts [adr/0002](../../../adr/0002-second-post-returns-stored-archive.md) and [adr/0004](../../../adr/0004-archive-lookup-is-per-owner.md). [adr/0007](../../../adr/0007-archive-body-mapped-by-map-request-payload.md) stays as the payload slice adopted it. [adr/0001](../../../adr/0001-archive-outcome-status.md) waits for the problem-document slice. [adr/0008](../../../adr/0008-owner-database-schema-splits-body-from-metadata.md) is adopted by [SqliteStore.md](SqliteStore.md). This slice adds no glossary term. This spec is slice 5. Revised by [SqliteStore.md](SqliteStore.md): `Owner` lowercases the email, `ArchiveResult` carries an `ArchiveSummary`, `ArchiveStore` gains `findSummary`, `save` is an upsert, `ArchiveService` trims leading and trailing NUL bytes and takes an `ArchiveLock`, and the in-memory classes move to the tests.
+Module design for [archive-command.md](../archive-command.md). The decisions in that contract are closed, including the two revisions recorded in [feature.md](../feature.md) under Slice merge: `ArticleFetcher` replaces the orchestrator as the service's dependency, and `OwnerProvider` replaces the controller's own reading of the owner parameter. This spec adopts [adr/0002](../../../adr/0002-second-post-returns-stored-archive.md) and [adr/0004](../../../adr/0004-archive-lookup-is-per-owner.md). [adr/0007](../../../adr/0007-archive-body-mapped-by-map-request-payload.md) stays as the payload slice adopted it. [adr/0001](../../../adr/0001-archive-outcome-status.md) waits for the problem-document slice. [adr/0008](../../../adr/0008-owner-database-schema-splits-body-from-metadata.md) is adopted by [SqliteStore.md](SqliteStore.md). This slice adds no glossary term. This spec is slice 5. Revised by [SqliteStore.md](SqliteStore.md): `Owner` lowercases the email, `ArchiveResult` carries an `ArchiveSummary`, `ArchiveStore` gains `findSummary`, `save` is an upsert, `ArchiveService` takes an `ArchiveLock`, and the in-memory classes move to the tests. Revised by [UrlPointer.md](UrlPointer.md): the URL those ports take is a `UrlPointer`, and the service no longer trims it.
 
 This slice replaces the controller in [PayloadAndMapper.md](PayloadAndMapper.md): `create` is no longer the stub. The class got a constructor in this slice. Slice 5b removed it, and the action receives the `ArchiveService` as an argument ([OwnerScopedService.md](OwnerScopedService.md)).
 
@@ -18,23 +18,23 @@ The archive command. It does not know Symfony, HTTP, or SQLite.
 - `ArchiveOutcome`: enum with `Written` and `AlreadyStored`. `#[Exclude]`.
 - `ArchiveResult`: final readonly class. Public `ArchiveSummary $summary` and `ArchiveOutcome $outcome` (revised by [SqliteStore.md](SqliteStore.md); before that revision the first property was `Archive $archive`). `#[Exclude]`.
 - `ArchiveException`: final class extending `\RuntimeException`. The constructor takes a message and an optional `?\Throwable $previous`. It has no reason enum. The problem-document slice adds what it needs. `#[Exclude]`.
-- `ArchiveStore`: interface. `findSummary(string $url): ?ArchiveSummary`, `find(string $url): ?Archive`, and `save(Archive $archive): void`. `save` is an upsert (revised by [SqliteStore.md](SqliteStore.md); before that revision there was no `findSummary` and `save` was not an upsert). A store belongs to one owner. No method takes the owner.
+- `ArchiveStore`: interface. `findSummary(UrlPointer $url): ?ArchiveSummary`, `find(UrlPointer $url): ?Archive`, and `save(Archive $archive): void` (revised by [UrlPointer.md](UrlPointer.md); before that revision the lookup methods took `string $url`). `save` is an upsert (revised by [SqliteStore.md](SqliteStore.md); before that revision there was no `findSummary` and `save` was not an upsert). A store belongs to one owner. No method takes the owner.
 - `ArchiveStoreFactory`: interface. `create(Owner $owner): ArchiveStore`.
-- `ArticleFetcher`: interface. `fetch(string $url): PipelineSuccess|PipelineNoContent`. The two types are the library's. The service reads them.
-- `ArticleReaderAdapter`: final class implementing `ArticleFetcher`. It takes the library `Orchestrator` and returns `fetchArticle($url)`. It adds no logic.
-- `ArchiveLock`: interface. `exclusive(string $url, callable $action): mixed`. Added by [SqliteStore.md](SqliteStore.md).
+- `ArticleFetcher`: interface. `fetch(UrlPointer $url): PipelineSuccess|PipelineNoContent` (revised by [UrlPointer.md](UrlPointer.md); before that revision the argument was a string). The two result types are the library's. The service reads them. The adapter passes `$url->toString()` to the library.
+- `ArticleReaderAdapter`: final class implementing `ArticleFetcher`. It takes the library `Orchestrator` and returns `fetchArticle($url->toString())`. It adds no logic.
+- `ArchiveLock`: interface. `exclusive(UrlPointer $url, callable $action): mixed` (revised by [UrlPointer.md](UrlPointer.md)). Added by [SqliteStore.md](SqliteStore.md).
 - `ArchiveLockFactory`: interface. `create(Owner $owner): ArchiveLock`. Added by [SqliteStore.md](SqliteStore.md).
 - `ArchiveService`: final class, no interface, `#[Exclude]`. The constructor takes `ArchiveStore`, `ArticleFetcher`, `ArchiveLock`, and `ArchiveFailureMapper` (revised by [SqliteStore.md](SqliteStore.md); before that revision it took the store and the fetcher only). It does not hold the `Owner`, because the store and the lock are already bound to it.
 - `ArchiveServiceFactory`: final class, no state. The constructor takes one `ArticleFetcher`, one `ArchiveStoreFactory`, and one `ArchiveLockFactory`. `create(Owner $owner): ArchiveService` returns a service with that owner's store and lock (revised by [SqliteStore.md](SqliteStore.md)).
 
-`ArchiveService::archive(string $url): ArchiveResult`, as revised by [SqliteStore.md](SqliteStore.md):
+`ArchiveService::archive(UrlPointer $url): ArchiveResult`, as revised by [UrlPointer.md](UrlPointer.md) (before that revision the argument was a string and step 1 trimmed it):
 
-1. `trim($url, "\0")`. A NUL in the middle stays. Whitespace is not trimmed.
-2. `exclusive($url)` around the rest. The lock, already bound to the owner, keys that call with the email, a NUL byte, and the trimmed URL.
+1. The pointer already holds the stored name. This method does not trim.
+2. `exclusive($url)` around the rest. The lock, already bound to the owner, keys that call with the email, a NUL byte, and `$url->toString()`.
 3. `findSummary($url)`. A hit returns `AlreadyStored` with that summary. The fetcher is not called.
 4. A miss calls `fetch($url)`. Library failures become `ArchiveException` as slice 6 left them. Any other throwable passes through. Nothing is saved.
 5. `PipelineNoContent` becomes `ArchiveException`. Nothing is saved. This covers both a page with no article and an article that is empty after purification.
-6. `PipelineSuccess` becomes `Archive`. `url` is the trimmed string. `title`, `excerpt`, and `siteName` come from `$success->document` through `PlainText::raw()`, and `excerpt` and `siteName` stay null when the document has none. `html` is `$success->document->html`. Warnings are not read.
+6. `PipelineSuccess` becomes `Archive`. `url` is `$url->toString()`. `title`, `excerpt`, and `siteName` come from `$success->document` through `PlainText::raw()`, and `excerpt` and `siteName` stay null when the document has none. `html` is `$success->document->html`. Warnings are not read.
 7. `save($archive)`. A `PDOException` becomes `ArchiveException` with `NotWritten`. `Written` carries a summary built from that `Archive`.
 
 `https://example.com/a` and `https://example.com/a/` are two archives. A leading or trailing NUL is not part of the stored name. Two overlapping first POSTs of one URL are owned by [SqliteStore.md](SqliteStore.md).
@@ -54,8 +54,8 @@ Two stores for one owner share rows through the shelf. A store for another owner
 - `Api\Owner\OwnerProvider`: interface. `owner(): Owner`. It answers for the current call.
 - `Api\Owner\ConfiguredOwnerProvider`: final class. The constructor takes the owner email string. `owner()` returns `new Owner($email)`.
 - `Api\Controller\CreateArchiveController` keeps the route `create_archive`, path `/archives`, method POST, format `json`. Revised by [OwnerScopedService.md](OwnerScopedService.md) (slice 5b): the class has no constructor, and `ArchiveServiceResolver` passes the owner's `ArchiveService` as an action argument. Before that revision the constructor took `ArchiveServiceFactory` and `OwnerProvider`. The controller never read the parameter. The action keeps the `MapRequestPayload` signature of the payload slice.
-  - `$url = $body->url ?? throw new \LogicException('NotNull guarantees url.')`. The DTO does not change.
-  - `$result = $archives->archive($url)`, where `$archives` is the action argument (revised by slice 5b). Before that revision: `$this->archives->create($this->owners->owner())->archive($url)`.
+  - The DTO does not change. `$body->url` stays a string.
+  - `$result = $archives->archive(new UrlPointer($body->url ?? throw new \LogicException('NotNull guarantees url.')))`, where `$archives` is the action argument (revised by [UrlPointer.md](UrlPointer.md) and by slice 5b). Before the pointer revision the action passed the body string through. Before slice 5b: `$this->archives->create($this->owners->owner())->archive($url)`.
   - The status is 201 for `Written` and 200 for `AlreadyStored`.
   - The success body reads `$result->summary->url` and `$result->summary->title` (revised by [SqliteStore.md](SqliteStore.md); before that revision the fields were `$result->archive->url` and `$result->archive->title`). Slice 6 writes that body through `ArchiveResponse` and `Reply`.
   - It does not catch `ArchiveException`.

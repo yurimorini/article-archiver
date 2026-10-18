@@ -1,6 +1,6 @@
 # SQLite store
 
-Module design for [sqlite-store.md](../sqlite-store.md). The decisions in that contract are closed. This spec adopts [adr/0003](../../../adr/0003-owner-database-is-wal.md) and [adr/0008](../../../adr/0008-owner-database-schema-splits-body-from-metadata.md). It revises [ArchiveCommand.md](ArchiveCommand.md). The glossary already says that two addresses that differ only in letter case name the same owner. This slice adds no glossary term.
+Module design for [sqlite-store.md](../sqlite-store.md). The decisions in that contract are closed. This spec adopts [adr/0003](../../../adr/0003-owner-database-is-wal.md) and [adr/0008](../../../adr/0008-owner-database-schema-splits-body-from-metadata.md). It revises [ArchiveCommand.md](ArchiveCommand.md). Revised by [UrlPointer.md](UrlPointer.md): the service no longer trims the URL, and the lock, the fetch, and the store take a `UrlPointer`. The glossary already says that two addresses that differ only in letter case name the same owner. This slice adds no glossary term.
 
 Folder layout follows the rule in [project-foundation](../../../../../../.agents/rules/project-foundation.md). This spec lists only the folders this slice opens. That list is not a template for a later slice.
 
@@ -47,20 +47,20 @@ Archive/
 - `Owner`: the constructor stores `mb_strtolower($email, 'UTF-8')`. Dots and `+` tags stay. `#[Exclude]`.
 - `ArchiveSummary`: final readonly class. Public `string $url`, `string $title`, `?string $excerpt`, `?string $siteName`. No HTML. `fromArchive(Archive $archive): self` copies those fields and leaves the HTML out. `#[Exclude]`.
 - `ArchiveResult`: public `ArchiveSummary $summary` and `ArchiveOutcome $outcome`. `#[Exclude]`.
-- `ArchiveStore`: `findSummary(string $url): ?ArchiveSummary`, `find(string $url): ?Archive`, `save(Archive $archive): void`. A store belongs to one owner. No method takes the owner. `save` is an upsert.
-- `ArchiveLock`: `exclusive(string $url, callable $action): mixed`. The callable takes no arguments. The method runs it and returns its result. The lock is released when the callable returns or throws. If the lock cannot be taken, the callable still runs. The interface does not name Symfony.
+- `ArchiveStore`: `findSummary(UrlPointer $url): ?ArchiveSummary`, `find(UrlPointer $url): ?Archive`, `save(Archive $archive): void` (revised by [UrlPointer.md](UrlPointer.md); before that revision the lookup methods took `string $url`). A store belongs to one owner. No method takes the owner. `save` is an upsert.
+- `ArchiveLock`: `exclusive(UrlPointer $url, callable $action): mixed` (revised by [UrlPointer.md](UrlPointer.md); before that revision the URL was a string). The callable takes no arguments. The method runs it and returns its result. The lock is released when the callable returns or throws. If the lock cannot be taken, the callable still runs. The interface does not name Symfony.
 - `ArchiveLockFactory`: `create(Owner $owner): ArchiveLock`.
 - `ArchiveService`: `#[Exclude]`. The constructor is `ArchiveStore`, `ArticleFetcher`, `ArchiveLock`, then `ArchiveFailureMapper` with the same default as today. It does not hold the `Owner`. The store and the lock are already bound to that owner.
 - `ArchiveServiceFactory`: the constructor takes `ArticleFetcher`, `ArchiveStoreFactory`, and `ArchiveLockFactory`. `create(Owner)` returns a service with that owner's store and that owner's lock.
 
-`ArchiveService::archive(string $url): ArchiveResult`:
+`ArchiveService::archive(UrlPointer $url): ArchiveResult` (revised by [UrlPointer.md](UrlPointer.md); before that revision the argument was a string and this method trimmed it):
 
-1. `trim($url, "\0")`. Leading and trailing NUL bytes are removed. A NUL in the middle stays. Whitespace is not trimmed. From here on, the URL is that string.
-2. `exclusive($url)` around the steps below. The service passes the URL only. The lock already holds the owner and builds the key as the email, a NUL byte, and the URL.
+1. The pointer already holds the stored name. This method does not trim.
+2. `exclusive($url)` around the steps below. The service passes the pointer only. The lock already holds the owner and builds the key as the email, a NUL byte, and `$url->toString()`.
 3. `findSummary`. A hit returns `AlreadyStored` with that summary. The fetcher is not called. The HTML is not read.
 4. A miss fetches. Library failures become `ArchiveException` as slice 6 left them. Any other throwable passes through. Nothing is saved. The lock is released.
 5. `PipelineNoContent` becomes `ArchiveException`. Nothing is saved.
-6. `PipelineSuccess` becomes `Archive`. `url` is the trimmed string. The other fields stay as slice 5 and slice 6 left them.
+6. `PipelineSuccess` becomes `Archive`. `url` is `$url->toString()`. The other fields stay as slice 5 and slice 6 left them.
 7. `save`. A `PDOException` becomes `ArchiveException` with `ArchiveFailure::NotWritten` and that exception as the cause. The summary of `Written` is built from the `Archive` just saved. The row is not read back.
 
 `https://example.com/a` and `https://example.com/a/` stay two archives. A posted `\0https://example.com/a` is the same archive as `https://example.com/a`.
@@ -74,14 +74,14 @@ Archive/
 
 ### `Yumo\Eleanor\Archive\Lock`
 
-- `FlockArchiveLock`: implements `ArchiveLock`, `#[Exclude]`. The constructor takes the owner, the lock directory, the `application` logger, and the wait limit. It builds the key from the email, a NUL byte, and the URL. It uses `symfony/lock` with `FlockStore`. The wait limit defaults to 15 seconds, so a test can pass a short one. The plan chooses the Symfony retry store or a local retry loop. That choice has to enforce the limit. Symfony's blocking acquire alone does not.
+- `FlockArchiveLock`: implements `ArchiveLock`, `#[Exclude]`. The constructor takes the owner, the lock directory, the `application` logger, and the wait limit. It builds the key from the email, a NUL byte, and `$url->toString()` (revised by [UrlPointer.md](UrlPointer.md)). It uses `symfony/lock` with `FlockStore`. The wait limit defaults to 15 seconds, so a test can pass a short one. The plan chooses the Symfony retry store or a local retry loop. That choice has to enforce the limit. Symfony's blocking acquire alone does not.
 - `FlockArchiveLockFactory`: implements `ArchiveLockFactory`. The constructor takes the lock directory and the `application` logger. An I/O failure while taking the lock logs a warning on that channel and then runs the action. The warning does not include a client response. When the wait limit passes, the action runs with no warning and no HTTP error.
 
 The in-memory shelf, store, and factory move to `tests/Support/InMemory/` under `Yumo\Eleanor\Tests\Support\InMemory`. They gain `findSummary`. They are the contract-test double. They are not container services.
 
 ### `Yumo\Eleanor\Api`
 
-`CreateArchiveController` reads `$result->summary->url` and `$result->summary->title`. The route, the status map, and the `Reply` stay. The OpenAPI list of 500 codes gains `archive_not_written`.
+`CreateArchiveController` builds `new UrlPointer` from the body string and passes that to `archive` (revised by [UrlPointer.md](UrlPointer.md)). It reads `$result->summary->url` and `$result->summary->title`. The route, the status map, and the `Reply` stay. The OpenAPI list of 500 codes gains `archive_not_written`. The body DTO stays a string.
 
 ## Schema and file
 
@@ -167,7 +167,7 @@ A test observes behavior at its seam. It does not assert a SQL string, a pragma 
 
 `OwnerTest`: `Ada@Example.com` is stored as `ada@example.com`.
 
-`ArchiveServiceTest` uses a fake store and a fake lock. Cases: leading and trailing NUL are trimmed before the lock and the store; lookup, fetch, and save run inside the lock; a waiter returns `AlreadyStored` without a fetch; the lock is released when the fetch throws; a lock that cannot be taken still archives.
+`ArchiveServiceTest` uses a fake store and a fake lock. Cases, as revised by [UrlPointer.md](UrlPointer.md): the pointer the service receives is the one the lock and the store see; lookup, fetch, and save run inside the lock; a waiter returns `AlreadyStored` without a fetch; the lock is released when the fetch throws; a lock that cannot be taken still archives. The NUL rules are covered on `UrlPointer` itself.
 
 `FlockArchiveLockTest` uses a temporary directory. Two keys do not block each other. One key blocks a second holder until the first releases. Taking the same key again in one process, after the first release, does not deadlock. The wait limit, passed short through the constructor, lets a second holder proceed. An unwritable lock directory logs a warning and does not throw. The tests do not sleep for 15 seconds.
 

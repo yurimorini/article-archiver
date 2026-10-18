@@ -13,7 +13,7 @@ The purified body of a page.
 _Avoid_: Archive, page copy
 
 **URL pointer**:
-A reference that names a page by its URL.
+A reference that names a page by its URL. Two pointers that differ only by NUL bytes at either end name the same page. A NUL in the middle is part of the name. A space is part of the name.
 _Avoid_: Archive, article, bookmark
 
 **Owner**:
