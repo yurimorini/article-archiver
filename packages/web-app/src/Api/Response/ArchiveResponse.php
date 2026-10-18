@@ -6,6 +6,7 @@ namespace Yumo\Eleanor\Api\Response;
 
 use OpenApi\Attributes as OA;
 use Symfony\Component\DependencyInjection\Attribute\Exclude;
+use Yumo\Eleanor\Archive\ArchiveResult;
 
 /**
  * Success body of the archive command: where the page lives and what it is called.
@@ -25,5 +26,13 @@ final readonly class ArchiveResponse
         #[OA\Property]
         public string $title,
     ) {
+    }
+
+    /**
+     * Copies the URL and the title. The excerpt, the site name, and the outcome stay out.
+     */
+    public static function fromArchiveResult(ArchiveResult $result): self
+    {
+        return new self($result->summary->url, $result->summary->title);
     }
 }

@@ -142,7 +142,7 @@ final class CreateArchiveController
 
         return new Reply(
             $this->status($result),
-            new ArchiveResponse($result->summary->url, $result->summary->title),
+            ArchiveResponse::fromArchiveResult($result),
         );
     }
 
