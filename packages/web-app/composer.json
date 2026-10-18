@@ -34,8 +34,7 @@
         "phpunit/phpunit": "^11.0",
         "friendsofphp/php-cs-fixer": "^3.95",
         "phpstan/phpstan": "^2.2",
-        "symfony/browser-kit": "8.1.*",
-        "zircote/swagger-php": "^6.16"
+        "symfony/browser-kit": "8.1.*"
     },
     "minimum-stability": "dev",
     "prefer-stable": true,
@@ -44,7 +43,6 @@
         "cs-check": "php-cs-fixer fix --dry-run --diff",
         "cs-fix": "php-cs-fixer fix",
         "phpstan": "phpstan analyse --memory-limit=512M",
-        "openapi": "php tools/dump-openapi.php",
         "quality": [
             "@cs-check",
             "@phpstan"
@@ -61,8 +59,7 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Yumo\\Eleanor\\Tests\\": "tests/",
-            "Yumo\\Eleanor\\Tools\\": "tools/"
+            "Yumo\\Eleanor\\Tests\\": "tests/"
         }
     },
     "config": {

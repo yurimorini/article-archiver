@@ -81,7 +81,7 @@ The in-memory shelf, store, and factory move to `tests/Support/InMemory/` under 
 
 ### `Yumo\Eleanor\Api`
 
-`CreateArchiveController` builds `new UrlPointer` from the body string and passes that to `archive` (revised by [UrlPointer.md](UrlPointer.md)). It reads `$result->summary->url` and `$result->summary->title`. The route, the status map, and the `Reply` stay. The OpenAPI list of 500 codes gains `archive_not_written`. The body DTO stays a string.
+`CreateArchiveController` builds `new UrlPointer` from the body string and passes that to `archive` (revised by [UrlPointer.md](UrlPointer.md)). It reads `$result->summary->url` and `$result->summary->title`. The route, the status map, and the `Reply` stay. The body DTO stays a string.
 
 ## Schema and file
 
@@ -144,7 +144,7 @@ A failed `save` throws `ArchiveException` with `ArchiveFailure::NotWritten` (`ar
 
 A failure of `findSummary` or `find` is not wrapped. `ErrorTranslator` turns that throwable into 500 `unexpected` with `Something went wrong on the server.`
 
-The 400, 415, 405, 422, and 502 answers stay as slice 6 left them. `doc/openapi.yaml` is regenerated. The drift test covers `archive_not_written`.
+The 400, 415, 405, 422, and 502 answers stay as slice 6 left them.
 
 A lock that is not taken is not an HTTP error.
 
@@ -160,8 +160,6 @@ A test observes behavior at its seam. It does not assert a SQL string, a pragma 
 - A second kernel on the same directory still answers 200.
 - A failed fetch stores nothing, and the same URL archives on a later POST.
 - A data directory that is not writable answers 500 `archive_not_written`, with the fixed sentence and no leaked driver text.
-
-`OpenApiDocumentTest` covers the new code.
 
 `ArchiveStoreContractTest` runs one set of cases against the in-memory store and the SQLite store: absence, `save` then `find` and `findSummary`, the summary without the HTML, a second `save` of the same URL that updates the title and leaves `find` with that one archive, two stores for one owner sharing rows, and another owner not seeing them. The SQLite cases add: a lookup creates no file, the first `save` creates one, two owners get two files, and the same email in a different letter case names the same file.
 

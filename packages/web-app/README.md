@@ -38,14 +38,6 @@ answers 400 with:
 
 The status is the family of the failure. `code` is the cause. `message` is the sentence a person reads. The `X-Request-Id` header carries the request id.
 
-## API description
-
-The API description is `doc/openapi.yaml`. A test fails when it drifts from the code. Regenerate it from the repository root with:
-
-```bash
-./bin/composer web-app openapi
-```
-
 ## Tests
 
 From the repository root, PHPUnit for this package runs inside the development image:

@@ -2,11 +2,11 @@
 
 ## Problem Statement
 
-`POST /api/archives` archives a URL pointer, but a failure has no usable shape for the client. A library failure is not translated, so Eleanor answers with Symfony's own error page. A refused body (400, 415), a wrong method (405), and an unknown path (404) each answer in Symfony's default JSON, whose wording and fields Eleanor does not own. A client cannot tell a page that is not an article from a URL Eleanor refuses, from an upstream site that is down, from a fault in Eleanor, without reading prose. The success body is built by hand, and nothing describes the API in a machine-readable form that stays current with the code.
+`POST /api/archives` archives a URL pointer, but a failure has no usable shape for the client. A library failure is not translated, so Eleanor answers with Symfony's own error page. A refused body (400, 415), a wrong method (405), and an unknown path (404) each answer in Symfony's default JSON, whose wording and fields Eleanor does not own. A client cannot tell a page that is not an article from a URL Eleanor refuses, from an upstream site that is down, from a fault in Eleanor, without reading prose. The success body is built by hand.
 
 ## Solution
 
-Every failure under `/api` answers with the same small JSON object: a stable `code` and one `message` sentence. The HTTP status says the family of the failure. The success body stays `{"url","title"}`. One serializer writes both. The API description is an OpenAPI document generated from the code, committed to the repository, and checked against the code by a test. The clients Eleanor serves (browser, script, phone) branch on the status first and on `code` second, and show `message`.
+Every failure under `/api` answers with the same small JSON object: a stable `code` and one `message` sentence. The HTTP status says the family of the failure. The success body stays `{"url","title"}`. One serializer writes both. The clients Eleanor serves (browser, script, phone) branch on the status first and on `code` second, and show `message`.
 
 ## User Stories
 
@@ -77,18 +77,13 @@ Every failure under `/api` answers with the same small JSON object: a stable `co
 45. As a developer of Eleanor, I want a 502 and a 500 to write the original failure to the `application` log channel, so that the operator sees the cause the client cannot.
 46. As a developer of Eleanor, I want a refusal that is the client's fault (400, 404, 405, 415, 422) not to write an error line, so that the log has no noise from a bad request.
 
-### The API description
+### The API description (withdrawn 2026-10-18)
 
-47. As a client developer, I want an OpenAPI document of Eleanor's API generated from the code, so that I can read the contract and generate a client from it.
-48. As a client developer, I want that document to describe the success body and every error status of `POST /api/archives` with the `code` values for each status, so that I know which codes to handle.
-49. As a client developer, I want the request body described as an object with a required string `url`, so that the schema matches the payload rules.
-50. As a developer of Eleanor, I want the document committed to the repository and regenerated with one command, so that it is reviewed like code.
-51. As a developer of Eleanor, I want a test that fails when the committed document differs from the generated one, so that the description stays current with the code.
-52. As a developer of Eleanor, I want the generator to be a development dependency only, so that the running server has no new package.
+47–52 asked for an OpenAPI document generated from PHP attributes, committed, and checked by a drift test. A scan of the controller cannot see the status and `code` matrix, and the attributes were a second copy of that matrix. The document, `zircote/swagger-php`, and the drift test are removed. Kernel tests remain the check of each status and each `code`.
 
 ### Documentation and quality
 
-53. As a user of the README, I want the README to show a failing call and where the OpenAPI document is, so that the documented calls match the server.
+53. As a user of the README, I want the README to show a failing call, so that the documented calls match the server.
 54. As a developer of Eleanor, I want the two leftovers of slice 5 that name this slice to be closed and removed from `feature.md`, so that nothing stays open without an owner.
 55. As a developer of Eleanor, I want the quality checks to pass for `web-app`, so that the command meets the same bar as the earlier slices.
 
@@ -105,8 +100,8 @@ Every failure under `/api` answers with the same small JSON object: a stable `co
 - An error translator maps an exception to a reply of the error type. An `ArchiveException` uses its failure kind. A request body that fails validation is `invalid_body`. A body that is not parseable is `invalid_json`. The framework's not-found, method-not-allowed, and unsupported-media-type exceptions use their own codes. Any other throwable is 500 `unexpected` with one fixed sentence. The exact signal that tells `invalid_json` from `invalid_body` is confirmed against the framework in the spec.
 - One listener on `kernel.exception` handles requests whose path is under `/api` and writes the translated reply. It keeps the headers the framework attached to the exception, such as `Allow`. It writes the original failure to the `application` log channel for 502 and 500, and writes nothing for the other statuses. A path outside `/api` is not touched.
 - One serializer of Eleanor's takes a response object and returns a JSON string. It wraps the framework serializer, and fixes the JSON options for unescaped slashes and unescaped Unicode in one place. The controller and the listener use it and pass the string with the status to `JsonResponse::fromJsonString`. It does not implement the framework serializer interface.
-- The OpenAPI document is generated by `zircote/swagger-php` as a development dependency. Fields of the response types are taken from their PHP types. The route, the statuses, and the codes per status are declared with attributes on the controller. The request body type declares `url` as a required string, because its PHP type alone would read as optional and nullable. The document is committed to the repository and is regenerated with one command. The generator does not run in the running server. The spec confirms the output version and the file location.
-- No other new package is added. No runtime schema validation of a request or a response is added. The request body check stays the validator on the body object from the payload slice.
+- Eleanor does not publish an OpenAPI document (revised 2026-10-18). Status and `code` are proved by the kernel tests. No schema package is added.
+- No runtime schema validation of a request or a response is added. The request body check stays the validator on the body object from the payload slice.
 - The glossary terms are unchanged. `Archive`, `URL pointer`, and `Owner` keep their meaning. `ArchiveFailure` and the response types are types, not glossary terms.
 
 ## Testing Decisions
@@ -114,7 +109,6 @@ Every failure under `/api` answers with the same small JSON object: a stable `co
 - A good test observes status, content type, and the JSON body at its seam. It does not assert Symfony's error text, a private call order, or a class name of a library exception.
 - The highest seam is the existing kernel test of `POST /api/archives`. It drives the route through the kernel with the `ArticleFetcher` double. It covers each status and each `code` of the table above, the content type, and the exact `code` and `message` keys. It reads the `X-Request-Id` header on an answered request and the `Allow` header on a 405. It covers `Café` and a URL with slashes in the success body. It proves that a failed call stores nothing and that the same URL archives after a failure. The tests that expected Symfony's JSON for 400, 415, and 405 change to the new body. A test with an unknown path covers 404. A throwing double that raises an `Error` covers 500 `unexpected` and proves the fixed sentence does not carry the failure's text.
 - Unit tests do not boot the kernel. The mapper has a case for each stage, each finer reason, and each empty reason. The translator has a case for each code and for an unknown throwable. The serializer has cases for `Café`, a quote, and slashes. `ArchiveService` proves that a pipeline exception becomes `ArchiveException` with its kind and cause, and that an `Error` passes through. The listener test proves that a path outside `/api` is untouched, that a 502 and a 500 are logged, and that a 4xx writes no error line.
-- One test regenerates the OpenAPI document and compares it with the committed file. It fails when they differ.
 - Prior art: the kernel test of the archive route, the archive service test with `FakeArticleFetcher` and `PipelineFixtures`, and the production wiring test that proves the container.
 - The library's own tests stay the proof of what the orchestrator raises. This slice does not retest fetching.
 - A real network fetch, a browser, and a response-versus-schema validator are not seams.
@@ -134,6 +128,6 @@ Every failure under `/api` answers with the same small JSON object: a stable `co
 
 ## Further Notes
 
-- [feature.md](feature.md) records the change of the row name and the replaced research notes. The module spec is the next step. It confirms the signal that tells an unparseable body from an invalid one, the OpenAPI version and file location, and the exact attributes.
+- [feature.md](feature.md) records the change of the row name and the replaced research notes. The module spec is the next step. It confirms the signal that tells an unparseable body from an invalid one, and the upstream status number. The OpenAPI document those notes also named was removed on 2026-10-18.
 - A request that matches no controller does not receive `X-Request-Id` today, because the request line subscriber starts at the controller event. This contract keeps that behavior. A change belongs to the logging feature.
 - The two slice 5 leftovers that name this slice, on the `\Throwable` catch and on the non-ASCII title, are closed by this contract and deleted from `feature.md` when the slice is done.
