@@ -10,6 +10,9 @@ parameters:
     # The email of the one owner. The firewall slice replaces this with the authenticated caller.
     eleanor.owner_email: 'owner@example.com'
 
+    # The directory that holds the per-url lock files.
+    eleanor.lock_dir: '%kernel.project_dir%/var/lock'
+
 services:
     # default configuration for services in *this* file
     _defaults:
@@ -30,3 +33,7 @@ services:
     Yumo\Eleanor\Api\Owner\ConfiguredOwnerProvider:
         arguments:
             $email: '%eleanor.owner_email%'
+
+    Yumo\Eleanor\Archive\Lock\FlockArchiveLockFactory:
+        arguments:
+            $lockDirectory: '%eleanor.lock_dir%'
