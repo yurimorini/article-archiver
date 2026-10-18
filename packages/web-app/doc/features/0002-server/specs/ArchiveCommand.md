@@ -1,6 +1,6 @@
 # Archive command
 
-Module design for [archive-command.md](../archive-command.md). The decisions in that contract are closed, including the two revisions recorded in [feature.md](../feature.md) under Slice merge: `ArticleFetcher` replaces the orchestrator as the service's dependency, and `OwnerProvider` replaces the controller's own reading of the owner parameter. This spec adopts [adr/0002](../../../adr/0002-second-post-returns-stored-archive.md) and [adr/0004](../../../adr/0004-archive-lookup-is-per-owner.md). [adr/0007](../../../adr/0007-archive-body-mapped-by-map-request-payload.md) stays as the payload slice adopted it. [adr/0001](../../../adr/0001-archive-outcome-status.md) waits for the problem-document slice. [adr/0008](../../../adr/0008-owner-database-schema-splits-body-from-metadata.md) waits for the SQLite slice. This slice adds no glossary term. This spec is slice 5.
+Module design for [archive-command.md](../archive-command.md). The decisions in that contract are closed, including the two revisions recorded in [feature.md](../feature.md) under Slice merge: `ArticleFetcher` replaces the orchestrator as the service's dependency, and `OwnerProvider` replaces the controller's own reading of the owner parameter. This spec adopts [adr/0002](../../../adr/0002-second-post-returns-stored-archive.md) and [adr/0004](../../../adr/0004-archive-lookup-is-per-owner.md). [adr/0007](../../../adr/0007-archive-body-mapped-by-map-request-payload.md) stays as the payload slice adopted it. [adr/0001](../../../adr/0001-archive-outcome-status.md) waits for the problem-document slice. [adr/0008](../../../adr/0008-owner-database-schema-splits-body-from-metadata.md) is adopted by [SqliteStore.md](SqliteStore.md). This slice adds no glossary term. This spec is slice 5. Revised by [SqliteStore.md](SqliteStore.md): `Owner` lowercases the email, `ArchiveResult` carries an `ArchiveSummary`, `ArchiveStore` gains `findSummary`, `save` is an upsert, `ArchiveService` trims leading and trailing NUL bytes and takes an `ArchiveLock`, and the in-memory classes move to the tests.
 
 This slice replaces the controller in [PayloadAndMapper.md](PayloadAndMapper.md): `create` is no longer the stub. The class got a constructor in this slice. Slice 5b removed it, and the action receives the `ArchiveService` as an argument ([OwnerScopedService.md](OwnerScopedService.md)).
 
@@ -12,33 +12,38 @@ Three namespaces under `src/`.
 
 The archive command. It does not know Symfony, HTTP, or SQLite.
 
-- `Owner`: final readonly class. One public `string $email`. `#[Exclude]`.
+- `Owner`: final readonly class. One public `string $email`. The constructor stores `mb_strtolower($email, 'UTF-8')` (revised by [SqliteStore.md](SqliteStore.md)). `#[Exclude]`.
 - `Archive`: final readonly class. Public `string $url`, `string $title`, `?string $excerpt`, `?string $siteName`, `string $html`. `#[Exclude]`.
+- `ArchiveSummary`: final readonly class. Public `string $url`, `string $title`, `?string $excerpt`, `?string $siteName`. No HTML. `fromArchive(Archive $archive): self` copies those fields and leaves the HTML out. Added by [SqliteStore.md](SqliteStore.md). `#[Exclude]`.
 - `ArchiveOutcome`: enum with `Written` and `AlreadyStored`. `#[Exclude]`.
-- `ArchiveResult`: final readonly class. Public `Archive $archive` and `ArchiveOutcome $outcome`. `#[Exclude]`.
+- `ArchiveResult`: final readonly class. Public `ArchiveSummary $summary` and `ArchiveOutcome $outcome` (revised by [SqliteStore.md](SqliteStore.md); before that revision the first property was `Archive $archive`). `#[Exclude]`.
 - `ArchiveException`: final class extending `\RuntimeException`. The constructor takes a message and an optional `?\Throwable $previous`. It has no reason enum. The problem-document slice adds what it needs. `#[Exclude]`.
-- `ArchiveStore`: interface. `find(string $url): ?Archive` and `save(Archive $archive): void`. A store belongs to one owner. Neither method takes the owner.
+- `ArchiveStore`: interface. `findSummary(string $url): ?ArchiveSummary`, `find(string $url): ?Archive`, and `save(Archive $archive): void`. `save` is an upsert (revised by [SqliteStore.md](SqliteStore.md); before that revision there was no `findSummary` and `save` was not an upsert). A store belongs to one owner. No method takes the owner.
 - `ArchiveStoreFactory`: interface. `create(Owner $owner): ArchiveStore`.
 - `ArticleFetcher`: interface. `fetch(string $url): PipelineSuccess|PipelineNoContent`. The two types are the library's. The service reads them.
 - `ArticleReaderAdapter`: final class implementing `ArticleFetcher`. It takes the library `Orchestrator` and returns `fetchArticle($url)`. It adds no logic.
-- `ArchiveService`: final class, no interface, `#[Exclude]`. The constructor takes `ArchiveStore` and `ArticleFetcher`. It does not hold the `Owner`, because the store is already bound to it.
-- `ArchiveServiceFactory`: final class, no state. The constructor takes one `ArticleFetcher` and one `ArchiveStoreFactory`. `create(Owner $owner): ArchiveService` returns `new ArchiveService($this->stores->create($owner), $this->fetcher)`.
+- `ArchiveLock`: interface. `exclusive(string $url, callable $action): mixed`. Added by [SqliteStore.md](SqliteStore.md).
+- `ArchiveLockFactory`: interface. `create(Owner $owner): ArchiveLock`. Added by [SqliteStore.md](SqliteStore.md).
+- `ArchiveService`: final class, no interface, `#[Exclude]`. The constructor takes `ArchiveStore`, `ArticleFetcher`, `ArchiveLock`, and `ArchiveFailureMapper` (revised by [SqliteStore.md](SqliteStore.md); before that revision it took the store and the fetcher only). It does not hold the `Owner`, because the store and the lock are already bound to it.
+- `ArchiveServiceFactory`: final class, no state. The constructor takes one `ArticleFetcher`, one `ArchiveStoreFactory`, and one `ArchiveLockFactory`. `create(Owner $owner): ArchiveService` returns a service with that owner's store and lock (revised by [SqliteStore.md](SqliteStore.md)).
 
-`ArchiveService::archive(string $url): ArchiveResult`:
+`ArchiveService::archive(string $url): ArchiveResult`, as revised by [SqliteStore.md](SqliteStore.md):
 
-1. `find($url)`. A hit returns `ArchiveResult` with that archive and `AlreadyStored`. The fetcher is not called.
-2. A miss calls `fetch($url)`. A `\Throwable` becomes `ArchiveException` with that throwable as `previous`. Nothing is saved.
-3. `PipelineNoContent` becomes `ArchiveException`. Nothing is saved. This covers both a page with no article and an article that is empty after purification.
-4. `PipelineSuccess` becomes `Archive`. `url` is the string passed in. `title`, `excerpt`, and `siteName` come from `$success->document` through `PlainText::raw()`, and `excerpt` and `siteName` stay null when the document has none. `html` is `$success->document->html`. Warnings are not read.
-5. `save($archive)`, then `ArchiveResult` with `Written`.
+1. `trim($url, "\0")`. A NUL in the middle stays. Whitespace is not trimmed.
+2. `exclusive($url)` around the rest. The lock, already bound to the owner, keys that call with the email, a NUL byte, and the trimmed URL.
+3. `findSummary($url)`. A hit returns `AlreadyStored` with that summary. The fetcher is not called.
+4. A miss calls `fetch($url)`. Library failures become `ArchiveException` as slice 6 left them. Any other throwable passes through. Nothing is saved.
+5. `PipelineNoContent` becomes `ArchiveException`. Nothing is saved. This covers both a page with no article and an article that is empty after purification.
+6. `PipelineSuccess` becomes `Archive`. `url` is the trimmed string. `title`, `excerpt`, and `siteName` come from `$success->document` through `PlainText::raw()`, and `excerpt` and `siteName` stay null when the document has none. `html` is `$success->document->html`. Warnings are not read.
+7. `save($archive)`. A `PDOException` becomes `ArchiveException` with `NotWritten`. `Written` carries a summary built from that `Archive`.
 
-The key is the URL string as given. `https://example.com/a` and `https://example.com/a/` are two archives. This slice does not normalize. Two concurrent first POSTs of one URL are not a case here: the in-memory store has no concurrency, and the SQLite slice owns the race recorded in [Storage.md](../research/Storage.md).
+`https://example.com/a` and `https://example.com/a/` are two archives. A leading or trailing NUL is not part of the stored name. Two overlapping first POSTs of one URL are owned by [SqliteStore.md](SqliteStore.md).
 
 ### `Yumo\Eleanor\Archive\InMemory`
 
-A temporary stand-in for the SQLite slice. Each class says so in its docblock. The SQLite slice removes these classes from `src/` or moves them to `tests/`. Nothing outside `config/services.yaml` names them.
+Moved by [SqliteStore.md](SqliteStore.md) to `tests/Support/InMemory/` under `Yumo\Eleanor\Tests\Support\InMemory`. They are the contract-test double, they implement `findSummary`, and they are not container services. Before that move they lived in `src/Archive/InMemory/` as the temporary stand-in.
 
-- `InMemoryArchiveShelf`: container service, shared. It holds `array<string, array<string, Archive>>`, owner email then URL. It has `find(Owner $owner, string $url): ?Archive` and `save(Owner $owner, Archive $archive): void`. It stands in for the directory of owner files.
+- `InMemoryArchiveShelf`: plain test class, not a container service. One instance is shared by the stores a test creates. It holds `array<string, array<string, Archive>>`, owner email then URL. It has `find(Owner $owner, string $url): ?Archive` and `save(Owner $owner, Archive $archive): void`. It stands in for the directory of owner files.
 - `InMemoryArchiveStore`: implements `ArchiveStore`. The constructor takes an `Owner` and the shelf. `find` and `save` delegate to the shelf with that owner. `#[Exclude]`.
 - `InMemoryArchiveStoreFactory`: implements `ArchiveStoreFactory`. It takes the shelf and has no other state. `create` returns `new InMemoryArchiveStore($owner, $this->shelf)`.
 
@@ -52,7 +57,7 @@ Two stores for one owner share rows through the shelf. A store for another owner
   - `$url = $body->url ?? throw new \LogicException('NotNull guarantees url.')`. The DTO does not change.
   - `$result = $archives->archive($url)`, where `$archives` is the action argument (revised by slice 5b). Before that revision: `$this->archives->create($this->owners->owner())->archive($url)`.
   - The status is 201 for `Written` and 200 for `AlreadyStored`.
-  - The body is `json_encode(['url' => $archive->url, 'title' => $archive->title], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)`. Without `JSON_UNESCAPED_SLASHES` the URL would read `https:\/\/example.com\/a`. `JsonResponse::fromJsonString($json, $status)` writes the response. The content type stays `application/json`.
+  - The success body reads `$result->summary->url` and `$result->summary->title` (revised by [SqliteStore.md](SqliteStore.md); before that revision the fields were `$result->archive->url` and `$result->archive->title`). Slice 6 writes that body through `ArchiveResponse` and `Reply`.
   - It does not catch `ArchiveException`.
 
 ## Configuration
@@ -62,7 +67,7 @@ Two stores for one owner share rows through the shelf. A store for another owner
 - Parameter `eleanor.owner_email` with a fixed placeholder value, `owner@example.com`. The README tells the reader to change it.
 - `Yumo\ArtcleReader\Orchestrator\Orchestrator` is a service with `factory: ['Yumo\ArtcleReader\Orchestrator\OrchestratorFactory', 'create']` and no arguments. The logger stays the library's `NullLogger`. This slice adds no log line.
 - `ConfiguredOwnerProvider` takes `$email: '%eleanor.owner_email%'`. The `OwnerProvider` interface has that one implementation, so the alias is automatic. The firewall slice replaces that alias.
-- `ArticleFetcher`, `ArchiveStoreFactory`, and `OwnerProvider` each have one implementation in `src/`, so the aliases are automatic. `InMemoryArchiveShelf` is shared, which is the default.
+- `ArticleFetcher`, `ArchiveStoreFactory`, and `OwnerProvider` each have one implementation in `src/`, so the aliases are automatic. [SqliteStore.md](SqliteStore.md) replaces the store implementation with `SqliteArchiveStoreFactory` and adds `ArchiveLockFactory`. Before that, `InMemoryArchiveShelf` was the shared stand-in.
 - The existing `Yumo\Eleanor\` resource registers everything else. The `#[Exclude]` classes above are not registered.
 
 `config/services_test.yaml`, which the kernel loads in the `test` environment:
@@ -78,10 +83,10 @@ No new Composer package. `yumo/article-reader` is already a direct requirement a
 
 1. The resolver maps and validates the body, as before.
 2. `ArchiveServiceResolver` asks `OwnerProvider` for the `Owner` and `ArchiveServiceFactory` for the service of that owner, and passes it to the action (revised by slice 5b).
-3. `ArchiveService::archive` finds nothing, fetches through `ArticleFetcher`, builds and saves the `Archive`, and returns `Written`.
-4. The controller answers 201 with `{"url":"https://example.com/a","title":"..."}`.
+3. `ArchiveService::archive` trims the URL, takes the lock, finds nothing, fetches through `ArticleFetcher`, builds and saves the `Archive`, and returns `Written` (revised by [SqliteStore.md](SqliteStore.md)).
+4. The controller answers 201 with `{"url":"https://example.com/a","title":"..."}` from the summary.
 
-A second POST of the same string finds the archive on the shelf, does not fetch, and answers 200 with the same JSON.
+A second POST of the same string finds the summary, does not fetch, and answers 200 with the same JSON.
 
 ## Errors
 
@@ -106,7 +111,7 @@ A small builder in `tests/Support/` makes a `PipelineSuccess` from a title, an o
 
 Unit tests, no kernel, in `tests/Archive/` and `tests/Api/Owner/`:
 
-- `OwnerTest`: keeps the email.
+- `OwnerTest`: `Ada@Example.com` is stored as `ada@example.com` (revised by [SqliteStore.md](SqliteStore.md)).
 - `ConfiguredOwnerProviderTest`: `owner()` returns an `Owner` with the configured email.
 - `InMemoryArchiveStoreTest`: an unknown URL is absent. `save` then `find` returns the same archive. A store for another owner from the same shelf does not see it. A second store for the same owner does.
 - `InMemoryArchiveStoreFactoryTest`: two `create` calls for the same owner share rows, and another owner does not.

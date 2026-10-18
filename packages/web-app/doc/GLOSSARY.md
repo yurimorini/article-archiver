@@ -17,5 +17,5 @@ A reference that names a page by its URL.
 _Avoid_: Archive, article, bookmark
 
 **Owner**:
-The person an archive belongs to, identified by an email address.
+The person an archive belongs to, identified by an email address. Two addresses that differ only in letter case name the same owner.
 _Avoid_: user, operator, account
