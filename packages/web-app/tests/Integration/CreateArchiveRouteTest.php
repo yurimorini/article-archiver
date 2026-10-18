@@ -97,6 +97,16 @@ final class CreateArchiveRouteTest extends WebTestCase
         self::assertSame('{"url":"https://example.com/a","title":""}', $this->responseBody($client->getInternalResponse()));
     }
 
+    public function test_non_ascii_title_and_slashes_stay_readable(): void
+    {
+        $client = static::createClient();
+        $this->fetcher()->willReturn('https://example.com/a/b', PipelineFixtures::success('Café', sourceUrl: 'https://example.com/a/b'));
+
+        $this->postUrl($client, 'https://example.com/a/b');
+
+        self::assertSame('{"url":"https://example.com/a/b","title":"Café"}', $this->responseBody($client->getInternalResponse()));
+    }
+
     /**
      * @return iterable<string, array{string}>
      */
