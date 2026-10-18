@@ -69,11 +69,14 @@ final class FlockArchiveLockTest extends TestCase
         $release = $this->directory . '/release';
         $this->startChildHolding($locks, self::URL_A, $release);
 
+        $started = hrtime(true);
         $value = $this->lock($locks, new RecordingLogger(), 2000)
             ->exclusive(self::URL_B, static fn (): string => 'b');
+        $elapsedMilliseconds = (hrtime(true) - $started) / 1_000_000;
         file_put_contents($release, '');
 
         self::assertSame('b', $value);
+        self::assertLessThan(1000, $elapsedMilliseconds);
     }
 
     public function test_one_key_blocks_until_the_first_releases(): void
