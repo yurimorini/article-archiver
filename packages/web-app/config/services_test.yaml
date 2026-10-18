@@ -1,0 +1,9 @@
+parameters:
+    eleanor.owner_email: 'owner@example.test'
+
+services:
+    Yumo\Eleanor\Tests\Support\FakeArticleFetcher:
+        public: true
+
+    Yumo\Eleanor\Archive\ArticleFetcher:
+        alias: Yumo\Eleanor\Tests\Support\FakeArticleFetcher

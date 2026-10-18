@@ -7,10 +7,13 @@ namespace Yumo\Eleanor\Tests\Integration;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\BrowserKit\Response;
+use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Component\HttpFoundation\Request;
+use Yumo\Eleanor\Tests\Support\FakeArticleFetcher;
+use Yumo\Eleanor\Tests\Support\PipelineFixtures;
 
 /**
- * Proves POST /api/archives through the kernel.
+ * Proves POST /api/archives through the kernel with a fake fetcher.
  */
 final class CreateArchiveRouteTest extends WebTestCase
 {
@@ -20,7 +23,7 @@ final class CreateArchiveRouteTest extends WebTestCase
     public static function acceptedPostProvider(): iterable
     {
         yield 'string url' => ['/api/archives?ignored=1', ['CONTENT_TYPE' => 'application/json; charset=utf-8'], '{"url":"https://example.com/a"}'];
-        yield 'empty url' => ['/api/archives', ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'text/html'], '{"url":""}'];
+        yield 'accept html' => ['/api/archives', ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'text/html'], '{"url":"https://example.com/a"}'];
         yield 'extra property' => ['/api/archives', ['CONTENT_TYPE' => 'application/json'], '{"url":"https://example.com/a","extra":1}'];
     }
 
@@ -28,15 +31,99 @@ final class CreateArchiveRouteTest extends WebTestCase
      * @param array<string, string> $server
      */
     #[DataProvider('acceptedPostProvider')]
-    public function test_accepted_post_returns_the_empty_route_stub(string $uri, array $server, string $content): void
+    public function test_new_url_returns_201_and_the_archive_json(string $uri, array $server, string $content): void
     {
         $client = static::createClient();
+        $this->fetcher()->willReturn('https://example.com/a', PipelineFixtures::success());
         $client->request('POST', $uri, [], [], $server, $content);
 
         self::assertRouteSame('create_archive');
+        self::assertResponseStatusCodeSame(201);
+        self::assertResponseHeaderSame('content-type', 'application/json');
+        self::assertSame('{"url":"https://example.com/a","title":"Title"}', $this->responseBody($client->getInternalResponse()));
+    }
+
+    public function test_same_url_again_returns_200_with_the_same_body_and_one_fetch(): void
+    {
+        $client = static::createClient();
+        $client->disableReboot();
+        $this->fetcher()->willReturn('https://example.com/a', PipelineFixtures::success());
+
+        $this->postUrl($client, 'https://example.com/a');
+        $first = $this->responseBody($client->getInternalResponse());
+        $this->postUrl($client, 'https://example.com/a');
+
         self::assertResponseStatusCodeSame(200);
         self::assertResponseHeaderSame('content-type', 'application/json');
-        self::assertSame('{"ok":true}', $this->responseBody($client->getInternalResponse()));
+        self::assertSame($first, $this->responseBody($client->getInternalResponse()));
+        self::assertSame(1, $this->fetcher()->fetchCount());
+    }
+
+    public function test_a_different_url_returns_201_and_fetches_again(): void
+    {
+        $client = static::createClient();
+        $client->disableReboot();
+        $this->fetcher()->willReturn('https://example.com/a', PipelineFixtures::success('First'));
+        $this->fetcher()->willReturn('https://example.com/b', PipelineFixtures::success('Second'));
+
+        $this->postUrl($client, 'https://example.com/a');
+        $this->postUrl($client, 'https://example.com/b');
+
+        self::assertResponseStatusCodeSame(201);
+        self::assertSame('{"url":"https://example.com/b","title":"Second"}', $this->responseBody($client->getInternalResponse()));
+        self::assertSame(2, $this->fetcher()->fetchCount());
+    }
+
+    public function test_title_with_quote_and_backslash_decodes_to_the_same_title(): void
+    {
+        $title = 'He said "hi" \\ and left';
+        $client = static::createClient();
+        $this->fetcher()->willReturn('https://example.com/a', PipelineFixtures::success($title));
+
+        $this->postUrl($client, 'https://example.com/a');
+
+        $decoded = json_decode($this->responseBody($client->getInternalResponse()), true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($decoded);
+        self::assertSame($title, $decoded['title']);
+    }
+
+    public function test_missing_title_is_an_empty_string(): void
+    {
+        $client = static::createClient();
+        $this->fetcher()->willReturn('https://example.com/a', PipelineFixtures::success(''));
+
+        $this->postUrl($client, 'https://example.com/a');
+
+        self::assertSame('{"url":"https://example.com/a","title":""}', $this->responseBody($client->getInternalResponse()));
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function failedArchiveProvider(): iterable
+    {
+        yield 'empty url' => [''];
+        yield 'spaces' => [' '];
+        yield 'not a url' => ['not-a-url'];
+        yield 'no article' => ['https://example.com/empty'];
+        yield 'fetch failure' => ['https://example.com/broken'];
+    }
+
+    #[DataProvider('failedArchiveProvider')]
+    public function test_failed_archive_is_not_success_json_and_not_a_problem_document(string $url): void
+    {
+        $client = static::createClient();
+        $this->fetcher()->willReturn('https://example.com/empty', PipelineFixtures::noContent());
+        $this->fetcher()->willThrow('https://example.com/broken', new \RuntimeException('Broken'));
+
+        $this->postUrl($client, $url);
+
+        $response = $client->getResponse();
+        self::assertNotSame(201, $response->getStatusCode());
+        self::assertNotSame(200, $response->getStatusCode());
+        self::assertNotSame('application/problem+json', $response->headers->get('content-type'));
+        $decoded = json_decode((string) $response->getContent(), true);
+        self::assertFalse(is_array($decoded) && array_key_exists('url', $decoded));
     }
 
     /**
@@ -97,6 +184,26 @@ final class CreateArchiveRouteTest extends WebTestCase
         $client->request('POST', '/archives');
 
         self::assertNotSame('create_archive', $this->matchedRoute($client->getRequest()));
+    }
+
+    private function fetcher(): FakeArticleFetcher
+    {
+        $fetcher = static::getContainer()->get(FakeArticleFetcher::class);
+        self::assertInstanceOf(FakeArticleFetcher::class, $fetcher);
+
+        return $fetcher;
+    }
+
+    private function postUrl(KernelBrowser $client, string $url): void
+    {
+        $client->request(
+            'POST',
+            '/api/archives',
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode(['url' => $url], JSON_THROW_ON_ERROR),
+        );
     }
 
     private function matchedRoute(object $request): mixed

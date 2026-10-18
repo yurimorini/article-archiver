@@ -9,6 +9,8 @@ use Symfony\Component\BrowserKit\Response as BrowserResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Yumo\Eleanor\Request\EnrichedRequest;
+use Yumo\Eleanor\Tests\Support\FakeArticleFetcher;
+use Yumo\Eleanor\Tests\Support\PipelineFixtures;
 
 /**
  * Proves the API request stores an enriched request around the action.
@@ -63,9 +65,9 @@ final class LogApiRequestTest extends WebTestCase
         self::assertSame('ArchiveClient/1', $enriched->userAgent);
         self::assertSame('https://example.test/from', $enriched->referer);
         $response = $this->symfonyResponse($client->getResponse());
-        self::assertSame(200, $response->getStatusCode());
+        self::assertSame(201, $response->getStatusCode());
         self::assertSame('application/json', $response->headers->get('content-type'));
-        self::assertSame('{"ok":true}', $this->body($client->getInternalResponse()));
+        self::assertSame('{"url":"https://example.test/a","title":"Title"}', $this->body($client->getInternalResponse()));
     }
 
     public function test_missing_id_is_a_uuid(): void
@@ -156,6 +158,9 @@ final class LogApiRequestTest extends WebTestCase
     private function postArchives(LoggingBrowser $client, array $server = []): void
     {
         $server['CONTENT_TYPE'] = 'application/json';
+        $fetcher = static::getContainer()->get(FakeArticleFetcher::class);
+        self::assertInstanceOf(FakeArticleFetcher::class, $fetcher);
+        $fetcher->willReturn('https://example.test/a', PipelineFixtures::success());
         $client->request('POST', '/api/archives', server: $server, content: '{"url":"https://example.test/a"}');
     }
 
