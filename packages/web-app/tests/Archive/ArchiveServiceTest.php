@@ -11,6 +11,7 @@ use Yumo\ArtcleReader\Orchestrator\PipelineWarning;
 use Yumo\ArtcleReader\Orchestrator\PipelineWarningCode;
 use Yumo\Eleanor\Archive\Archive;
 use Yumo\Eleanor\Archive\ArchiveException;
+use Yumo\Eleanor\Archive\ArchiveFailure;
 use Yumo\Eleanor\Archive\ArchiveOutcome;
 use Yumo\Eleanor\Archive\ArchiveService;
 use Yumo\Eleanor\Archive\InMemory\InMemoryArchiveShelf;
@@ -118,7 +119,8 @@ final class ArchiveServiceTest extends TestCase
         try {
             $this->service->archive(self::URL);
             self::fail('Expected an ArchiveException.');
-        } catch (ArchiveException) {
+        } catch (ArchiveException $exception) {
+            self::assertSame(ArchiveFailure::SanitizedEmpty, $exception->failure);
             self::assertNull($this->store->find(self::URL));
         }
     }
@@ -132,9 +134,41 @@ final class ArchiveServiceTest extends TestCase
             $this->service->archive(self::URL);
             self::fail('Expected an ArchiveException.');
         } catch (ArchiveException $exception) {
+            self::assertSame(ArchiveFailure::Unexpected, $exception->failure);
             self::assertSame($failure, $exception->getPrevious());
             self::assertNull($this->store->find(self::URL));
         }
+    }
+
+    public function test_an_error_from_the_fetcher_passes_through(): void
+    {
+        $this->fetcher->willThrow(self::URL, new \Error('boom'));
+
+        $this->expectException(\Error::class);
+
+        $this->service->archive(self::URL);
+    }
+
+    public function test_a_runtime_exception_from_the_fetcher_passes_through(): void
+    {
+        $this->fetcher->willThrow(self::URL, new \RuntimeException('boom'));
+
+        $this->expectException(\RuntimeException::class);
+
+        $this->service->archive(self::URL);
+    }
+
+    public function test_a_throwable_that_passes_through_stores_nothing(): void
+    {
+        $this->fetcher->willThrow(self::URL, new \RuntimeException('boom'));
+
+        try {
+            $this->service->archive(self::URL);
+        } catch (\RuntimeException $exception) {
+            self::assertNotInstanceOf(ArchiveException::class, $exception);
+        }
+
+        self::assertNull($this->store->find(self::URL));
     }
 
     public function test_a_failed_fetch_leaves_the_next_call_free_to_fetch(): void

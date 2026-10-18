@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Yumo\Eleanor\Archive;
 
 use Symfony\Component\DependencyInjection\Attribute\Exclude;
+use Yumo\ArtcleReader\Orchestrator\OrchestratorException;
 use Yumo\ArtcleReader\Orchestrator\PipelineNoContent;
 use Yumo\ArtcleReader\Orchestrator\PipelineSuccess;
 
@@ -17,20 +18,22 @@ use Yumo\ArtcleReader\Orchestrator\PipelineSuccess;
 final class ArchiveService
 {
     /**
-     * Creates the service from the store of one owner and the fetcher that downloads pages.
+     * Creates the service from the store of one owner, the fetcher that downloads pages, and the failure mapper.
      */
     public function __construct(
         /** The store of the owner this service works for. */
         private ArchiveStore $store,
         /** The fetcher that downloads and purifies a page. */
         private ArticleFetcher $fetcher,
+        /** The mapper that turns library failures into archive failures. */
+        private ArchiveFailureMapper $failures = new ArchiveFailureMapper(),
     ) {
     }
 
     /**
      * Returns the stored archive of `$url`, fetching and storing the page when there is none.
      *
-     * @throws ArchiveException When the page cannot be fetched or has no article
+     * @throws ArchiveException When the library fails to fetch the page or the page has no article
      */
     public function archive(string $url): ArchiveResult
     {
@@ -46,7 +49,8 @@ final class ArchiveService
     }
 
     /**
-     * Fetches `$url`. A thrown failure and an empty outcome both become an `ArchiveException`.
+     * Fetches `$url`. A failed fetch and an empty outcome both become an `ArchiveException`.
+     * Any other throwable is not an archive failure and passes through.
      *
      * @throws ArchiveException
      */
@@ -54,12 +58,12 @@ final class ArchiveService
     {
         try {
             $outcome = $this->fetcher->fetch($url);
-        } catch (\Throwable $failure) {
-            throw new ArchiveException('The page could not be fetched.', $failure);
+        } catch (OrchestratorException $failure) {
+            throw $this->failures->fromOrchestrator($failure);
         }
 
         if ($outcome instanceof PipelineNoContent) {
-            throw new ArchiveException('The page has no article.');
+            throw $this->failures->fromEmpty($outcome);
         }
 
         return $outcome;

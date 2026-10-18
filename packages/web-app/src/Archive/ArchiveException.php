@@ -9,16 +9,21 @@ use Symfony\Component\DependencyInjection\Attribute\Exclude;
 /**
  * Reports that a page could not be archived.
  *
- * The original failure, when there is one, is available through `getPrevious()`.
+ * `$failure` names the reason. The original failure, when there is one, is available through `getPrevious()`.
  */
 #[Exclude]
 final class ArchiveException extends \RuntimeException
 {
     /**
-     * Creates the exception from a message and the original failure that caused it, if any.
+     * Creates the exception from the failure kind, the original failure that caused it, and the status the page's site sent.
      */
-    public function __construct(string $message, ?\Throwable $previous = null)
-    {
-        parent::__construct($message, 0, $previous);
+    public function __construct(
+        /** The reason the page could not be archived. */
+        public readonly ArchiveFailure $failure,
+        ?\Throwable $cause = null,
+        /** The HTTP status the page's site answered with, or null when there is none. */
+        public readonly ?int $upstreamStatus = null,
+    ) {
+        parent::__construct('Archive failed: ' . $failure->value, 0, $cause);
     }
 }

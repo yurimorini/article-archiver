@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Yumo\Eleanor\Tests\Support;
 
+use Yumo\ArtcleReader\ArticleExtractor\ExtractResult;
 use Yumo\ArtcleReader\ArticleExtractor\PlainText;
 use Yumo\ArtcleReader\HtmlSanitizer\SafeDocument;
 use Yumo\ArtcleReader\Orchestrator\PipelineNoContent;
@@ -38,6 +39,14 @@ final class PipelineFixtures
             ),
             $warnings,
         );
+    }
+
+    /**
+     * Builds the outcome of a page where the extractor found no article.
+     */
+    public static function noArticle(string $sourceUrl = 'https://example.com/a'): PipelineNoContent
+    {
+        return PipelineNoContent::fromExtract(ExtractResult::noContent($sourceUrl));
     }
 
     /**
