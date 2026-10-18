@@ -12,11 +12,16 @@ use Symfony\Component\DependencyInjection\Attribute\Exclude;
 #[Exclude]
 final readonly class UrlPointer
 {
+    /**
+     * The byte stripped from both ends of a URL, and the byte between an owner and a URL in a lock key.
+     */
+    public const string SEPARATOR = "\0";
+
     private string $url;
 
     public function __construct(string $url)
     {
-        $this->url = trim($url, "\0");
+        $this->url = trim($url, self::SEPARATOR);
     }
 
     /**

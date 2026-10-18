@@ -23,7 +23,7 @@ Archive/
 
 Final readonly class. `#[Exclude]`. Not a container service.
 
-The constructor takes the string the caller was given. It stores `trim($url, "\0")`. A NUL in the middle stays. Whitespace stays. The constructor does not judge syntax, scheme, or host. An empty string after the trim is a pointer. The fetch and the URL guard still decide what that string means.
+The constructor takes the string the caller was given. It stores `trim($url, self::SEPARATOR)`. `public const string SEPARATOR = "\0"`. A NUL in the middle stays. Whitespace stays. The constructor does not judge syntax, scheme, or host. An empty string after the trim is a pointer. The fetch and the URL guard still decide what that string means.
 
 `toString(): string` returns the stored string. That is the only way out. The class has no `__toString`, so a concatenation cannot pick the string by accident. It has no other field. The raw input is not kept.
 
@@ -34,7 +34,7 @@ Two pointers with the same `toString()` name the same page. `https://example.com
 These signatures replace the `string $url` parameters named in [SqliteStore.md](SqliteStore.md) and [ArchiveCommand.md](ArchiveCommand.md). `save(Archive $archive): void` stays. `Archive::$url` and `ArchiveSummary::$url` stay strings. The service copies `toString()` into `Archive` when it builds one. The summary copies that field through `ArchiveSummary::fromArchive`.
 
 - `ArchiveService::archive(UrlPointer $url): ArchiveResult`. The method does not trim. The lock, the fetch, and `findSummary` receive the same pointer.
-- `ArchiveLock::exclusive(UrlPointer $url, callable $action): mixed`. The callable still takes no arguments. `FlockArchiveLock` builds the key as the owner email, a NUL byte, and `$url->toString()`.
+- `ArchiveLock::exclusive(UrlPointer $url, callable $action): mixed`. The callable still takes no arguments. `FlockArchiveLock` builds the key as the owner email, `UrlPointer::SEPARATOR`, and `$url->toString()`.
 - `ArticleFetcher::fetch(UrlPointer $url)`. `ArticleReaderAdapter` passes `$url->toString()` to the library.
 - `ArchiveStore::findSummary(UrlPointer $url)` and `find(UrlPointer $url)`. `SqliteArchiveStore` binds `$url->toString()` in the SQL parameter. The in-memory shelf stays keyed by that string. The store calls `toString()` at that boundary.
 

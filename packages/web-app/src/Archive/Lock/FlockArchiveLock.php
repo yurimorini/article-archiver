@@ -72,7 +72,8 @@ final class FlockArchiveLock implements ArchiveLock
     {
         try {
             // No auto-release: `exclusive` releases once, and a destructor must not retry a failed release.
-            $lock = $this->factory()->createLock($this->owner->email . "\0" . $url->toString(), autoRelease: false);
+            $key = $this->owner->email . UrlPointer::SEPARATOR . $url->toString();
+            $lock = $this->factory()->createLock($key, autoRelease: false);
 
             return $this->acquireWithin($lock) ? $lock : null;
         } catch (\Throwable $exception) {
