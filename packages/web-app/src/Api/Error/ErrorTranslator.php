@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Yumo\Eleanor\Api\Error;
 
-use Symfony\Component\DependencyInjection\Attribute\Exclude;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -20,7 +19,6 @@ use Yumo\Eleanor\Archive\ArchiveFailure;
  *
  * The reply holds fixed texts only. The text of the throwable never reaches it.
  */
-#[Exclude]
 final class ErrorTranslator
 {
     /**
