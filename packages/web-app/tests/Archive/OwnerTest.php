@@ -8,11 +8,18 @@ use PHPUnit\Framework\TestCase;
 use Yumo\Eleanor\Archive\Owner;
 
 /**
- * Proves that an owner keeps the email it is given.
+ * Proves that an owner normalizes the email it is given.
  */
 final class OwnerTest extends TestCase
 {
-    public function test_keeps_the_email(): void
+    public function test_lowercases_the_whole_address_and_keeps_plus_and_dots(): void
+    {
+        $owner = new Owner('Ada+Box@Example.com');
+
+        self::assertSame('ada+box@example.com', $owner->email);
+    }
+
+    public function test_keeps_an_ascii_address(): void
     {
         $owner = new Owner('ada@example.com');
 

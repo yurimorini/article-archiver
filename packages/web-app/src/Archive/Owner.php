@@ -14,12 +14,15 @@ use Symfony\Component\DependencyInjection\Attribute\Exclude;
 #[Exclude]
 final readonly class Owner
 {
+    /** The email address that identifies the owner. */
+    public string $email;
+
     /**
      * Creates an owner from the email address that identifies them.
      */
     public function __construct(
-        /** The email address that identifies the owner. */
-        public string $email,
+        string $email,
     ) {
+        $this->email = mb_strtolower($email, 'UTF-8');
     }
 }
