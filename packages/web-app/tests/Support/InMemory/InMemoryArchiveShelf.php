@@ -33,7 +33,7 @@ final class InMemoryArchiveShelf
             return null;
         }
 
-        return new ArchiveSummary($archive->url, $archive->title, $archive->excerpt, $archive->siteName);
+        return ArchiveSummary::fromArchive($archive);
     }
 
     /**

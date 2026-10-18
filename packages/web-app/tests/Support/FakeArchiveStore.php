@@ -55,7 +55,7 @@ final class FakeArchiveStore implements ArchiveStore
             return null;
         }
 
-        return new ArchiveSummary($archive->url, $archive->title, $archive->excerpt, $archive->siteName);
+        return ArchiveSummary::fromArchive($archive);
     }
 
     public function find(string $url): ?Archive

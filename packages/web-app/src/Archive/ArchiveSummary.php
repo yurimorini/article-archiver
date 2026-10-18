@@ -26,4 +26,12 @@ final readonly class ArchiveSummary
         public ?string $siteName,
     ) {
     }
+
+    /**
+     * Copies the light fields of `$archive`. The HTML stays out.
+     */
+    public static function fromArchive(Archive $archive): self
+    {
+        return new self($archive->url, $archive->title, $archive->excerpt, $archive->siteName);
+    }
 }

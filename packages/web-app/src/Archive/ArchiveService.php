@@ -62,7 +62,7 @@ final class ArchiveService
         $this->save($archive);
 
         return new ArchiveResult(
-            new ArchiveSummary($archive->url, $archive->title, $archive->excerpt, $archive->siteName),
+            ArchiveSummary::fromArchive($archive),
             ArchiveOutcome::Written,
         );
     }
