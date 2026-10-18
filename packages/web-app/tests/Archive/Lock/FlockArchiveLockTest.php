@@ -135,18 +135,20 @@ final class FlockArchiveLockTest extends TestCase
     {
         $locks = $this->directory . '/locks';
         $logger = new RecordingLogger();
+        $caught = null;
 
         try {
-            $this->lock($locks, $logger)->exclusive(self::URL_A, function () use ($locks): never {
+            $this->lock($locks, $logger)->exclusive(self::URL_A, function () use ($locks): string {
                 $this->closeLockFilesAnd('unused', $locks);
 
                 throw new \RuntimeException('boom');
             });
-            self::fail('The action exception must pass through.');
         } catch (\RuntimeException $exception) {
-            self::assertSame('boom', $exception->getMessage());
+            $caught = $exception;
         }
 
+        self::assertInstanceOf(\RuntimeException::class, $caught);
+        self::assertSame('boom', $caught->getMessage());
         self::assertSame(['archive.lock.not_released'], $logger->warnings);
     }
 
