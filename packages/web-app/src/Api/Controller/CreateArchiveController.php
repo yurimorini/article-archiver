@@ -8,10 +8,9 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
 use Yumo\Eleanor\Api\Dto\CreateArchiveBody;
-use Yumo\Eleanor\Api\Owner\OwnerProvider;
 use Yumo\Eleanor\Archive\ArchiveOutcome;
 use Yumo\Eleanor\Archive\ArchiveResult;
-use Yumo\Eleanor\Archive\ArchiveServiceFactory;
+use Yumo\Eleanor\Archive\ArchiveService;
 
 /**
  * HTTP adapter for the archive command.
@@ -20,24 +19,19 @@ use Yumo\Eleanor\Archive\ArchiveServiceFactory;
  */
 final class CreateArchiveController
 {
-    public function __construct(
-        /** The factory that builds the service of one owner. */
-        private ArchiveServiceFactory $archives,
-        /** The source of the owner of the current call. */
-        private OwnerProvider $owners,
-    ) {
-    }
-
     /**
      * Archives the URL of the body and answers 201 for a new archive or 200 for one already stored.
+     *
+     * `ArchiveServiceResolver` supplies `$archives` for the current owner.
      */
     #[Route('/archives', name: 'create_archive', methods: ['POST'], format: 'json')]
     public function create(
         #[MapRequestPayload(acceptFormat: 'json', validationFailedStatusCode: 400)]
         CreateArchiveBody $body,
+        ArchiveService $archives,
     ): JsonResponse {
         $url = $body->url ?? throw new \LogicException('NotNull guarantees url.');
-        $result = $this->archives->create($this->owners->owner())->archive($url);
+        $result = $archives->archive($url);
 
         return JsonResponse::fromJsonString($this->json($result), $this->status($result));
     }
