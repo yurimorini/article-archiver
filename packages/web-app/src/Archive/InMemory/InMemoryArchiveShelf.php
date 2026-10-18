@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Yumo\Eleanor\Archive\InMemory;
 
 use Yumo\Eleanor\Archive\Archive;
+use Yumo\Eleanor\Archive\ArchiveSummary;
 use Yumo\Eleanor\Archive\Owner;
 
 /**
@@ -21,6 +22,19 @@ final class InMemoryArchiveShelf
      * @var array<string, array<string, Archive>>
      */
     private array $archives = [];
+
+    /**
+     * Returns the light fields of `$owner` stored for `$url`, or null.
+     */
+    public function findSummary(Owner $owner, string $url): ?ArchiveSummary
+    {
+        $archive = $this->find($owner, $url);
+        if ($archive === null) {
+            return null;
+        }
+
+        return new ArchiveSummary($archive->url, $archive->title, $archive->excerpt, $archive->siteName);
+    }
 
     /**
      * Returns the archive of `$owner` stored for `$url`, or null.

@@ -14,6 +14,7 @@ use Yumo\Eleanor\Archive\ArchiveException;
 use Yumo\Eleanor\Archive\ArchiveFailure;
 use Yumo\Eleanor\Archive\ArchiveOutcome;
 use Yumo\Eleanor\Archive\ArchiveService;
+use Yumo\Eleanor\Archive\ArchiveSummary;
 use Yumo\Eleanor\Archive\InMemory\InMemoryArchiveShelf;
 use Yumo\Eleanor\Archive\InMemory\InMemoryArchiveStore;
 use Yumo\Eleanor\Archive\Owner;
@@ -45,10 +46,12 @@ final class ArchiveServiceTest extends TestCase
         $this->fetcher->willReturn(self::URL, PipelineFixtures::success());
 
         $result = $this->service->archive(self::URL);
+        $summary = $result->summary;
 
         self::assertSame(ArchiveOutcome::Written, $result->outcome);
         self::assertSame(1, $this->fetcher->fetchCount());
-        self::assertSame($result->archive, $this->store->find(self::URL));
+        self::assertEquals(new ArchiveSummary(self::URL, 'Title', null, null), $summary);
+        self::assertEquals(new Archive(self::URL, 'Title', null, null, '<p>Body</p>'), $this->store->find(self::URL));
     }
 
     public function test_second_archive_is_already_stored_and_does_not_fetch(): void
@@ -59,7 +62,7 @@ final class ArchiveServiceTest extends TestCase
         $second = $this->service->archive(self::URL);
 
         self::assertSame(ArchiveOutcome::AlreadyStored, $second->outcome);
-        self::assertSame($first->archive, $second->archive);
+        self::assertEquals($first->summary, $second->summary);
         self::assertSame(1, $this->fetcher->fetchCount());
     }
 
@@ -67,39 +70,39 @@ final class ArchiveServiceTest extends TestCase
     {
         $this->fetcher->willReturn(self::URL, PipelineFixtures::success('Title', 'Excerpt', 'Site', '<p>Body</p>'));
 
-        $archive = $this->service->archive(self::URL)->archive;
+        $this->service->archive(self::URL);
 
-        self::assertEquals(new Archive(self::URL, 'Title', 'Excerpt', 'Site', '<p>Body</p>'), $archive);
+        self::assertEquals(new Archive(self::URL, 'Title', 'Excerpt', 'Site', '<p>Body</p>'), $this->store->find(self::URL));
     }
 
     public function test_text_fields_are_stored_as_raw_text_not_escaped_html(): void
     {
         $this->fetcher->willReturn(self::URL, PipelineFixtures::success('A & "B"', 'C & <b>D</b>', 'E & F'));
 
-        $archive = $this->service->archive(self::URL)->archive;
+        $summary = $this->service->archive(self::URL)->summary;
 
-        self::assertSame('A & "B"', $archive->title);
-        self::assertSame('C & D', $archive->excerpt);
-        self::assertSame('E & F', $archive->siteName);
+        self::assertSame('A & "B"', $summary->title);
+        self::assertSame('C & D', $summary->excerpt);
+        self::assertSame('E & F', $summary->siteName);
     }
 
     public function test_excerpt_and_site_name_stay_null_when_missing(): void
     {
         $this->fetcher->willReturn(self::URL, PipelineFixtures::success());
 
-        $archive = $this->service->archive(self::URL)->archive;
+        $summary = $this->service->archive(self::URL)->summary;
 
-        self::assertNull($archive->excerpt);
-        self::assertNull($archive->siteName);
+        self::assertNull($summary->excerpt);
+        self::assertNull($summary->siteName);
     }
 
     public function test_url_is_the_string_passed_in_not_the_source_url(): void
     {
         $this->fetcher->willReturn(self::URL, PipelineFixtures::success(sourceUrl: 'https://example.com/other'));
 
-        $archive = $this->service->archive(self::URL)->archive;
+        $summary = $this->service->archive(self::URL)->summary;
 
-        self::assertSame(self::URL, $archive->url);
+        self::assertSame(self::URL, $summary->url);
     }
 
     public function test_warning_is_left_out_of_the_archive(): void
@@ -107,9 +110,9 @@ final class ArchiveServiceTest extends TestCase
         $warning = new PipelineWarning(PipelineWarningCode::EncodingDegraded, 'Lossy conversion');
         $this->fetcher->willReturn(self::URL, PipelineFixtures::success(warnings: [$warning]));
 
-        $archive = $this->service->archive(self::URL)->archive;
+        $this->service->archive(self::URL);
 
-        self::assertEquals(new Archive(self::URL, 'Title', null, null, '<p>Body</p>'), $archive);
+        self::assertEquals(new Archive(self::URL, 'Title', null, null, '<p>Body</p>'), $this->store->find(self::URL));
     }
 
     public function test_no_content_becomes_archive_exception_and_stores_nothing(): void

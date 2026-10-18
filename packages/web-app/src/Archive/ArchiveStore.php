@@ -10,6 +10,11 @@ namespace Yumo\Eleanor\Archive;
 interface ArchiveStore
 {
     /**
+     * Returns the light fields stored for `$url`, or null when this owner has none.
+     */
+    public function findSummary(string $url): ?ArchiveSummary;
+
+    /**
      * Returns the archive stored for `$url`, or null when this owner has none.
      */
     public function find(string $url): ?Archive;

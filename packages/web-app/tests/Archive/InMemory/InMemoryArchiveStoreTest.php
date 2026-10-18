@@ -6,6 +6,7 @@ namespace Yumo\Eleanor\Tests\Archive\InMemory;
 
 use PHPUnit\Framework\TestCase;
 use Yumo\Eleanor\Archive\Archive;
+use Yumo\Eleanor\Archive\ArchiveSummary;
 use Yumo\Eleanor\Archive\InMemory\InMemoryArchiveShelf;
 use Yumo\Eleanor\Archive\InMemory\InMemoryArchiveStore;
 use Yumo\Eleanor\Archive\Owner;
@@ -51,6 +52,23 @@ final class InMemoryArchiveStoreTest extends TestCase
         $other = new InMemoryArchiveStore(new Owner('grace@example.com'), $shelf);
 
         self::assertNull($other->find('https://example.com/a'));
+    }
+
+    public function test_find_summary_returns_the_light_fields(): void
+    {
+        $url = 'https://example.com/a';
+        $title = 'Title';
+        $excerpt = 'Excerpt';
+        $siteName = 'Site';
+        $store = new InMemoryArchiveStore(new Owner('ada@example.com'), new InMemoryArchiveShelf());
+        $store->save(new Archive($url, $title, $excerpt, $siteName, '<p>x</p>'));
+
+        $summary = $store->findSummary($url);
+        $stored = $store->find($url);
+
+        self::assertEquals(new ArchiveSummary($url, $title, $excerpt, $siteName), $summary);
+        self::assertNotNull($stored);
+        self::assertSame('<p>x</p>', $stored->html);
     }
 
     private function archive(string $url): Archive

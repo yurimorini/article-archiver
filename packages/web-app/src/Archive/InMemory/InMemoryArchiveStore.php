@@ -7,6 +7,7 @@ namespace Yumo\Eleanor\Archive\InMemory;
 use Symfony\Component\DependencyInjection\Attribute\Exclude;
 use Yumo\Eleanor\Archive\Archive;
 use Yumo\Eleanor\Archive\ArchiveStore;
+use Yumo\Eleanor\Archive\ArchiveSummary;
 use Yumo\Eleanor\Archive\Owner;
 
 /**
@@ -26,6 +27,14 @@ final class InMemoryArchiveStore implements ArchiveStore
         /** The shelf that holds the rows. */
         private InMemoryArchiveShelf $shelf,
     ) {
+    }
+
+    /**
+     * Returns the light fields this owner stored for `$url`, or null when there is none.
+     */
+    public function findSummary(string $url): ?ArchiveSummary
+    {
+        return $this->shelf->findSummary($this->owner, $url);
     }
 
     /**

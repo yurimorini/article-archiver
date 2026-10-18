@@ -31,13 +31,13 @@ final class ArchiveService
     }
 
     /**
-     * Returns the stored archive of `$url`, fetching and storing the page when there is none.
+     * Returns the stored summary of `$url`, fetching and storing the page when there is none.
      *
      * @throws ArchiveException When the library fails to fetch the page or the page has no article
      */
     public function archive(string $url): ArchiveResult
     {
-        $stored = $this->store->find($url);
+        $stored = $this->store->findSummary($url);
         if ($stored !== null) {
             return new ArchiveResult($stored, ArchiveOutcome::AlreadyStored);
         }
@@ -45,7 +45,10 @@ final class ArchiveService
         $archive = $this->fromSuccess($url, $this->fetch($url));
         $this->store->save($archive);
 
-        return new ArchiveResult($archive, ArchiveOutcome::Written);
+        return new ArchiveResult(
+            new ArchiveSummary($archive->url, $archive->title, $archive->excerpt, $archive->siteName),
+            ArchiveOutcome::Written,
+        );
     }
 
     /**
