@@ -9,6 +9,7 @@ use Yumo\ArtcleReader\Orchestrator\OrchestratorException;
 use Yumo\ArtcleReader\Orchestrator\PipelineNoContent;
 use Yumo\ArtcleReader\Orchestrator\PipelineSuccess;
 use Yumo\Eleanor\Archive\ArticleFetcher;
+use Yumo\Eleanor\Archive\UrlPointer;
 
 /**
  * Answers fetches from a table of outcomes and counts every call.
@@ -51,10 +52,11 @@ final class FakeArticleFetcher implements ArticleFetcher
         return $this->counts[$url] ?? 0;
     }
 
-    public function fetch(string $url): PipelineSuccess|PipelineNoContent
+    public function fetch(UrlPointer $url): PipelineSuccess|PipelineNoContent
     {
-        $this->counts[$url] = ($this->counts[$url] ?? 0) + 1;
-        $outcome = $this->outcomes[$url] ?? new OrchestratorException(OrchestratorError::UrlGuard);
+        $key = $url->toString();
+        $this->counts[$key] = ($this->counts[$key] ?? 0) + 1;
+        $outcome = $this->outcomes[$key] ?? new OrchestratorException(OrchestratorError::UrlGuard);
 
         if ($outcome instanceof \Throwable) {
             throw $outcome;

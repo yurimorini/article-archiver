@@ -23,5 +23,5 @@ interface ArchiveLock
      *
      * @return T
      */
-    public function exclusive(string $url, callable $action): mixed;
+    public function exclusive(UrlPointer $url, callable $action): mixed;
 }

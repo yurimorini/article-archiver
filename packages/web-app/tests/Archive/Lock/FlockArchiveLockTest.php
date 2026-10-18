@@ -9,6 +9,7 @@ use Psr\Log\AbstractLogger;
 use Psr\Log\LoggerInterface;
 use Yumo\Eleanor\Archive\Lock\FlockArchiveLock;
 use Yumo\Eleanor\Archive\Owner;
+use Yumo\Eleanor\Archive\UrlPointer;
 
 /**
  * Proves that the flock lock serializes work on one url and never stops the action from running.
@@ -42,8 +43,8 @@ final class FlockArchiveLockTest extends TestCase
     {
         $lock = $this->lock($this->directory . '/locks', new RecordingLogger());
 
-        $first = $lock->exclusive(self::URL_A, static fn (): string => 'first');
-        $second = $lock->exclusive(self::URL_A, static fn (): string => 'second');
+        $first = $lock->exclusive(new UrlPointer(self::URL_A), static fn (): string => 'first');
+        $second = $lock->exclusive(new UrlPointer(self::URL_A), static fn (): string => 'second');
 
         self::assertSame('first', $first);
         self::assertSame('second', $second);
@@ -54,13 +55,13 @@ final class FlockArchiveLockTest extends TestCase
         $lock = $this->lock($this->directory . '/locks', new RecordingLogger());
 
         try {
-            $lock->exclusive(self::URL_A, $this->failingAction());
+            $lock->exclusive(new UrlPointer(self::URL_A), $this->failingAction());
             self::fail('The action exception must pass through.');
         } catch (\RuntimeException $exception) {
             self::assertSame('boom', $exception->getMessage());
         }
 
-        self::assertSame('after', $lock->exclusive(self::URL_A, static fn (): string => 'after'));
+        self::assertSame('after', $lock->exclusive(new UrlPointer(self::URL_A), static fn (): string => 'after'));
     }
 
     public function test_different_keys_do_not_block(): void
@@ -71,7 +72,7 @@ final class FlockArchiveLockTest extends TestCase
 
         $started = hrtime(true);
         $value = $this->lock($locks, new RecordingLogger(), 2000)
-            ->exclusive(self::URL_B, static fn (): string => 'b');
+            ->exclusive(new UrlPointer(self::URL_B), static fn (): string => 'b');
         $elapsedMilliseconds = (hrtime(true) - $started) / 1_000_000;
         file_put_contents($release, '');
 
@@ -86,7 +87,7 @@ final class FlockArchiveLockTest extends TestCase
 
         $started = hrtime(true);
         $value = $this->lock($locks, new RecordingLogger(), 5000)
-            ->exclusive(self::URL_A, static fn (): string => 'a');
+            ->exclusive(new UrlPointer(self::URL_A), static fn (): string => 'a');
         $elapsedMilliseconds = (hrtime(true) - $started) / 1_000_000;
 
         self::assertSame('a', $value);
@@ -100,7 +101,7 @@ final class FlockArchiveLockTest extends TestCase
         $this->startChildHolding($locks, self::URL_A, $this->directory . '/never-written');
 
         $value = $this->lock($locks, $logger, 0)
-            ->exclusive(self::URL_A, static fn (): string => 'ran');
+            ->exclusive(new UrlPointer(self::URL_A), static fn (): string => 'ran');
 
         self::assertSame('ran', $value);
         self::assertSame([], $logger->warnings);
@@ -113,7 +114,7 @@ final class FlockArchiveLockTest extends TestCase
         file_put_contents($blocker, '');
 
         $value = $this->lock($blocker . '/locks', $logger)
-            ->exclusive(self::URL_A, static fn (): string => 'ran');
+            ->exclusive(new UrlPointer(self::URL_A), static fn (): string => 'ran');
 
         self::assertSame('ran', $value);
         self::assertSame(['archive.lock.not_taken'], $logger->warnings);
@@ -125,7 +126,7 @@ final class FlockArchiveLockTest extends TestCase
         $logger = new RecordingLogger();
 
         $value = $this->lock($locks, $logger)
-            ->exclusive(self::URL_A, fn (): string => $this->closeLockFilesAnd('result', $locks));
+            ->exclusive(new UrlPointer(self::URL_A), fn (): string => $this->closeLockFilesAnd('result', $locks));
 
         self::assertSame('result', $value);
         self::assertSame(['archive.lock.not_released'], $logger->warnings);
@@ -138,7 +139,7 @@ final class FlockArchiveLockTest extends TestCase
         $caught = null;
 
         try {
-            $this->lock($locks, $logger)->exclusive(self::URL_A, function () use ($locks): string {
+            $this->lock($locks, $logger)->exclusive(new UrlPointer(self::URL_A), function () use ($locks): string {
                 $this->closeLockFilesAnd('unused', $locks);
 
                 throw new \RuntimeException('boom');
@@ -221,7 +222,8 @@ final class FlockArchiveLockTest extends TestCase
                 $lockDirectory,
                 new Psr\Log\NullLogger(),
             );
-            $lock->exclusive($url, static function () use ($heldFile, $releaseFile, $holdMicroseconds): void {
+            $pointer = new Yumo\Eleanor\Archive\UrlPointer($url);
+            $lock->exclusive($pointer, static function () use ($heldFile, $releaseFile, $holdMicroseconds): void {
                 touch($heldFile);
                 if ('' !== $releaseFile) {
                     while (!is_file($releaseFile)) {

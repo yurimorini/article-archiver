@@ -98,6 +98,17 @@ final class CreateArchiveRouteTest extends WebTestCase
         self::assertSame(2, $this->fetcher()->fetchCount());
     }
 
+    public function test_leading_and_trailing_nul_in_the_body_are_not_part_of_the_stored_url(): void
+    {
+        $client = static::createClient();
+        $this->fetcher()->willReturn('https://example.com/a', PipelineFixtures::success());
+
+        $this->postUrl($client, "\0https://example.com/a\0");
+
+        self::assertResponseStatusCodeSame(201);
+        self::assertSame('{"url":"https://example.com/a","title":"Title"}', $this->responseBody($client->getInternalResponse()));
+    }
+
     public function test_title_with_quote_and_backslash_decodes_to_the_same_title(): void
     {
         $title = 'He said "hi" \\ and left';

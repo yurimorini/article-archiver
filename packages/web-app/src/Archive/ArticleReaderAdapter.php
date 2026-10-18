@@ -25,8 +25,8 @@ final class ArticleReaderAdapter implements ArticleFetcher
     /**
      * Fetches `$url` through the library orchestrator and returns its outcome unchanged.
      */
-    public function fetch(string $url): PipelineSuccess|PipelineNoContent
+    public function fetch(UrlPointer $url): PipelineSuccess|PipelineNoContent
     {
-        return $this->orchestrator->fetchArticle($url);
+        return $this->orchestrator->fetchArticle($url->toString());
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Yumo\Eleanor\Tests\Support;
 
 use Yumo\Eleanor\Archive\ArchiveLock;
+use Yumo\Eleanor\Archive\UrlPointer;
 
 /**
  * Runs the action at once, records the URL, and writes `enter` and `leave` around the action.
@@ -32,9 +33,9 @@ final class FakeArchiveLock implements ArchiveLock
     ) {
     }
 
-    public function exclusive(string $url, callable $action): mixed
+    public function exclusive(UrlPointer $url, callable $action): mixed
     {
-        $this->urls[] = $url;
+        $this->urls[] = $url->toString();
         $this->held = $this->holds;
         if (!$this->holds) {
             return $action();

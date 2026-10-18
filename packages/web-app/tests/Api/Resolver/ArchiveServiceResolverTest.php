@@ -14,6 +14,7 @@ use Yumo\Eleanor\Archive\ArchiveOutcome;
 use Yumo\Eleanor\Archive\ArchiveService;
 use Yumo\Eleanor\Archive\ArchiveServiceFactory;
 use Yumo\Eleanor\Archive\Owner;
+use Yumo\Eleanor\Archive\UrlPointer;
 use Yumo\Eleanor\Tests\Support\FakeArchiveLockFactory;
 use Yumo\Eleanor\Tests\Support\FakeArticleFetcher;
 use Yumo\Eleanor\Tests\Support\InMemory\InMemoryArchiveShelf;
@@ -45,8 +46,8 @@ final class ArchiveServiceResolverTest extends TestCase
     {
         $ada = $this->resolverFor('ada@example.com');
 
-        $first = $this->resolveService($ada)->archive(self::URL);
-        $second = $this->resolveService($ada)->archive(self::URL);
+        $first = $this->resolveService($ada)->archive(new UrlPointer(self::URL));
+        $second = $this->resolveService($ada)->archive(new UrlPointer(self::URL));
 
         self::assertSame(ArchiveOutcome::Written, $first->outcome);
         self::assertSame(ArchiveOutcome::AlreadyStored, $second->outcome);
@@ -57,9 +58,9 @@ final class ArchiveServiceResolverTest extends TestCase
         $provider = new SwitchableOwnerProvider(new Owner('ada@example.com'));
         $resolver = new ArchiveServiceResolver($provider, $this->factory);
 
-        $adaResult = $this->resolveService($resolver)->archive(self::URL);
+        $adaResult = $this->resolveService($resolver)->archive(new UrlPointer(self::URL));
         $provider->current = new Owner('bob@example.com');
-        $bobResult = $this->resolveService($resolver)->archive(self::URL);
+        $bobResult = $this->resolveService($resolver)->archive(new UrlPointer(self::URL));
 
         self::assertSame(ArchiveOutcome::Written, $adaResult->outcome);
         self::assertSame(ArchiveOutcome::Written, $bobResult->outcome);

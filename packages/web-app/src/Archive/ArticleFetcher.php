@@ -17,5 +17,5 @@ interface ArticleFetcher
     /**
      * Fetches `$url`. A failure is thrown and a page with no article is returned as `PipelineNoContent`.
      */
-    public function fetch(string $url): PipelineSuccess|PipelineNoContent;
+    public function fetch(UrlPointer $url): PipelineSuccess|PipelineNoContent;
 }

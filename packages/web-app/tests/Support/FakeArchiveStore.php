@@ -7,6 +7,7 @@ namespace Yumo\Eleanor\Tests\Support;
 use Yumo\Eleanor\Archive\Archive;
 use Yumo\Eleanor\Archive\ArchiveStore;
 use Yumo\Eleanor\Archive\ArchiveSummary;
+use Yumo\Eleanor\Archive\UrlPointer;
 
 /**
  * Keeps archives in an array, records every call, and can be told to fail.
@@ -42,15 +43,15 @@ final class FakeArchiveStore implements ArchiveStore
     ) {
     }
 
-    public function findSummary(string $url): ?ArchiveSummary
+    public function findSummary(UrlPointer $url): ?ArchiveSummary
     {
         $this->log->append('find');
-        $this->summaryLookups[] = $url;
+        $this->summaryLookups[] = $url->toString();
         if ($this->findSummaryFailure !== null) {
             throw $this->findSummaryFailure;
         }
 
-        $archive = $this->archives[$url] ?? null;
+        $archive = $this->archives[$url->toString()] ?? null;
         if ($archive === null) {
             return null;
         }
@@ -58,9 +59,9 @@ final class FakeArchiveStore implements ArchiveStore
         return ArchiveSummary::fromArchive($archive);
     }
 
-    public function find(string $url): ?Archive
+    public function find(UrlPointer $url): ?Archive
     {
-        return $this->archives[$url] ?? null;
+        return $this->archives[$url->toString()] ?? null;
     }
 
     public function save(Archive $archive): void

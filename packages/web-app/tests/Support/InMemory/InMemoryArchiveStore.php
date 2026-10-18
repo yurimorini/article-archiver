@@ -9,6 +9,7 @@ use Yumo\Eleanor\Archive\Archive;
 use Yumo\Eleanor\Archive\ArchiveStore;
 use Yumo\Eleanor\Archive\ArchiveSummary;
 use Yumo\Eleanor\Archive\Owner;
+use Yumo\Eleanor\Archive\UrlPointer;
 
 /**
  * Keeps one owner's archives on an in-memory shelf.
@@ -32,17 +33,17 @@ final class InMemoryArchiveStore implements ArchiveStore
     /**
      * Returns the light fields this owner stored for `$url`, or null when there is none.
      */
-    public function findSummary(string $url): ?ArchiveSummary
+    public function findSummary(UrlPointer $url): ?ArchiveSummary
     {
-        return $this->shelf->findSummary($this->owner, $url);
+        return $this->shelf->findSummary($this->owner, $url->toString());
     }
 
     /**
      * Returns the archive this owner stored for `$url`, or null when there is none.
      */
-    public function find(string $url): ?Archive
+    public function find(UrlPointer $url): ?Archive
     {
-        return $this->shelf->find($this->owner, $url);
+        return $this->shelf->find($this->owner, $url->toString());
     }
 
     /**

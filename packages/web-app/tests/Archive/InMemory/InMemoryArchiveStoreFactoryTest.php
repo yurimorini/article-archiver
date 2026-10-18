@@ -7,6 +7,7 @@ namespace Yumo\Eleanor\Tests\Archive\InMemory;
 use PHPUnit\Framework\TestCase;
 use Yumo\Eleanor\Archive\Archive;
 use Yumo\Eleanor\Archive\Owner;
+use Yumo\Eleanor\Archive\UrlPointer;
 use Yumo\Eleanor\Tests\Support\InMemory\InMemoryArchiveShelf;
 use Yumo\Eleanor\Tests\Support\InMemory\InMemoryArchiveStoreFactory;
 
@@ -21,7 +22,7 @@ final class InMemoryArchiveStoreFactoryTest extends TestCase
         $archive = new Archive('https://example.com/a', 'Title', null, null, '<p>Body</p>');
         $factory->create(new Owner('ada@example.com'))->save($archive);
 
-        $found = $factory->create(new Owner('ada@example.com'))->find('https://example.com/a');
+        $found = $factory->create(new Owner('ada@example.com'))->find(new UrlPointer('https://example.com/a'));
 
         self::assertSame($archive, $found);
     }
@@ -32,7 +33,7 @@ final class InMemoryArchiveStoreFactoryTest extends TestCase
         $factory->create(new Owner('ada@example.com'))
             ->save(new Archive('https://example.com/a', 'Title', null, null, '<p>Body</p>'));
 
-        $found = $factory->create(new Owner('grace@example.com'))->find('https://example.com/a');
+        $found = $factory->create(new Owner('grace@example.com'))->find(new UrlPointer('https://example.com/a'));
 
         self::assertNull($found);
     }

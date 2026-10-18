@@ -11,6 +11,7 @@ use Yumo\Eleanor\Archive\ArchiveServiceFactory;
 use Yumo\Eleanor\Archive\Lock\FlockArchiveLockFactory;
 use Yumo\Eleanor\Archive\Owner;
 use Yumo\Eleanor\Archive\Sqlite\SqliteArchiveStoreFactory;
+use Yumo\Eleanor\Archive\UrlPointer;
 use Yumo\Eleanor\Tests\Support\ArchiveDirectories;
 use Yumo\Eleanor\Tests\Support\FakeArchiveLockFactory;
 use Yumo\Eleanor\Tests\Support\FakeArticleFetcher;
@@ -34,8 +35,8 @@ final class ArchiveServiceFactoryTest extends TestCase
         );
         $owner = new Owner('ada@example.com');
 
-        $first = $factory->create($owner)->archive('https://example.com/a');
-        $second = $factory->create($owner)->archive('https://example.com/a');
+        $first = $factory->create($owner)->archive(new UrlPointer('https://example.com/a'));
+        $second = $factory->create($owner)->archive(new UrlPointer('https://example.com/a'));
 
         self::assertSame(ArchiveOutcome::Written, $first->outcome);
         self::assertSame(ArchiveOutcome::AlreadyStored, $second->outcome);
@@ -53,8 +54,8 @@ final class ArchiveServiceFactoryTest extends TestCase
             new FlockArchiveLockFactory($root . '/lock', new NullLogger()),
         );
 
-        $first = $factory->create(new Owner('ada@example.com'))->archive('https://example.com/a');
-        $second = $factory->create(new Owner('grace@example.com'))->archive('https://example.com/a');
+        $first = $factory->create(new Owner('ada@example.com'))->archive(new UrlPointer('https://example.com/a'));
+        $second = $factory->create(new Owner('grace@example.com'))->archive(new UrlPointer('https://example.com/a'));
 
         self::assertSame(ArchiveOutcome::Written, $first->outcome);
         self::assertSame(ArchiveOutcome::Written, $second->outcome);

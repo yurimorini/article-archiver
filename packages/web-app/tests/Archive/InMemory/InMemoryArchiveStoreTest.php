@@ -8,6 +8,7 @@ use PHPUnit\Framework\TestCase;
 use Yumo\Eleanor\Archive\Archive;
 use Yumo\Eleanor\Archive\ArchiveSummary;
 use Yumo\Eleanor\Archive\Owner;
+use Yumo\Eleanor\Archive\UrlPointer;
 use Yumo\Eleanor\Tests\Support\InMemory\InMemoryArchiveShelf;
 use Yumo\Eleanor\Tests\Support\InMemory\InMemoryArchiveStore;
 
@@ -20,7 +21,7 @@ final class InMemoryArchiveStoreTest extends TestCase
     {
         $store = new InMemoryArchiveStore(new Owner('ada@example.com'), new InMemoryArchiveShelf());
 
-        self::assertNull($store->find('https://example.com/a'));
+        self::assertNull($store->find(new UrlPointer('https://example.com/a')));
     }
 
     public function test_save_then_find_returns_the_same_archive(): void
@@ -30,7 +31,7 @@ final class InMemoryArchiveStoreTest extends TestCase
 
         $store->save($archive);
 
-        self::assertSame($archive, $store->find('https://example.com/a'));
+        self::assertSame($archive, $store->find(new UrlPointer('https://example.com/a')));
     }
 
     public function test_two_stores_for_one_owner_share_rows(): void
@@ -41,7 +42,7 @@ final class InMemoryArchiveStoreTest extends TestCase
 
         $second = new InMemoryArchiveStore(new Owner('ada@example.com'), $shelf);
 
-        self::assertSame($archive, $second->find('https://example.com/a'));
+        self::assertSame($archive, $second->find(new UrlPointer('https://example.com/a')));
     }
 
     public function test_a_store_for_another_owner_does_not_see_the_archive(): void
@@ -51,7 +52,7 @@ final class InMemoryArchiveStoreTest extends TestCase
 
         $other = new InMemoryArchiveStore(new Owner('grace@example.com'), $shelf);
 
-        self::assertNull($other->find('https://example.com/a'));
+        self::assertNull($other->find(new UrlPointer('https://example.com/a')));
     }
 
     public function test_find_summary_returns_the_light_fields(): void
@@ -63,8 +64,8 @@ final class InMemoryArchiveStoreTest extends TestCase
         $store = new InMemoryArchiveStore(new Owner('ada@example.com'), new InMemoryArchiveShelf());
         $store->save(new Archive($url, $title, $excerpt, $siteName, '<p>x</p>'));
 
-        $summary = $store->findSummary($url);
-        $stored = $store->find($url);
+        $summary = $store->findSummary(new UrlPointer($url));
+        $stored = $store->find(new UrlPointer($url));
 
         self::assertEquals(new ArchiveSummary($url, $title, $excerpt, $siteName), $summary);
         self::assertNotNull($stored);

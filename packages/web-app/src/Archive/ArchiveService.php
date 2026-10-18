@@ -12,7 +12,7 @@ use Yumo\ArtcleReader\Orchestrator\PipelineSuccess;
 /**
  * Archives the page behind a URL for the owner of the store it is given.
  *
- * `$result = $service->archive('https://example.com/a');`
+ * `$result = $service->archive(new UrlPointer('https://example.com/a'));`
  */
 #[Exclude]
 final class ArchiveService
@@ -35,14 +35,12 @@ final class ArchiveService
     /**
      * Returns the stored summary of `$url`, fetching and storing the page when there is none.
      *
-     * Only NUL bytes at either end of `$url` are removed. The lookup, the fetch, and the save run while one caller holds the lock on the URL.
+     * The lookup, the fetch, and the save run while one caller holds the lock on the URL.
      *
      * @throws ArchiveException When the library fails to fetch the page, the page has no article, or the archive cannot be written
      */
-    public function archive(string $url): ArchiveResult
+    public function archive(UrlPointer $url): ArchiveResult
     {
-        $url = trim($url, "\0");
-
         return $this->lock->exclusive($url, fn (): ArchiveResult => $this->archiveLocked($url));
     }
 
@@ -51,7 +49,7 @@ final class ArchiveService
      *
      * @throws ArchiveException
      */
-    private function archiveLocked(string $url): ArchiveResult
+    private function archiveLocked(UrlPointer $url): ArchiveResult
     {
         $stored = $this->store->findSummary($url);
         if ($stored !== null) {
@@ -87,7 +85,7 @@ final class ArchiveService
      *
      * @throws ArchiveException
      */
-    private function fetch(string $url): PipelineSuccess
+    private function fetch(UrlPointer $url): PipelineSuccess
     {
         try {
             $outcome = $this->fetcher->fetch($url);
@@ -105,12 +103,12 @@ final class ArchiveService
     /**
      * Builds the archive of `$url` from a fetched article. Warnings are not kept.
      */
-    private function fromSuccess(string $url, PipelineSuccess $success): Archive
+    private function fromSuccess(UrlPointer $url, PipelineSuccess $success): Archive
     {
         $document = $success->document;
 
         return new Archive(
-            $url,
+            $url->toString(),
             $document->title->raw(),
             $document->excerpt?->raw(),
             $document->siteName?->raw(),

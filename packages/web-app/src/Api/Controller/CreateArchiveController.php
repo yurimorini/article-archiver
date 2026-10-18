@@ -15,6 +15,7 @@ use Yumo\Eleanor\Archive\ArchiveFailure;
 use Yumo\Eleanor\Archive\ArchiveOutcome;
 use Yumo\Eleanor\Archive\ArchiveResult;
 use Yumo\Eleanor\Archive\ArchiveService;
+use Yumo\Eleanor\Archive\UrlPointer;
 
 /**
  * HTTP adapter for the archive command.
@@ -137,7 +138,7 @@ final class CreateArchiveController
         CreateArchiveBody $body,
         ArchiveService $archives,
     ): Reply {
-        $url = $body->url ?? throw new \LogicException('NotNull guarantees url.');
+        $url = new UrlPointer($body->url ?? throw new \LogicException('NotNull guarantees url.'));
         $result = $archives->archive($url);
 
         return new Reply(

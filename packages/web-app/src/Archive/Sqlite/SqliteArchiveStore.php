@@ -9,6 +9,7 @@ use Yumo\Eleanor\Archive\Archive;
 use Yumo\Eleanor\Archive\ArchiveStore;
 use Yumo\Eleanor\Archive\ArchiveSummary;
 use Yumo\Eleanor\Archive\Owner;
+use Yumo\Eleanor\Archive\UrlPointer;
 
 /**
  * Keeps one owner's archives in one SQLite file.
@@ -35,9 +36,9 @@ final class SqliteArchiveStore implements ArchiveStore
     /**
      * Returns the light fields this owner stored for `$url`, or null when there is none.
      */
-    public function findSummary(string $url): ?ArchiveSummary
+    public function findSummary(UrlPointer $url): ?ArchiveSummary
     {
-        $row = $this->fetchRow('SELECT url, title, excerpt, site_name FROM archive WHERE url = :url', $url);
+        $row = $this->fetchRow('SELECT url, title, excerpt, site_name FROM archive WHERE url = :url', $url->toString());
         if ($row === null) {
             return null;
         }
@@ -48,12 +49,12 @@ final class SqliteArchiveStore implements ArchiveStore
     /**
      * Returns the archive this owner stored for `$url`, or null when there is none.
      */
-    public function find(string $url): ?Archive
+    public function find(UrlPointer $url): ?Archive
     {
         $row = $this->fetchRow(
             'SELECT a.url, a.title, a.excerpt, a.site_name, b.html'
             . ' FROM archive a JOIN archive_body b ON b.archive_id = a.id WHERE a.url = :url',
-            $url,
+            $url->toString(),
         );
         if ($row === null) {
             return null;

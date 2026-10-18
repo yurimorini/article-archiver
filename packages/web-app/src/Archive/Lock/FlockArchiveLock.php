@@ -11,6 +11,7 @@ use Symfony\Component\Lock\LockInterface;
 use Symfony\Component\Lock\Store\FlockStore;
 use Yumo\Eleanor\Archive\ArchiveLock;
 use Yumo\Eleanor\Archive\Owner;
+use Yumo\Eleanor\Archive\UrlPointer;
 
 /**
  * Serializes work on one url of one owner with a flock file lock, across processes.
@@ -41,7 +42,7 @@ final class FlockArchiveLock implements ArchiveLock
     ) {
     }
 
-    public function exclusive(string $url, callable $action): mixed
+    public function exclusive(UrlPointer $url, callable $action): mixed
     {
         $held = $this->take($url);
 
@@ -67,11 +68,11 @@ final class FlockArchiveLock implements ArchiveLock
     /**
      * Returns the lock when it was taken in time, or null when the wait ran out or the store failed.
      */
-    private function take(string $url): ?LockInterface
+    private function take(UrlPointer $url): ?LockInterface
     {
         try {
             // No auto-release: `exclusive` releases once, and a destructor must not retry a failed release.
-            $lock = $this->factory()->createLock($this->owner->email . "\0" . $url, autoRelease: false);
+            $lock = $this->factory()->createLock($this->owner->email . "\0" . $url->toString(), autoRelease: false);
 
             return $this->acquireWithin($lock) ? $lock : null;
         } catch (\Throwable $exception) {

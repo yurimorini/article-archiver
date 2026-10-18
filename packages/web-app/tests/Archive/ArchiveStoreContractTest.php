@@ -12,6 +12,7 @@ use Yumo\Eleanor\Archive\ArchiveSummary;
 use Yumo\Eleanor\Archive\Owner;
 use Yumo\Eleanor\Archive\Sqlite\SqliteArchiveStore;
 use Yumo\Eleanor\Archive\Sqlite\SqliteArchiveStoreFactory;
+use Yumo\Eleanor\Archive\UrlPointer;
 use Yumo\Eleanor\Tests\Support\ArchiveDirectories;
 use Yumo\Eleanor\Tests\Support\InMemory\InMemoryArchiveShelf;
 use Yumo\Eleanor\Tests\Support\InMemory\InMemoryArchiveStoreFactory;
@@ -51,8 +52,8 @@ final class ArchiveStoreContractTest extends TestCase
     {
         $store = $this->factory($kind)->create(new Owner('ada@example.com'));
 
-        self::assertNull($store->find(self::URL));
-        self::assertNull($store->findSummary(self::URL));
+        self::assertNull($store->find(new UrlPointer(self::URL)));
+        self::assertNull($store->findSummary(new UrlPointer(self::URL)));
     }
 
     #[DataProvider('storeKindProvider')]
@@ -63,8 +64,8 @@ final class ArchiveStoreContractTest extends TestCase
 
         $store->save($archive);
 
-        self::assertEquals($archive, $store->find(self::URL));
-        self::assertEquals(new ArchiveSummary(self::URL, 'Title', 'Excerpt', 'Site'), $store->findSummary(self::URL));
+        self::assertEquals($archive, $store->find(new UrlPointer(self::URL)));
+        self::assertEquals(new ArchiveSummary(self::URL, 'Title', 'Excerpt', 'Site'), $store->findSummary(new UrlPointer(self::URL)));
     }
 
     #[DataProvider('storeKindProvider')]
@@ -75,8 +76,8 @@ final class ArchiveStoreContractTest extends TestCase
 
         $store->save($archive);
 
-        self::assertEquals($archive, $store->find(self::URL));
-        self::assertEquals(new ArchiveSummary(self::URL, '', null, null), $store->findSummary(self::URL));
+        self::assertEquals($archive, $store->find(new UrlPointer(self::URL)));
+        self::assertEquals(new ArchiveSummary(self::URL, '', null, null), $store->findSummary(new UrlPointer(self::URL)));
     }
 
     #[DataProvider('storeKindProvider')]
@@ -88,8 +89,20 @@ final class ArchiveStoreContractTest extends TestCase
 
         $store->save($newer);
 
-        self::assertEquals($newer, $store->find(self::URL));
-        self::assertNull($store->find(self::OTHER_URL));
+        self::assertEquals($newer, $store->find(new UrlPointer(self::URL)));
+        self::assertNull($store->find(new UrlPointer(self::OTHER_URL)));
+    }
+
+    #[DataProvider('storeKindProvider')]
+    public function test_a_nul_wrapped_pointer_finds_the_row_saved_from_the_clean_pointer(string $kind): void
+    {
+        $store = $this->factory($kind)->create(new Owner('ada@example.com'));
+        $archive = new Archive(self::URL, 'Title', 'Excerpt', 'Site', '<p>Body</p>');
+        $store->save($archive);
+        $wrapped = new UrlPointer("\0" . self::URL . "\0");
+
+        self::assertEquals($archive, $store->find($wrapped));
+        self::assertEquals(new ArchiveSummary(self::URL, 'Title', 'Excerpt', 'Site'), $store->findSummary($wrapped));
     }
 
     #[DataProvider('storeKindProvider')]
@@ -99,7 +112,7 @@ final class ArchiveStoreContractTest extends TestCase
         $archive = new Archive(self::URL, 'Title', null, null, '<p>Body</p>');
         $factory->create(new Owner('ada@example.com'))->save($archive);
 
-        $found = $factory->create(new Owner('ada@example.com'))->find(self::URL);
+        $found = $factory->create(new Owner('ada@example.com'))->find(new UrlPointer(self::URL));
 
         self::assertEquals($archive, $found);
     }
@@ -113,16 +126,16 @@ final class ArchiveStoreContractTest extends TestCase
 
         $other = $factory->create(new Owner('grace@example.com'));
 
-        self::assertNull($other->find(self::URL));
-        self::assertNull($other->findSummary(self::URL));
+        self::assertNull($other->find(new UrlPointer(self::URL)));
+        self::assertNull($other->findSummary(new UrlPointer(self::URL)));
     }
 
     public function test_lookup_creates_no_file(): void
     {
         $store = $this->factory('sqlite')->create(new Owner('ada@example.com'));
 
-        $store->findSummary(self::URL);
-        $store->find(self::URL);
+        $store->findSummary(new UrlPointer(self::URL));
+        $store->find(new UrlPointer(self::URL));
 
         self::assertSame([], $this->databaseFiles());
     }
@@ -166,7 +179,7 @@ final class ArchiveStoreContractTest extends TestCase
         $store->save($archive);
 
         self::assertFileExists($path);
-        self::assertEquals($archive, $store->find(self::URL));
+        self::assertEquals($archive, $store->find(new UrlPointer(self::URL)));
     }
 
     public function test_save_fails_without_a_file_when_the_directory_cannot_be_created(): void
