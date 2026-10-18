@@ -146,6 +146,12 @@ final class ErrorTranslatorTest extends TestCase
             'sanitize',
             'The article could not be purified.',
         ];
+        yield 'archive_not_written' => [
+            new ArchiveException(ArchiveFailure::NotWritten, new \PDOException('disk full')),
+            500,
+            'archive_not_written',
+            'The archive could not be stored.',
+        ];
         yield 'unexpected archive failure' => [
             new ArchiveException(ArchiveFailure::Unexpected),
             500,
@@ -186,8 +192,12 @@ final class ErrorTranslatorTest extends TestCase
             new ArchiveException(ArchiveFailure::Transport, new \RuntimeException('connect to 10.0.0.5 refused')),
         );
         $unknown = $translator->translate(new \LogicException('/etc/secret'));
+        $notWritten = $translator->translate(
+            new ArchiveException(ArchiveFailure::NotWritten, new \PDOException('disk full')),
+        );
 
         self::assertStringNotContainsString('10.0.0.5', json_encode($archive->body, JSON_THROW_ON_ERROR));
         self::assertStringNotContainsString('/etc/secret', json_encode($unknown->body, JSON_THROW_ON_ERROR));
+        self::assertStringNotContainsString('disk full', json_encode($notWritten->body, JSON_THROW_ON_ERROR));
     }
 }

@@ -109,6 +109,7 @@ final class CreateArchiveController
                             ArchiveFailure::Encoding->value,
                             ArchiveFailure::Extract->value,
                             ArchiveFailure::Sanitize->value,
+                            ArchiveFailure::NotWritten->value,
                             ArchiveFailure::Unexpected->value,
                         ]),
                         new OA\Property(property: 'message', type: 'string'),

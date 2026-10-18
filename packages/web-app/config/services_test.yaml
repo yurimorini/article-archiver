@@ -3,6 +3,7 @@ parameters:
 
     # Each test that boots the kernel sets ELEANOR_DATA_DIR first. See ArchiveDirectories::isolate().
     eleanor.data_dir: '%env(ELEANOR_DATA_DIR)%'
+    eleanor.lock_dir: '%env(ELEANOR_LOCK_DIR)%'
 
 services:
     Yumo\Eleanor\Tests\Support\FakeArticleFetcher:

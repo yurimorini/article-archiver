@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace Yumo\Eleanor\Tests\Archive;
 
 use PHPUnit\Framework\TestCase;
+use Psr\Log\NullLogger;
 use Yumo\Eleanor\Archive\ArchiveOutcome;
 use Yumo\Eleanor\Archive\ArchiveServiceFactory;
+use Yumo\Eleanor\Archive\Lock\FlockArchiveLockFactory;
 use Yumo\Eleanor\Archive\Owner;
 use Yumo\Eleanor\Archive\Sqlite\SqliteArchiveStoreFactory;
 use Yumo\Eleanor\Tests\Support\ArchiveDirectories;
+use Yumo\Eleanor\Tests\Support\FakeArchiveLockFactory;
 use Yumo\Eleanor\Tests\Support\FakeArticleFetcher;
 use Yumo\Eleanor\Tests\Support\InMemory\InMemoryArchiveShelf;
 use Yumo\Eleanor\Tests\Support\InMemory\InMemoryArchiveStoreFactory;
@@ -24,7 +27,11 @@ final class ArchiveServiceFactoryTest extends TestCase
     {
         $fetcher = new FakeArticleFetcher();
         $fetcher->willReturn('https://example.com/a', PipelineFixtures::success());
-        $factory = new ArchiveServiceFactory($fetcher, new InMemoryArchiveStoreFactory(new InMemoryArchiveShelf()));
+        $factory = new ArchiveServiceFactory(
+            $fetcher,
+            new InMemoryArchiveStoreFactory(new InMemoryArchiveShelf()),
+            new FakeArchiveLockFactory(),
+        );
         $owner = new Owner('ada@example.com');
 
         $first = $factory->create($owner)->archive('https://example.com/a');
@@ -40,7 +47,11 @@ final class ArchiveServiceFactoryTest extends TestCase
         $root = ArchiveDirectories::isolate();
         $fetcher = new FakeArticleFetcher();
         $fetcher->willReturn('https://example.com/a', PipelineFixtures::success());
-        $factory = new ArchiveServiceFactory($fetcher, new SqliteArchiveStoreFactory($root . '/data'));
+        $factory = new ArchiveServiceFactory(
+            $fetcher,
+            new SqliteArchiveStoreFactory($root . '/data'),
+            new FlockArchiveLockFactory($root . '/lock', new NullLogger()),
+        );
 
         $first = $factory->create(new Owner('ada@example.com'))->archive('https://example.com/a');
         $second = $factory->create(new Owner('grace@example.com'))->archive('https://example.com/a');

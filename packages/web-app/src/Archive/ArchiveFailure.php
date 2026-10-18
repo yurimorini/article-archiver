@@ -50,6 +50,9 @@ enum ArchiveFailure: string
     /** The article could not be purified. */
     case Sanitize = 'sanitize';
 
+    /** The archive could not be written to the owner's database. */
+    case NotWritten = 'archive_not_written';
+
     /** The library failed in a way it did not name. */
     case Unexpected = 'unexpected';
 }

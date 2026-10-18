@@ -14,6 +14,7 @@ use Yumo\Eleanor\Archive\ArchiveOutcome;
 use Yumo\Eleanor\Archive\ArchiveService;
 use Yumo\Eleanor\Archive\ArchiveServiceFactory;
 use Yumo\Eleanor\Archive\Owner;
+use Yumo\Eleanor\Tests\Support\FakeArchiveLockFactory;
 use Yumo\Eleanor\Tests\Support\FakeArticleFetcher;
 use Yumo\Eleanor\Tests\Support\InMemory\InMemoryArchiveShelf;
 use Yumo\Eleanor\Tests\Support\InMemory\InMemoryArchiveStoreFactory;
@@ -33,7 +34,11 @@ final class ArchiveServiceResolverTest extends TestCase
     {
         $fetcher = new FakeArticleFetcher();
         $fetcher->willReturn(self::URL, PipelineFixtures::success());
-        $this->factory = new ArchiveServiceFactory($fetcher, new InMemoryArchiveStoreFactory(new InMemoryArchiveShelf()));
+        $this->factory = new ArchiveServiceFactory(
+            $fetcher,
+            new InMemoryArchiveStoreFactory(new InMemoryArchiveShelf()),
+            new FakeArchiveLockFactory(),
+        );
     }
 
     public function test_builds_the_service_for_the_owner_of_the_provider(): void

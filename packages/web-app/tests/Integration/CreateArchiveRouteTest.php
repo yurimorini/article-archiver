@@ -131,6 +131,29 @@ final class CreateArchiveRouteTest extends WebTestCase
         self::assertSame('{"url":"https://example.com/a/b","title":"Café"}', $this->responseBody($client->getInternalResponse()));
     }
 
+    public function test_unwritable_data_directory_answers_archive_not_written(): void
+    {
+        $dataDirectory = ArchiveDirectories::isolate() . '/data';
+        $client = static::createClient();
+        $this->fetcher()->willReturn('https://example.com/a', PipelineFixtures::success());
+        // The container runs as root, so a read-only mode would still be writable. A file in the place of the directory cannot be.
+        rmdir($dataDirectory);
+        touch($dataDirectory);
+
+        try {
+            $this->postUrl($client, 'https://example.com/a');
+            $body = $this->responseBody($client->getInternalResponse());
+        } finally {
+            unlink($dataDirectory);
+            mkdir($dataDirectory);
+        }
+
+        self::assertResponseStatusCodeSame(500);
+        self::assertSame('{"code":"archive_not_written","message":"The archive could not be stored."}', $body);
+        self::assertStringNotContainsString('PDO', $body);
+        self::assertStringNotContainsString('SQLSTATE', $body);
+    }
+
     public function test_post_with_trailing_slash_misses_the_route(): void
     {
         $client = static::createClient();

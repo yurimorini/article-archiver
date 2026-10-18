@@ -7,6 +7,8 @@ namespace Yumo\Eleanor\Tests\Archive;
 use PHPUnit\Framework\TestCase;
 use Yumo\ArtcleReader\Orchestrator\OrchestratorError;
 use Yumo\ArtcleReader\Orchestrator\OrchestratorException;
+use Yumo\ArtcleReader\Orchestrator\PipelineNoContent;
+use Yumo\ArtcleReader\Orchestrator\PipelineSuccess;
 use Yumo\ArtcleReader\Orchestrator\PipelineWarning;
 use Yumo\ArtcleReader\Orchestrator\PipelineWarningCode;
 use Yumo\Eleanor\Archive\Archive;
@@ -15,10 +17,10 @@ use Yumo\Eleanor\Archive\ArchiveFailure;
 use Yumo\Eleanor\Archive\ArchiveOutcome;
 use Yumo\Eleanor\Archive\ArchiveService;
 use Yumo\Eleanor\Archive\ArchiveSummary;
-use Yumo\Eleanor\Archive\Owner;
+use Yumo\Eleanor\Archive\ArticleFetcher;
+use Yumo\Eleanor\Tests\Support\FakeArchiveLock;
+use Yumo\Eleanor\Tests\Support\FakeArchiveStore;
 use Yumo\Eleanor\Tests\Support\FakeArticleFetcher;
-use Yumo\Eleanor\Tests\Support\InMemory\InMemoryArchiveShelf;
-use Yumo\Eleanor\Tests\Support\InMemory\InMemoryArchiveStore;
 use Yumo\Eleanor\Tests\Support\PipelineFixtures;
 
 /**
@@ -30,15 +32,22 @@ final class ArchiveServiceTest extends TestCase
 
     private FakeArticleFetcher $fetcher;
 
-    private InMemoryArchiveStore $store;
+    private FakeArchiveStore $store;
+
+    private FakeArchiveLock $lock;
 
     private ArchiveService $service;
 
+    /** @var \ArrayObject<int, string> */
+    private \ArrayObject $log;
+
     protected function setUp(): void
     {
+        $this->log = new \ArrayObject();
         $this->fetcher = new FakeArticleFetcher();
-        $this->store = new InMemoryArchiveStore(new Owner('ada@example.com'), new InMemoryArchiveShelf());
-        $this->service = new ArchiveService($this->store, $this->fetcher);
+        $this->store = new FakeArchiveStore($this->log);
+        $this->lock = new FakeArchiveLock($this->log);
+        $this->service = $this->serviceWith($this->lock);
     }
 
     public function test_first_archive_fetches_saves_and_is_written(): void
@@ -198,5 +207,137 @@ final class ArchiveServiceTest extends TestCase
 
         self::assertSame(ArchiveOutcome::Written, $result->outcome);
         self::assertSame(2, $this->fetcher->fetchCount());
+    }
+
+    public function test_leading_and_trailing_nul_are_trimmed_before_lock_and_store(): void
+    {
+        $this->fetcher->willReturn(self::URL, PipelineFixtures::success());
+
+        $this->service->archive("\0" . self::URL . "\0");
+
+        self::assertSame([self::URL], $this->lock->urls);
+        self::assertSame([self::URL], $this->store->summaryLookups);
+        self::assertSame([self::URL], $this->store->savedUrls);
+        self::assertSame(1, $this->fetcher->fetchCount(self::URL));
+    }
+
+    public function test_a_nul_in_the_middle_stays_part_of_the_url(): void
+    {
+        $url = "https://example.com/\0a";
+        $this->fetcher->willReturn($url, PipelineFixtures::success());
+
+        $this->service->archive($url);
+
+        self::assertSame([$url], $this->store->savedUrls);
+        self::assertNull($this->store->findSummary(self::URL));
+    }
+
+    public function test_surrounding_spaces_stay_part_of_the_url(): void
+    {
+        $url = ' ' . self::URL;
+        $this->fetcher->willReturn($url, PipelineFixtures::success());
+
+        $this->service->archive($url);
+
+        self::assertSame([$url], $this->store->savedUrls);
+        self::assertSame([$url], $this->lock->urls);
+    }
+
+    public function test_lookup_fetch_and_save_run_inside_the_lock(): void
+    {
+        $this->fetcher->willReturn(self::URL, PipelineFixtures::success());
+        $service = new ArchiveService($this->store, $this->loggingFetcher(), $this->lock);
+
+        $service->archive(self::URL);
+
+        self::assertSame(['enter', 'find', 'fetch', 'save', 'leave'], $this->log->getArrayCopy());
+    }
+
+    public function test_waiter_returns_already_stored_without_a_fetch(): void
+    {
+        $this->fetcher->willReturn(self::URL, PipelineFixtures::success());
+        $this->service->archive(self::URL);
+        $fetchesBefore = $this->fetcher->fetchCount();
+
+        $result = $this->service->archive(self::URL);
+
+        self::assertSame(ArchiveOutcome::AlreadyStored, $result->outcome);
+        self::assertSame($fetchesBefore, $this->fetcher->fetchCount());
+    }
+
+    public function test_lock_is_released_when_the_fetch_throws(): void
+    {
+        $this->fetcher->willThrow(self::URL, new OrchestratorException(OrchestratorError::Fetch));
+        $service = new ArchiveService($this->store, $this->loggingFetcher(), $this->lock);
+
+        try {
+            $service->archive(self::URL);
+            self::fail('Expected an ArchiveException.');
+        } catch (ArchiveException) {
+            self::assertSame('leave', $this->log->getArrayCopy()[count($this->log) - 1]);
+            self::assertSame([], $this->store->savedUrls);
+        }
+    }
+
+    public function test_a_lock_that_is_not_taken_still_archives(): void
+    {
+        $lock = new FakeArchiveLock($this->log, holds: false);
+        $this->fetcher->willReturn(self::URL, PipelineFixtures::success());
+
+        $result = $this->serviceWith($lock)->archive(self::URL);
+
+        self::assertFalse($lock->held);
+        self::assertSame(ArchiveOutcome::Written, $result->outcome);
+    }
+
+    public function test_a_pdo_exception_from_save_is_not_written(): void
+    {
+        $failure = new \PDOException('disk full near /var/secret');
+        $this->store->saveFailure = $failure;
+        $this->fetcher->willReturn(self::URL, PipelineFixtures::success());
+
+        try {
+            $this->service->archive(self::URL);
+            self::fail('Expected an ArchiveException.');
+        } catch (ArchiveException $exception) {
+            self::assertSame(ArchiveFailure::NotWritten, $exception->failure);
+            self::assertSame($failure, $exception->getPrevious());
+        }
+    }
+
+    public function test_a_pdo_exception_from_find_summary_is_not_wrapped(): void
+    {
+        $this->store->findSummaryFailure = new \PDOException('locked');
+
+        $this->expectException(\PDOException::class);
+
+        $this->service->archive(self::URL);
+    }
+
+    private function serviceWith(FakeArchiveLock $lock): ArchiveService
+    {
+        return new ArchiveService($this->store, $this->fetcher, $lock);
+    }
+
+    /**
+     * Wraps the fake fetcher so that each fetch writes `fetch` to the shared log.
+     */
+    private function loggingFetcher(): ArticleFetcher
+    {
+        return new class ($this->fetcher, $this->log) implements ArticleFetcher {
+            /**
+             * @param \ArrayObject<int, string> $log
+             */
+            public function __construct(private FakeArticleFetcher $inner, private \ArrayObject $log)
+            {
+            }
+
+            public function fetch(string $url): PipelineSuccess|PipelineNoContent
+            {
+                $this->log->append('fetch');
+
+                return $this->inner->fetch($url);
+            }
+        };
     }
 }

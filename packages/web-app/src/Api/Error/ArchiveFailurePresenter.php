@@ -32,6 +32,7 @@ final class ArchiveFailurePresenter
             ArchiveFailure::Encoding,
             ArchiveFailure::Extract,
             ArchiveFailure::Sanitize,
+            ArchiveFailure::NotWritten,
             ArchiveFailure::Unexpected => 500,
         };
     }
@@ -55,6 +56,7 @@ final class ArchiveFailurePresenter
             ArchiveFailure::Encoding => "The page's character encoding could not be read.",
             ArchiveFailure::Extract => 'The article could not be extracted.',
             ArchiveFailure::Sanitize => 'The article could not be purified.',
+            ArchiveFailure::NotWritten => 'The archive could not be stored.',
             ArchiveFailure::Unexpected => 'Something went wrong on the server.',
         };
     }

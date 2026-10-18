@@ -73,7 +73,7 @@ paths:
                   - code
                   - message
                 properties:
-                  code: { type: string, enum: [encoding, extract, sanitize, unexpected] }
+                  code: { type: string, enum: [encoding, extract, sanitize, archive_not_written, unexpected] }
                   message: { type: string }
                 type: object
         '502':

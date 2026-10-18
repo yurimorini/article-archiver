@@ -12,13 +12,15 @@ namespace Yumo\Eleanor\Archive;
 final class ArchiveServiceFactory
 {
     /**
-     * Creates the factory from the shared fetcher and the factory of per-owner stores.
+     * Creates the factory from the shared fetcher, the factory of per-owner stores, and the factory of per-owner locks.
      */
     public function __construct(
         /** The fetcher every service shares. */
         private ArticleFetcher $fetcher,
         /** The factory that makes each owner's store. */
         private ArchiveStoreFactory $stores,
+        /** The factory that makes each owner's lock. */
+        private ArchiveLockFactory $locks,
     ) {
     }
 
@@ -27,6 +29,6 @@ final class ArchiveServiceFactory
      */
     public function create(Owner $owner): ArchiveService
     {
-        return new ArchiveService($this->stores->create($owner), $this->fetcher);
+        return new ArchiveService($this->stores->create($owner), $this->fetcher, $this->locks->create($owner));
     }
 }
