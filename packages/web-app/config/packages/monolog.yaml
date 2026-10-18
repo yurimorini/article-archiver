@@ -23,6 +23,8 @@ when@dev:
                 channels: ["application", "domain"]
                 formatter: monolog.formatter.json
                 include_stacktraces: true
+                processors:
+                    - Yumo\Eleanor\Request\RequestIdProcessor
 
 when@test:
     monolog:
@@ -44,6 +46,8 @@ when@test:
                 channels: ["application", "domain"]
                 formatter: monolog.formatter.json
                 include_stacktraces: true
+                processors:
+                    - Yumo\Eleanor\Request\RequestIdProcessor
 
 when@prod:
     monolog:
@@ -80,3 +84,5 @@ when@prod:
                 channels: ["application", "domain"]
                 formatter: monolog.formatter.json
                 include_stacktraces: true
+                processors:
+                    - Yumo\Eleanor\Request\RequestIdProcessor
