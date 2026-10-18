@@ -48,9 +48,9 @@ Two stores for one owner share rows through the shelf. A store for another owner
 
 - `Api\Owner\OwnerProvider`: interface. `owner(): Owner`. It answers for the current call.
 - `Api\Owner\ConfiguredOwnerProvider`: final class. The constructor takes the owner email string. `owner()` returns `new Owner($email)`.
-- `Api\Controller\CreateArchiveController` keeps the route `create_archive`, path `/archives`, method POST, format `json`. The constructor takes `ArchiveServiceFactory` and `OwnerProvider`. It does not read the parameter. The action keeps the `MapRequestPayload` signature of the payload slice.
+- `Api\Controller\CreateArchiveController` keeps the route `create_archive`, path `/archives`, method POST, format `json`. Revised by [OwnerScopedService.md](OwnerScopedService.md) (slice 5b): the class has no constructor, and `ArchiveServiceResolver` passes the owner's `ArchiveService` as an action argument. Before that revision the constructor took `ArchiveServiceFactory` and `OwnerProvider`. The controller never read the parameter. The action keeps the `MapRequestPayload` signature of the payload slice.
   - `$url = $body->url ?? throw new \LogicException('NotNull guarantees url.')`. The DTO does not change.
-  - `$result = $this->archives->create($this->owners->owner())->archive($url)`.
+  - `$result = $archives->archive($url)`, where `$archives` is the action argument (revised by slice 5b). Before that revision: `$this->archives->create($this->owners->owner())->archive($url)`.
   - The status is 201 for `Written` and 200 for `AlreadyStored`.
   - The body is `json_encode(['url' => $archive->url, 'title' => $archive->title], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)`. Without `JSON_UNESCAPED_SLASHES` the URL would read `https:\/\/example.com\/a`. `JsonResponse::fromJsonString($json, $status)` writes the response. The content type stays `application/json`.
   - It does not catch `ArchiveException`.
@@ -77,7 +77,7 @@ No new Composer package. `yumo/log-read` is already a direct requirement and car
 `POST /api/archives` with `{"url":"https://example.com/a"}`:
 
 1. The resolver maps and validates the body, as before.
-2. The controller asks `OwnerProvider` for the `Owner` and `ArchiveServiceFactory` for the service of that owner.
+2. `ArchiveServiceResolver` asks `OwnerProvider` for the `Owner` and `ArchiveServiceFactory` for the service of that owner, and passes it to the action (revised by slice 5b).
 3. `ArchiveService::archive` finds nothing, fetches through `ArticleFetcher`, builds and saves the `Archive`, and returns `Written`.
 4. The controller answers 201 with `{"url":"https://example.com/a","title":"..."}`.
 

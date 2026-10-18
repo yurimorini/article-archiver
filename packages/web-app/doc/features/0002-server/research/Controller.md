@@ -17,7 +17,7 @@ The controller is the HTTP adapter. The firewall has already authenticated the c
 
 The firewall's user is the framework's type. A use case that has a rule about the person receives an object of Eleanor's, built at the edge from that framework user. The mapping is written when the rule exists. A mechanism that only the framework runs, such as its rate limiter, keeps the framework type. [Logging.md](Logging.md) records that split.
 
-The application service is a concrete class. The controller receives it in the constructor. There is no interface until a second implementation exists. The service calls `Orchestrator::fetchArticle`. `UrlGuard` runs inside that call. The service returns a result with no status, headers, or JSON.
+The application service is a concrete class. The action receives it as an argument, built for the current owner by a value resolver ([Owner-scoped-service.md](Owner-scoped-service.md), slice 5b). Before slice 5b the controller received it in the constructor. There is no interface until a second implementation exists. The service calls `Orchestrator::fetchArticle`. `UrlGuard` runs inside that call. The service returns a result with no status, headers, or JSON.
 
 The orchestrator is the library entry. It receives a URL. It returns `PipelineSuccess` or `PipelineNoContent`, or throws `OrchestratorException`.
 
