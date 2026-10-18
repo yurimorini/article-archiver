@@ -7,6 +7,7 @@ $finder = (new PhpCsFixer\Finder())
         __DIR__ . '/src',
         __DIR__ . '/tests',
         __DIR__ . '/bin',
+        __DIR__ . '/tools',
     ])
     ->name('*.php');
 
