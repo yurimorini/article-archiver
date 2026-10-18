@@ -33,6 +33,7 @@ Archive/
   Sqlite/
     SqliteArchiveStore.php
     SqliteArchiveStoreFactory.php
+    DirectoryException.php
     SqliteConnection.php
     SqliteSchema.php
   Lock/
@@ -61,16 +62,17 @@ Archive/
 4. A miss fetches. Library failures become `ArchiveException` as slice 6 left them. Any other throwable passes through. Nothing is saved. The lock is released.
 5. `PipelineNoContent` becomes `ArchiveException`. Nothing is saved.
 6. `PipelineSuccess` becomes `Archive`. `url` is `$url->toString()`. The other fields stay as slice 5 and slice 6 left them.
-7. `save`. A `PDOException` becomes `ArchiveException` with `ArchiveFailure::NotWritten` and that exception as the cause. The summary of `Written` is built from the `Archive` just saved. The row is not read back.
+7. `save`. A `DirectoryException` and a `PDOException` each become `ArchiveException` with `ArchiveFailure::NotWritten` and that exception as the cause. The summary of `Written` is built from the `Archive` just saved. The row is not read back.
 
 `https://example.com/a` and `https://example.com/a/` stay two archives. A posted `\0https://example.com/a` is the same archive as `https://example.com/a`.
 
 ### `Yumo\Eleanor\Archive\Sqlite`
 
-- `SqliteArchiveStore`: implements `ArchiveStore`, `#[Exclude]`. The constructor takes the owner and the path of that owner's file. `findSummary` and `find` return null without opening the file when the file does not exist, so PDO does not create it. `save` creates the file when it is missing.
-- `SqliteArchiveStoreFactory`: implements `ArchiveStoreFactory`. The constructor takes the data directory. The file name is `hash('sha256', $owner->email) . '.sqlite'`.
-- `SqliteConnection`: opens the PDO, applies the pragmas below, asks `SqliteSchema` to migrate, and closes when the store method returns.
-- `SqliteSchema`: the only migration class. It reads `PRAGMA user_version`. Version 0 runs the version 1 statements and sets the version to 1. Version 1 does nothing. A later version is another block in this class, not a new class per version.
+- `SqliteArchiveStore`: implements `ArchiveStore`, `#[Exclude]`. The constructor takes the owner and the `SqliteConnection` for that owner's file. It does not take the path and it does not construct the connection or the schema. `findSummary` and `find` return null without opening the file when the file does not exist, so PDO does not create it. `save` opens the connection, which creates the file when it is missing.
+- `SqliteArchiveStoreFactory`: implements `ArchiveStoreFactory`. The constructor takes the data directory and holds one `SqliteSchema`. `create` builds the path `$dataDirectory . '/' . hash('sha256', $owner->email) . '.sqlite'`, constructs one `SqliteConnection` for that path, and passes the connection to the store. The factory is the composition root for this adapter. The container constructs the factory only.
+- `DirectoryException`: `#[Exclude]`. The connection raises it when a parent directory of the database file cannot be created. It is not a `\PDOException`.
+- `SqliteConnection`: `#[Exclude]`. The constructor takes the path and the schema. `path` is a public property, so the store can see whether the file already exists without holding a second copy of the path. `open(): \PDO` creates each missing parent directory at mode `0700`, then opens that path, applies the pragmas below, asks `SqliteSchema` to migrate, and returns the PDO. An existing directory is left as it is. `0700` stays owner-only under any umask, because a umask only clears bits. A directory failure raises `DirectoryException`. A database failure raises `\PDOException`. `close()` drops the PDO when the store method returns. One connection belongs to one store. It is not a container service, because it holds the PDO.
+- `SqliteSchema`: `#[Exclude]`. The only migration class. The factory constructs it once. It reads `PRAGMA user_version`. Version 0 runs the version 1 statements and sets the version to 1. Version 1 does nothing. A later version is another block in this class, not a new class per version.
 
 ### `Yumo\Eleanor\Archive\Lock`
 
@@ -117,7 +119,7 @@ The development image has SQLite 3.40.1. The WAL-reset bug, present from 3.7.0 t
 - `eleanor.data_dir` is `%kernel.project_dir%/var/data`.
 - `eleanor.lock_dir` is `%kernel.project_dir%/var/lock`.
 - `SqliteArchiveStoreFactory` takes the data directory. `FlockArchiveLockFactory` takes the lock directory. Each port has one implementation in `src/`, so the aliases stay automatic.
-- The first `save` creates the data directory when it is missing. A data directory that cannot be created fails the `save`. A lock directory that cannot be created, or that is read-only, is the lock I/O warning above. The archive still proceeds.
+- The first `open` creates each missing parent of the database file at mode `0700`. A directory that cannot be created fails the `save` with `DirectoryException`. A lock directory that cannot be created, or that is read-only, is the lock I/O warning above. The archive still proceeds.
 
 `composer.json` gains `symfony/lock` at `8.1.*` and `ext-pdo_sqlite`. The image already has SQLite 3.40.1.
 
@@ -140,7 +142,7 @@ A failed fetch stores nothing.
 
 ## Errors
 
-A failed `save` throws `ArchiveException` with `ArchiveFailure::NotWritten` (`archive_not_written`) and the `PDOException` as the cause. `ArchiveFailurePresenter` maps it to 500 and the fixed sentence `The archive could not be stored.` The driver text is not in that sentence. `TranslateApiException` already logs the exception, and therefore the cause, on the `application` channel for a status of 500 or above.
+A failed `save` throws `ArchiveException` with `ArchiveFailure::NotWritten` (`archive_not_written`). The cause is the `DirectoryException` when the directory could not be created, and the `PDOException` when the database failed. `ArchiveFailurePresenter` maps either cause to 500 and the fixed sentence `The archive could not be stored.` The driver text is not in that sentence. `TranslateApiException` already logs the exception, and therefore the cause, on the `application` channel for a status of 500 or above.
 
 A failure of `findSummary` or `find` is not wrapped. `ErrorTranslator` turns that throwable into 500 `unexpected` with `Something went wrong on the server.`
 
@@ -161,11 +163,13 @@ A test observes behavior at its seam. It does not assert a SQL string, a pragma 
 - A failed fetch stores nothing, and the same URL archives on a later POST.
 - A data directory that is not writable answers 500 `archive_not_written`, with the fixed sentence and no leaked driver text.
 
-`ArchiveStoreContractTest` runs one set of cases against the in-memory store and the SQLite store: absence, `save` then `find` and `findSummary`, the summary without the HTML, a second `save` of the same URL that updates the title and leaves `find` with that one archive, two stores for one owner sharing rows, and another owner not seeing them. The SQLite cases add: a lookup creates no file, the first `save` creates one, two owners get two files, and the same email in a different letter case names the same file.
+`ArchiveStoreContractTest` runs one set of cases against the in-memory store and the SQLite store: absence, `save` then `find` and `findSummary`, the summary without the HTML, a second `save` of the same URL that updates the title and leaves `find` with that one archive, two stores for one owner sharing rows, and another owner not seeing them. The SQLite cases add: a lookup creates no file, a lookup creates no missing parent directory, the first `save` creates one, two owners get two files, and the same email in a different letter case names the same file. A `save` whose parent directories are missing still stores the archive. A `save` whose directory path is a file raises `DirectoryException` and creates no database file. A test that needs a chosen path builds `new SqliteArchiveStore($owner, new SqliteConnection($path, new SqliteSchema()))`. The other SQLite cases go through `SqliteArchiveStoreFactory`.
+
+`SqliteConnectionTest` owns the directory. `open` creates missing parents at mode `0700` and leaves an existing directory mode unchanged. A file standing where the directory should be raises `DirectoryException` with no previous exception. A `mkdir` failure raises `DirectoryException` with that failure as the cause. No database file appears in either failure.
 
 `OwnerTest`: `Ada@Example.com` is stored as `ada@example.com`.
 
-`ArchiveServiceTest` uses a fake store and a fake lock. Cases, as revised by [UrlPointer.md](UrlPointer.md): the pointer the service receives is the one the lock and the store see; lookup, fetch, and save run inside the lock; a waiter returns `AlreadyStored` without a fetch; the lock is released when the fetch throws; a lock that cannot be taken still archives. The NUL rules are covered on `UrlPointer` itself.
+`ArchiveServiceTest` uses a fake store and a fake lock. Cases, as revised by [UrlPointer.md](UrlPointer.md): the pointer the service receives is the one the lock and the store see; lookup, fetch, and save run inside the lock; a waiter returns `AlreadyStored` without a fetch; the lock is released when the fetch throws; a lock that cannot be taken still archives. A `PDOException` from `save` and a `DirectoryException` from `save` each become `NotWritten` with that exception as the cause. The same two exceptions from `findSummary` pass through. The NUL rules are covered on `UrlPointer` itself.
 
 `FlockArchiveLockTest` uses a temporary directory. Two keys do not block each other. One key blocks a second holder until the first releases. Taking the same key again in one process, after the first release, does not deadlock. The wait limit, passed short through the constructor, lets a second holder proceed. An unwritable lock directory logs a warning and does not throw. The tests do not sleep for 15 seconds.
 

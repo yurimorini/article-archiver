@@ -14,22 +14,22 @@ use Yumo\Eleanor\Archive\UrlPointer;
 /**
  * Keeps one owner's archives in one SQLite file.
  *
- * A lookup never creates the file. The first `save` creates the file and its directory.
- * Database errors raise `\PDOException`.
+ * A lookup never creates the file. The first `save` opens the connection, which creates the file and its directory.
+ * A directory that cannot be created raises `DirectoryException`. A database error raises `\PDOException`.
  *
- * `$store = new SqliteArchiveStore($owner, '/data/ada.sqlite');`
+ * `$store = new SqliteArchiveStore($owner, new SqliteConnection('/data/ada.sqlite', new SqliteSchema()));`
  */
 #[Exclude]
 final class SqliteArchiveStore implements ArchiveStore
 {
     /**
-     * Creates a store for `$owner` that keeps its rows in the file at `$path`.
+     * Creates a store for `$owner` that reads and writes through `$connection`.
      */
     public function __construct(
         /** The owner whose archives this store reads and writes. */
         private Owner $owner,
-        /** The path of the database file. */
-        private string $path,
+        /** The connection for this owner's database file. */
+        private SqliteConnection $connection,
     ) {
     }
 
@@ -68,24 +68,20 @@ final class SqliteArchiveStore implements ArchiveStore
      */
     public function save(Archive $archive): void
     {
-        $this->ensureDirectory();
-        $connection = new SqliteConnection(new SqliteSchema());
-        $pdo = $connection->open($this->path);
-
-        try {
-            $pdo->beginTransaction();
-            $this->writeOwner($pdo);
-            $id = $this->writeArchive($pdo, $archive);
-            $this->writeBody($pdo, $id, $archive->html);
-            $pdo->commit();
-        } catch (\Throwable $failure) {
-            if ($pdo->inTransaction()) {
-                $pdo->rollBack();
+        $this->withConnection(function (\PDO $pdo) use ($archive): void {
+            try {
+                $pdo->beginTransaction();
+                $this->writeOwner($pdo);
+                $id = $this->writeArchive($pdo, $archive);
+                $this->writeBody($pdo, $id, $archive->html);
+                $pdo->commit();
+            } catch (\Throwable $failure) {
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+                throw $failure;
             }
-            throw $failure;
-        } finally {
-            $connection->close();
-        }
+        });
     }
 
     /**
@@ -95,47 +91,37 @@ final class SqliteArchiveStore implements ArchiveStore
      */
     private function fetchRow(string $sql, string $url): ?array
     {
-        if (!is_file($this->path)) {
+        if (!is_file($this->connection->path)) {
             return null;
         }
 
-        $connection = new SqliteConnection(new SqliteSchema());
-        $pdo = $connection->open($this->path);
-
-        try {
+        $row = $this->withConnection(function (\PDO $pdo) use ($sql, $url): array|false {
             $statement = $pdo->prepare($sql);
             $statement->execute(['url' => $url]);
-            $row = $statement->fetch(\PDO::FETCH_ASSOC);
-        } finally {
-            $connection->close();
-        }
+
+            return $statement->fetch(\PDO::FETCH_ASSOC);
+        });
 
         return $row === false ? null : $row;
     }
 
-    private function ensureDirectory(): void
+    /**
+     * Opens this owner's file, runs `$use`, and closes the connection.
+     *
+     * @template T
+     *
+     * @param callable(\PDO): T $use
+     *
+     * @return T
+     */
+    private function withConnection(callable $use): mixed
     {
-        $directory = dirname($this->path);
-        if (is_dir($directory)) {
-            return;
-        }
-
-        // A file in the place of the directory cannot be fixed by mkdir, which would only warn.
-        if (file_exists($directory)) {
-            throw new \PDOException('The data directory could not be created.');
-        }
-
-        $error = null;
         try {
-            $created = mkdir($directory, 0o777, true);
-        } catch (\Throwable $caught) {
-            $error = $caught;
-            $created = false;
-        }
+            $pdo = $this->connection->open();
 
-        // Another process may have created the directory between the check and the mkdir.
-        if (!$created && !is_dir($directory)) {
-            throw new \PDOException('The data directory could not be created.', 0, $error);
+            return $use($pdo);
+        } finally {
+            $this->connection->close();
         }
     }
 

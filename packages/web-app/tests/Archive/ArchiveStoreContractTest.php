@@ -10,8 +10,11 @@ use Yumo\Eleanor\Archive\Archive;
 use Yumo\Eleanor\Archive\ArchiveStoreFactory;
 use Yumo\Eleanor\Archive\ArchiveSummary;
 use Yumo\Eleanor\Archive\Owner;
+use Yumo\Eleanor\Archive\Sqlite\DirectoryException;
 use Yumo\Eleanor\Archive\Sqlite\SqliteArchiveStore;
 use Yumo\Eleanor\Archive\Sqlite\SqliteArchiveStoreFactory;
+use Yumo\Eleanor\Archive\Sqlite\SqliteConnection;
+use Yumo\Eleanor\Archive\Sqlite\SqliteSchema;
 use Yumo\Eleanor\Archive\UrlPointer;
 use Yumo\Eleanor\Tests\Support\ArchiveDirectories;
 use Yumo\Eleanor\Tests\Support\InMemory\InMemoryArchiveShelf;
@@ -173,7 +176,7 @@ final class ArchiveStoreContractTest extends TestCase
     public function test_save_creates_a_missing_parent_directory(): void
     {
         $path = $this->directory . '/missing/deeper/ada.sqlite';
-        $store = new SqliteArchiveStore(new Owner('ada@example.com'), $path);
+        $store = $this->sqliteStore($path);
         $archive = new Archive(self::URL, 'Title', null, null, '<p>Body</p>');
 
         $store->save($archive);
@@ -182,25 +185,33 @@ final class ArchiveStoreContractTest extends TestCase
         self::assertEquals($archive, $store->find(new UrlPointer(self::URL)));
     }
 
+    public function test_lookup_creates_no_directory(): void
+    {
+        $path = $this->directory . '/missing/deeper/ada.sqlite';
+        $store = $this->sqliteStore($path);
+
+        self::assertNull($store->findSummary(new UrlPointer(self::URL)));
+        self::assertNull($store->find(new UrlPointer(self::URL)));
+
+        self::assertDirectoryDoesNotExist($this->directory . '/missing');
+        self::assertFileDoesNotExist($path);
+    }
+
     public function test_save_fails_without_a_file_when_the_directory_cannot_be_created(): void
     {
         $blocker = $this->directory . '/blocker';
         touch($blocker);
-        $store = new SqliteArchiveStore(new Owner('ada@example.com'), $blocker . '/data/ada.sqlite');
-        set_error_handler(static function (int $severity, string $message): never {
-            throw new \ErrorException($message, 0, $severity);
-        });
+        $path = $blocker . '/ada.sqlite';
+        $store = $this->sqliteStore($path);
 
         try {
             $store->save(new Archive(self::URL, 'Title', null, null, '<p>Body</p>'));
-            self::fail('Expected a PDOException.');
-        } catch (\PDOException $exception) {
-            self::assertSame('The data directory could not be created.', $exception->getMessage());
-        } finally {
-            restore_error_handler();
+            self::fail('Expected a DirectoryException.');
+        } catch (DirectoryException $exception) {
+            self::assertNull($exception->getPrevious());
         }
 
-        self::assertFileDoesNotExist($blocker . '/data/ada.sqlite');
+        self::assertFileDoesNotExist($path);
     }
 
     public function test_second_save_of_one_url_keeps_the_row_id(): void
@@ -234,6 +245,11 @@ final class ArchiveStoreContractTest extends TestCase
         self::assertInstanceOf(\PDOStatement::class, $statement);
 
         return array_values($statement->fetchAll(\PDO::FETCH_ASSOC));
+    }
+
+    private function sqliteStore(string $path): SqliteArchiveStore
+    {
+        return new SqliteArchiveStore(new Owner('ada@example.com'), new SqliteConnection($path, new SqliteSchema()));
     }
 
     private function factory(string $kind): ArchiveStoreFactory

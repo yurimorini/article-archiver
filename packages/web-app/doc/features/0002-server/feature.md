@@ -86,6 +86,10 @@ The slice 7 contract is [sqlite-store.md](sqlite-store.md). The grill did not ad
 
 Not a new slice. [UrlPointer.md](specs/UrlPointer.md) moves the leading-and-trailing NUL trim out of `ArchiveService` and into `UrlPointer`. The lock, the fetch, and the store take that type. `toString()` is the string that reaches SQL, the flock key, and the library. The body DTO stays a string. The controller builds the pointer. [SqliteStore.md](specs/SqliteStore.md) and [ArchiveCommand.md](specs/ArchiveCommand.md) record the revised signatures. No ADR changes. Plan: [url pointer](plans/2026-10-18-url-pointer.md).
 
+## Store composition (2026-10-18)
+
+Not a new slice. `SqliteArchiveStore` no longer builds its connection or takes a path. `SqliteArchiveStoreFactory` holds one `SqliteSchema` and passes `new SqliteConnection($path, $schema)` into the store. `SqliteConnection::open` creates a missing parent directory at mode `0700` and raises `DirectoryException` when it cannot. A database failure stays a `\PDOException`. `ArchiveService` catches the two exceptions apart and maps each to `archive_not_written`. [SqliteStore.md](specs/SqliteStore.md) records this.
+
 ## Leftovers
 
 Findings from the slice 5 review that the slice did not fix. Each names the slice that handles it. Delete a line when that slice does it.

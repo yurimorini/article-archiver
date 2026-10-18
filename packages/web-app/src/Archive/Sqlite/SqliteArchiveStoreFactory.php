@@ -15,6 +15,9 @@ use Yumo\Eleanor\Archive\Owner;
  */
 final class SqliteArchiveStoreFactory implements ArchiveStoreFactory
 {
+    /** The schema shared by every owner database this factory opens. */
+    private readonly SqliteSchema $schema;
+
     /**
      * Creates the factory around the directory that holds every owner file.
      */
@@ -22,6 +25,7 @@ final class SqliteArchiveStoreFactory implements ArchiveStoreFactory
         /** The directory of the owner database files. It is created by the first save. */
         private string $dataDirectory,
     ) {
+        $this->schema = new SqliteSchema();
     }
 
     /**
@@ -31,6 +35,6 @@ final class SqliteArchiveStoreFactory implements ArchiveStoreFactory
     {
         $path = $this->dataDirectory . '/' . hash('sha256', $owner->email) . '.sqlite';
 
-        return new SqliteArchiveStore($owner, $path);
+        return new SqliteArchiveStore($owner, new SqliteConnection($path, $this->schema));
     }
 }

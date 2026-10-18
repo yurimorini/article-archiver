@@ -8,6 +8,7 @@ use Symfony\Component\DependencyInjection\Attribute\Exclude;
 use Yumo\ArtcleReader\Orchestrator\OrchestratorException;
 use Yumo\ArtcleReader\Orchestrator\PipelineNoContent;
 use Yumo\ArtcleReader\Orchestrator\PipelineSuccess;
+use Yumo\Eleanor\Archive\Sqlite\DirectoryException;
 
 /**
  * Archives the page behind a URL for the owner of the store it is given.
@@ -66,7 +67,7 @@ final class ArchiveService
     }
 
     /**
-     * Stores `$archive`. A database failure becomes `ArchiveFailure::NotWritten`.
+     * Stores `$archive`. A missing data directory and a database failure both become `ArchiveFailure::NotWritten`.
      *
      * @throws ArchiveException
      */
@@ -74,6 +75,8 @@ final class ArchiveService
     {
         try {
             $this->store->save($archive);
+        } catch (DirectoryException $error) {
+            throw new ArchiveException(ArchiveFailure::NotWritten, $error);
         } catch (\PDOException $error) {
             throw new ArchiveException(ArchiveFailure::NotWritten, $error);
         }

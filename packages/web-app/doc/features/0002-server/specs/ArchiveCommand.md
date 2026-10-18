@@ -35,7 +35,7 @@ The archive command. It does not know Symfony, HTTP, or SQLite.
 4. A miss calls `fetch($url)`. Library failures become `ArchiveException` as slice 6 left them. Any other throwable passes through. Nothing is saved.
 5. `PipelineNoContent` becomes `ArchiveException`. Nothing is saved. This covers both a page with no article and an article that is empty after purification.
 6. `PipelineSuccess` becomes `Archive`. `url` is `$url->toString()`. `title`, `excerpt`, and `siteName` come from `$success->document` through `PlainText::raw()`, and `excerpt` and `siteName` stay null when the document has none. `html` is `$success->document->html`. Warnings are not read.
-7. `save($archive)`. A `PDOException` becomes `ArchiveException` with `NotWritten`. `Written` carries a summary built from that `Archive`.
+7. `save($archive)`. A `DirectoryException` and a `PDOException` each become `ArchiveException` with `NotWritten` (revised by [SqliteStore.md](SqliteStore.md); before that revision only a `PDOException` was caught). `Written` carries a summary built from that `Archive`.
 
 `https://example.com/a` and `https://example.com/a/` are two archives. A leading or trailing NUL is not part of the stored name. Two overlapping first POSTs of one URL are owned by [SqliteStore.md](SqliteStore.md).
 

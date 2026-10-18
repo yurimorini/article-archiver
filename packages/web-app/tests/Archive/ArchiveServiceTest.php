@@ -18,6 +18,7 @@ use Yumo\Eleanor\Archive\ArchiveOutcome;
 use Yumo\Eleanor\Archive\ArchiveService;
 use Yumo\Eleanor\Archive\ArchiveSummary;
 use Yumo\Eleanor\Archive\ArticleFetcher;
+use Yumo\Eleanor\Archive\Sqlite\DirectoryException;
 use Yumo\Eleanor\Archive\UrlPointer;
 use Yumo\Eleanor\Tests\Support\FakeArchiveLock;
 use Yumo\Eleanor\Tests\Support\FakeArchiveStore;
@@ -306,11 +307,35 @@ final class ArchiveServiceTest extends TestCase
         }
     }
 
+    public function test_a_directory_exception_from_save_is_not_written(): void
+    {
+        $failure = new DirectoryException('The data directory could not be created.');
+        $this->store->saveFailure = $failure;
+        $this->fetcher->willReturn(self::URL, PipelineFixtures::success());
+
+        try {
+            $this->service->archive(new UrlPointer(self::URL));
+            self::fail('Expected an ArchiveException.');
+        } catch (ArchiveException $exception) {
+            self::assertSame(ArchiveFailure::NotWritten, $exception->failure);
+            self::assertSame($failure, $exception->getPrevious());
+        }
+    }
+
     public function test_a_pdo_exception_from_find_summary_is_not_wrapped(): void
     {
         $this->store->findSummaryFailure = new \PDOException('locked');
 
         $this->expectException(\PDOException::class);
+
+        $this->service->archive(new UrlPointer(self::URL));
+    }
+
+    public function test_a_directory_exception_from_find_summary_is_not_wrapped(): void
+    {
+        $this->store->findSummaryFailure = new DirectoryException('The data directory could not be created.');
+
+        $this->expectException(DirectoryException::class);
 
         $this->service->archive(new UrlPointer(self::URL));
     }
