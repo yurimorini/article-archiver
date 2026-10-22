@@ -11,16 +11,22 @@ interface ArchiveStore
 {
     /**
      * Returns the light fields stored for `$url`, or null when this owner has none.
+     *
+     * A failure is not wrapped.
      */
     public function findSummary(UrlPointer $url): ?ArchiveSummary;
 
     /**
      * Returns the archive stored for `$url`, or null when this owner has none.
+     *
+     * A failure is not wrapped.
      */
     public function find(UrlPointer $url): ?Archive;
 
     /**
      * Stores `$archive` under its URL for this owner.
+     *
+     * @throws ArchiveException When the archive cannot be stored, with `NotWritten`
      */
     public function save(Archive $archive): void;
 

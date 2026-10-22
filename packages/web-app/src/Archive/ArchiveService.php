@@ -6,7 +6,6 @@ namespace Yumo\Eleanor\Archive;
 
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Exclude;
-use Yumo\Eleanor\Archive\Sqlite\DirectoryException;
 
 /**
  * Archives the page behind a URL for the owner of the store it is given.
@@ -104,7 +103,7 @@ final class ArchiveService
     }
 
     /**
-     * Stores `$archive`. A missing data directory and a database failure both become `ArchiveFailure::NotWritten`.
+     * Stores `$archive`. The store throws `ArchiveException` and this method logs and rethrows it.
      *
      * @throws ArchiveException
      */
@@ -112,23 +111,11 @@ final class ArchiveService
     {
         try {
             $this->store->save($archive);
-        } catch (DirectoryException $error) {
-            $this->notWritten($url, $error);
-        } catch (\PDOException $error) {
-            $this->notWritten($url, $error);
+        } catch (ArchiveException $error) {
+            $this->log('warning', 'archive.failed', $this->context($url, $error->failure->value, true));
+
+            throw $error;
         }
-    }
-
-    /**
-     * Logs a save that did not stick, then raises `NotWritten` with `$error` as the cause.
-     *
-     * @throws ArchiveException
-     */
-    private function notWritten(UrlPointer $url, \Throwable $error): never
-    {
-        $this->log('warning', 'archive.failed', $this->context($url, ArchiveFailure::NotWritten->value, true));
-
-        throw new ArchiveException(ArchiveFailure::NotWritten, $error);
     }
 
     /**

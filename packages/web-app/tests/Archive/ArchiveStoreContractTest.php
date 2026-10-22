@@ -7,6 +7,8 @@ namespace Yumo\Eleanor\Tests\Archive;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Yumo\Eleanor\Archive\Archive;
+use Yumo\Eleanor\Archive\ArchiveException;
+use Yumo\Eleanor\Archive\ArchiveFailure;
 use Yumo\Eleanor\Archive\ArchiveStoreFactory;
 use Yumo\Eleanor\Archive\ArchiveSummary;
 use Yumo\Eleanor\Archive\Owner;
@@ -206,12 +208,51 @@ final class ArchiveStoreContractTest extends TestCase
 
         try {
             $store->save(new Archive(self::URL, 'Title', null, null, '<p>Body</p>'));
-            self::fail('Expected a DirectoryException.');
-        } catch (DirectoryException $exception) {
-            self::assertNull($exception->getPrevious());
+            self::fail('Expected an ArchiveException.');
+        } catch (ArchiveException $exception) {
+            self::assertSame(ArchiveFailure::NotWritten, $exception->failure);
+            $cause = $exception->getPrevious();
+            self::assertInstanceOf(DirectoryException::class, $cause);
+            self::assertNull($cause->getPrevious());
         }
 
         self::assertFileDoesNotExist($path);
+    }
+
+    public function test_save_of_a_non_database_file_is_not_written(): void
+    {
+        $path = $this->directory . '/ada.sqlite';
+        file_put_contents($path, 'not a database');
+        $store = $this->sqliteStore($path);
+
+        try {
+            $store->save(new Archive(self::URL, 'Title', null, null, '<p>Body</p>'));
+            self::fail('Expected an ArchiveException.');
+        } catch (ArchiveException $exception) {
+            self::assertSame(ArchiveFailure::NotWritten, $exception->failure);
+            self::assertInstanceOf(\PDOException::class, $exception->getPrevious());
+        }
+    }
+
+    public function test_lookup_of_a_non_database_file_is_not_wrapped(): void
+    {
+        $path = $this->directory . '/ada.sqlite';
+        file_put_contents($path, 'not a database');
+        $store = $this->sqliteStore($path);
+
+        try {
+            $store->findSummary(new UrlPointer(self::URL));
+            self::fail('Expected a PDOException.');
+        } catch (\Throwable $exception) {
+            self::assertInstanceOf(\PDOException::class, $exception);
+        }
+
+        try {
+            $store->find(new UrlPointer(self::URL));
+            self::fail('Expected a PDOException.');
+        } catch (\Throwable $exception) {
+            self::assertInstanceOf(\PDOException::class, $exception);
+        }
     }
 
     public function test_second_save_of_one_url_keeps_the_row_id(): void
