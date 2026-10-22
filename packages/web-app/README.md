@@ -10,10 +10,45 @@ Start PHP's built-in server in the development image:
 
 The server listens on `http://127.0.0.1:8000`.
 
+## Bearer secret
+
+Every call to a route under `/api` needs the secret in this header:
+
+```
+Authorization: Bearer <secret>
+```
+
+The secret is the environment variable `ELEANOR_BEARER_TOKEN`. The Owner sets it in `.env.local`, which stays out of git. The committed `.env` does not hold it.
+
+```bash
+echo 'ELEANOR_BEARER_TOKEN=change-me' >> packages/web-app/.env.local
+```
+
+A call without a valid secret answers 401:
+
+```json
+{"code":"unauthenticated","message":"The request is not authenticated."}
+```
+
+If the variable is missing or empty, the server cannot check any secret and answers 500:
+
+```json
+{"code":"unexpected","message":"Something went wrong on the server."}
+```
+
+A valid secret authenticates the Owner. The Owner is still the email in the `eleanor.owner_email` parameter.
+
 ## Examples
+
+The examples read the secret from the shell. Export the same value as `.env.local`:
+
+```bash
+export ELEANOR_BEARER_TOKEN=change-me
+```
 
 ```bash
 curl -X POST http://127.0.0.1:8000/api/archives \
+  -H "Authorization: Bearer $ELEANOR_BEARER_TOKEN" \
   -H 'Content-Type: application/json' \
   -d '{"url":"https://example.com/a"}'
 ```
@@ -26,6 +61,7 @@ A failure answers `application/json` with `code` and `message`. A body whose URL
 
 ```bash
 curl -i -X POST http://127.0.0.1:8000/api/archives \
+  -H "Authorization: Bearer $ELEANOR_BEARER_TOKEN" \
   -H 'Content-Type: application/json' \
   -d '{"url":"not-a-url"}'
 ```
