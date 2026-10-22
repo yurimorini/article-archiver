@@ -275,8 +275,8 @@ final class ArchiveServiceTest extends TestCase
         } catch (ArchiveException $exception) {
             self::assertSame($failure, $exception);
             self::assertSame(
-                ['warning', 'archive.failed', ['url' => self::URL, 'code' => 'archive_not_written', 'store' => '/data/ada.sqlite']],
-                $this->logger->records[2],
+                [['warning', 'archive.failed', ['url' => self::URL, 'code' => 'archive_not_written', 'store' => '/data/ada.sqlite']]],
+                $this->logger->records,
             );
         }
     }
@@ -290,10 +290,7 @@ final class ArchiveServiceTest extends TestCase
             $this->service->archive(new UrlPointer(self::URL));
             self::fail('Expected a PDOException.');
         } catch (\PDOException) {
-            self::assertSame([
-                ['info', 'archive.start', ['url' => self::URL]],
-                ['info', 'archive.fetch', ['url' => self::URL]],
-            ], $this->logger->records);
+            self::assertSame([], $this->logger->records);
         }
     }
 
@@ -306,10 +303,7 @@ final class ArchiveServiceTest extends TestCase
             $this->service->archive(new UrlPointer(self::URL));
             self::fail('Expected a DirectoryException.');
         } catch (DirectoryException) {
-            self::assertSame([
-                ['info', 'archive.start', ['url' => self::URL]],
-                ['info', 'archive.fetch', ['url' => self::URL]],
-            ], $this->logger->records);
+            self::assertSame([], $this->logger->records);
         }
     }
 
@@ -331,7 +325,7 @@ final class ArchiveServiceTest extends TestCase
         $this->service->archive(new UrlPointer(self::URL));
     }
 
-    public function test_a_miss_logs_start_fetch_and_written(): void
+    public function test_a_miss_logs_written(): void
     {
         $this->store->location = '/data/ada.sqlite';
         $this->fetcher->willReturn(self::URL, PipelineFixtures::article());
@@ -340,8 +334,6 @@ final class ArchiveServiceTest extends TestCase
 
         self::assertSame(ArchiveOutcome::Written, $result->outcome);
         self::assertSame([
-            ['info', 'archive.start', ['url' => self::URL]],
-            ['info', 'archive.fetch', ['url' => self::URL]],
             ['info', 'archive.written', ['url' => self::URL, 'store' => '/data/ada.sqlite']],
         ], $this->logger->records);
     }
@@ -353,12 +345,12 @@ final class ArchiveServiceTest extends TestCase
         $this->service->archive(new UrlPointer(self::URL));
 
         self::assertSame(
-            ['info', 'archive.written', ['url' => self::URL]],
-            $this->logger->records[2],
+            [['info', 'archive.written', ['url' => self::URL]]],
+            $this->logger->records,
         );
     }
 
-    public function test_a_hit_logs_start_and_already_stored(): void
+    public function test_a_hit_logs_already_stored(): void
     {
         $this->fetcher->willReturn(self::URL, PipelineFixtures::article());
         $this->service->archive(new UrlPointer(self::URL));
@@ -368,7 +360,6 @@ final class ArchiveServiceTest extends TestCase
 
         self::assertSame(ArchiveOutcome::AlreadyStored, $result->outcome);
         self::assertSame([
-            ['info', 'archive.start', ['url' => self::URL]],
             ['info', 'archive.already_stored', ['url' => self::URL]],
         ], $this->logger->records);
         self::assertSame(1, $this->fetcher->fetchCount());
@@ -384,8 +375,6 @@ final class ArchiveServiceTest extends TestCase
             self::fail('Expected an ArchiveException.');
         } catch (ArchiveException) {
             self::assertSame([
-                ['info', 'archive.start', ['url' => self::URL]],
-                ['info', 'archive.fetch', ['url' => self::URL]],
                 ['warning', 'archive.failed', ['url' => self::URL, 'code' => 'transport']],
             ], $this->logger->records);
         }
@@ -401,8 +390,8 @@ final class ArchiveServiceTest extends TestCase
             self::fail('Expected an ArchiveException.');
         } catch (ArchiveException) {
             self::assertSame(
-                ['warning', 'archive.failed', ['url' => self::URL, 'code' => 'sanitized_empty']],
-                $this->logger->records[2],
+                [['warning', 'archive.failed', ['url' => self::URL, 'code' => 'sanitized_empty']]],
+                $this->logger->records,
             );
         }
     }
@@ -417,13 +406,13 @@ final class ArchiveServiceTest extends TestCase
             self::fail('Expected an ArchiveException.');
         } catch (ArchiveException) {
             self::assertSame(
-                ['warning', 'archive.failed', ['url' => self::URL, 'code' => 'archive_not_written']],
-                $this->logger->records[2],
+                [['warning', 'archive.failed', ['url' => self::URL, 'code' => 'archive_not_written']]],
+                $this->logger->records,
             );
         }
     }
 
-    public function test_a_pdo_exception_from_find_summary_logs_start_only(): void
+    public function test_a_pdo_exception_from_find_summary_writes_no_line(): void
     {
         $this->store->findSummaryFailure = new \PDOException('locked');
 
@@ -431,9 +420,7 @@ final class ArchiveServiceTest extends TestCase
             $this->service->archive(new UrlPointer(self::URL));
             self::fail('Expected a PDOException.');
         } catch (\PDOException) {
-            self::assertSame([
-                ['info', 'archive.start', ['url' => self::URL]],
-            ], $this->logger->records);
+            self::assertSame([], $this->logger->records);
         }
     }
 

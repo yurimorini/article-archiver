@@ -87,7 +87,7 @@ Not a new slice. [UrlPointer.md](specs/UrlPointer.md) moves the leading-and-trai
 
 ## Archive log (2026-10-19)
 
-Not a new slice. The module design is [ArchiveLog.md](specs/ArchiveLog.md). Plan: [archive log](plans/2026-10-19-archive-log.md). `ArchiveService` is the first `domain` writer. `RequestIdProcessor` copies the stored request id onto `extra.request_id` so those lines join the HTTP round. A save line carries the SQLite path from `ArchiveStore::location()`. [Logging.md](specs/Logging.md) keeps the HTTP lines and points here.
+Not a new slice. The module design is [ArchiveLog.md](specs/ArchiveLog.md). Plan: [archive log](plans/2026-10-19-archive-log.md). `ArchiveService` is the first `domain` writer. `RequestIdProcessor` copies the stored request id onto `extra.request_id` so those lines join the HTTP round. A save line carries the SQLite path from `ArchiveStore::location()`. [Logging.md](specs/Logging.md) keeps the HTTP lines and points here. Revised 2026-10-23: the service logs outcomes only. See [Archive log outcomes](#archive-log-outcomes-2026-10-23).
 
 ## Store save failure (2026-10-22)
 
@@ -108,6 +108,10 @@ Not a new slice. `SqliteArchiveStore` no longer builds its connection or takes a
 ## Bearer (2026-10-22)
 
 The firewall row and the token row are one slice, now row 8. The runtime row is 9. The contract is [bearer.md](bearer.md). The module design is [Bearer](specs/Bearer.md). Plan: [bearer](plans/2026-10-22-bearer.md). A matched route under `/api` requires the configured bearer. The secret is `ELEANOR_BEARER_TOKEN`. The email parameter stays the Owner. No ADR is added. The execution plan adds the README section that tells the Owner where the secret goes and what the 401 and the 500 look like. 403 stays out of this slice.
+
+## Archive log outcomes (2026-10-23)
+
+Not a new slice. `ArchiveService` logs the branch it took: `archive.already_stored`, `archive.written`, or `archive.failed`. It does not log that it is about to look up or about to fetch. `archive.start` and `archive.fetch` are removed. A lookup that throws, and any throwable that is not `ArchiveException`, writes no domain line. The URL of that call is not on `domain`. Each outcome is one private method. `failed` is the only writer of `archive.failed`, and it adds `store` when the code is `archive_not_written`. No logger type and no decorator. The style rule is [.agents/rules/logging.md](../../../../../.agents/rules/logging.md). [ArchiveLog.md](specs/ArchiveLog.md) records the lines. Plan: [archive log outcomes](plans/2026-10-23-archive-log-outcomes.md).
 
 ## Leftovers
 

@@ -49,28 +49,24 @@ final class ArchiveService
      */
     private function archiveLocked(UrlPointer $url): ArchiveResult
     {
-        $this->log('info', 'archive.start', $this->context($url));
-
         $stored = $this->store->findSummary($url);
         if ($stored !== null) {
-            $this->log('info', 'archive.already_stored', $this->context($url));
+            $this->alreadyStored($url);
 
             return new ArchiveResult($stored, ArchiveOutcome::AlreadyStored);
         }
 
-        $this->log('info', 'archive.fetch', $this->context($url));
-
         try {
-            $fetched = $this->fetch($url);
+            $fetched = $this->fetcher->fetch($url);
         } catch (ArchiveException $failure) {
-            $this->log('warning', 'archive.failed', $this->context($url, $failure->failure->value));
+            $this->failed($url, $failure);
 
             throw $failure;
         }
 
         $archive = $this->fromSuccess($url, $fetched);
         $this->save($url, $archive);
-        $this->log('info', 'archive.written', $this->context($url, store: true));
+        $this->written($url);
 
         return new ArchiveResult(
             ArchiveSummary::fromArchive($archive),
@@ -79,13 +75,11 @@ final class ArchiveService
     }
 
     /**
-     * Fetches `$url`. The fetcher throws `ArchiveException` when the page cannot be archived.
-     *
-     * @throws ArchiveException
+     * Logs that `$url` was already stored.
      */
-    private function fetch(UrlPointer $url): Article
+    private function alreadyStored(UrlPointer $url): void
     {
-        return $this->fetcher->fetch($url);
+        $this->log('info', 'archive.already_stored', $this->context($url));
     }
 
     /**
@@ -112,10 +106,28 @@ final class ArchiveService
         try {
             $this->store->save($archive);
         } catch (ArchiveException $error) {
-            $this->log('warning', 'archive.failed', $this->context($url, $error->failure->value, true));
+            $this->failed($url, $error);
 
             throw $error;
         }
+    }
+
+    /**
+     * Logs that the archive of `$url` was written.
+     */
+    private function written(UrlPointer $url): void
+    {
+        $this->log('info', 'archive.written', $this->context($url, store: true));
+    }
+
+    /**
+     * Logs that archiving `$url` failed. A `NotWritten` failure includes the store path.
+     */
+    private function failed(UrlPointer $url, ArchiveException $failure): void
+    {
+        $store = $failure->failure === ArchiveFailure::NotWritten;
+
+        $this->log('warning', 'archive.failed', $this->context($url, $failure->failure->value, $store));
     }
 
     /**

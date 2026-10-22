@@ -18,7 +18,7 @@ Order the methods of a class so a reader can follow one operation from top to bo
 
 Do not leave a helper between two steps because that is where it was added.
 
-`ArchiveService` reads `archive`, `archiveLocked`, `fetch`, `fromSuccess`, `save`, `notWritten`, then the shared `log` and `context`.
+`ArchiveService` reads `archive`, `archiveLocked`, `alreadyStored`, `fetch`, `fromSuccess`, `save`, `written`, then the shared `failed`, `log`, and `context`.
 
 ## Out of scope
 

@@ -52,6 +52,6 @@ final class RequestIdProcessorTest extends TestCase
      */
     private function record(): LogRecord
     {
-        return new LogRecord(new \DateTimeImmutable(), 'domain', Level::Info, 'archive.fetch', ['request_id' => 'from-context']);
+        return new LogRecord(new \DateTimeImmutable(), 'domain', Level::Info, 'archive.written', ['request_id' => 'from-context']);
     }
 }
