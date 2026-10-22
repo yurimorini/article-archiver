@@ -93,6 +93,47 @@ final class BearerRouteTest extends WebTestCase
         self::assertResponseNotHasHeader('Set-Cookie');
     }
 
+    public function test_an_empty_secret_is_500_unexpected(): void
+    {
+        $name = 'ELEANOR_BEARER_TOKEN';
+        $savedServer = $_SERVER[$name] ?? null;
+        $savedEnv = $_ENV[$name] ?? null;
+        $savedProcess = getenv($name);
+
+        unset($_SERVER[$name], $_ENV[$name]);
+        putenv($name);
+
+        try {
+            self::ensureKernelShutdown();
+            $client = static::createClient();
+
+            foreach ([[], ['HTTP_AUTHORIZATION' => 'Bearer'], ['HTTP_AUTHORIZATION' => 'Bearer ']] as $server) {
+                $this->post($client, $server);
+
+                self::assertResponseStatusCodeSame(500);
+                self::assertResponseHeaderSame('content-type', 'application/json');
+                $body = $client->getInternalResponse()->getContent();
+                self::assertSame('{"code":"unexpected","message":"Something went wrong on the server."}', $body);
+                self::assertStringNotContainsString($name, $body);
+            }
+        } finally {
+            $this->restore($name, $savedServer, $savedEnv, $savedProcess);
+        }
+    }
+
+    private function restore(string $name, mixed $server, mixed $env, string|false $process): void
+    {
+        if ($server !== null) {
+            $_SERVER[$name] = $server;
+        }
+
+        if ($env !== null) {
+            $_ENV[$name] = $env;
+        }
+
+        putenv($process === false ? $name : $name.'='.$process);
+    }
+
     /**
      * @param array<string, string> $server
      */

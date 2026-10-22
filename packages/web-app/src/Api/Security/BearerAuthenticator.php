@@ -49,10 +49,13 @@ final class BearerAuthenticator extends AbstractAuthenticator
     /**
      * Returns a passport for the configured email when the header carries the secret.
      *
+     * @throws BearerNotConfigured       when the configured secret is empty
      * @throws AuthenticationException when the header is absent or does not carry the secret
      */
     public function authenticate(Request $request): Passport
     {
+        $this->assertConfigured();
+
         $header = $request->headers->get('Authorization');
 
         if ($header === null) {
@@ -86,6 +89,20 @@ final class BearerAuthenticator extends AbstractAuthenticator
     public function onAuthenticationFailure(Request $request, AuthenticationException $exception): ?Response
     {
         return null;
+    }
+
+    /**
+     * An empty secret would equal an empty candidate, so it must fail before the header is read.
+     */
+    private function assertConfigured(): void
+    {
+        if ($this->secret !== '') {
+            return;
+        }
+
+        $this->application->error('bearer.not_configured', ['variable' => 'ELEANOR_BEARER_TOKEN']);
+
+        throw new BearerNotConfigured();
     }
 
     /**
