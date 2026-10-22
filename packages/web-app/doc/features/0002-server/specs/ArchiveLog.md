@@ -1,6 +1,6 @@
 # Archive log
 
-Module design for the lines `ArchiveService` writes while it archives one URL. This spec adds no slice and no glossary term. It revises [Logging.md](Logging.md), [ArchiveCommand.md](ArchiveCommand.md), and [SqliteStore.md](SqliteStore.md). No ADR changes.
+Module design for the lines `ArchiveService` writes while it archives one URL. This spec adds no slice and no glossary term. It revises [Logging.md](Logging.md), [ArchiveCommand.md](ArchiveCommand.md), and [SqliteStore.md](SqliteStore.md). No ADR changes. Revised 2026-10-22: a failed `save` reaches the service as `ArchiveException` with `NotWritten`. The service logs `archive.failed` and rethrows that exception. It does not catch `DirectoryException` or `\PDOException`.
 
 `application` stays the HTTP round: `http.request.start`, `http.request.finish`, and `http.request.failed`. `domain` is the archive command. `ArchiveService` is the first writer on `domain`.
 
@@ -67,7 +67,7 @@ The message is the event name. The values sit in `context`. The lines do not car
 2. `ArchiveService::archive` takes the lock and writes `archive.start`.
 3. A stored summary writes `archive.already_stored` and returns. No fetch, no `store`.
 4. A miss writes `archive.fetch`, then fetches. A mapped failure writes `archive.failed` with `url` and `code`, and throws.
-5. `save` either writes `archive.written` with `url` and `store`, or a `DirectoryException` or a `PDOException` becomes `archive.failed` with `code` `archive_not_written` and `store`, then `ArchiveException`.
+5. `save` either writes `archive.written` with `url` and `store`, or an `ArchiveException` with `NotWritten` is rethrown after `archive.failed` with `code` `archive_not_written` and `store`. The service does not map `DirectoryException` or `\PDOException`. Before 2026-10-22 those two exceptions were what the service caught.
 6. The processor has set `extra.request_id` on each of those records from the request stored in step 1.
 7. `http.request.finish` closes the round. A status of 500 or higher also writes `http.request.failed` on `application`.
 
@@ -75,7 +75,7 @@ The message is the event name. The values sit in `context`. The lines do not car
 
 `tests/Request/RequestIdProcessorTest.php` does not boot the kernel. A request that holds an `EnrichedRequest` sets `extra.request_id`. A stack with no request, and a request without the attribute, leave that key absent. `userAgent` and `referer` are not copied. A `request_id` already present in `context` stays there.
 
-`tests/Archive/ArchiveServiceTest.php` records the logger. A hit writes `archive.start` and `archive.already_stored`. A miss writes `archive.start`, `archive.fetch`, and `archive.written`. A mapped fetch failure writes `archive.failed` with `code` and without `store`. A `DirectoryException` or a `PDOException` from `save` writes `archive.failed` with `code` `archive_not_written` and `store` equal to `location()`. A store whose `location()` is `null` omits `store`. A logger that throws does not replace the outcome.
+`tests/Archive/ArchiveServiceTest.php` records the logger. A hit writes `archive.start` and `archive.already_stored`. A miss writes `archive.start`, `archive.fetch`, and `archive.written`. A mapped fetch failure writes `archive.failed` with `code` and without `store`. An `ArchiveException` with `NotWritten` from `save` writes `archive.failed` with `code` `archive_not_written` and `store` equal to `location()`, and the same exception escapes. A `DirectoryException` or a `\PDOException` from `save` writes no `archive.failed`. A store whose `location()` is `null` omits `store`. A logger that throws does not replace the outcome.
 
 `ArchiveStoreContractTest` covers `location()`. The SQLite store returns the path the factory builds for that owner. The in-memory store returns `null`.
 

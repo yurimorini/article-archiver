@@ -262,9 +262,10 @@ final class ArchiveServiceTest extends TestCase
         self::assertSame(ArchiveOutcome::Written, $result->outcome);
     }
 
-    public function test_a_pdo_exception_from_save_is_not_written(): void
+    public function test_an_archive_exception_from_save_is_rethrown(): void
     {
-        $failure = new \PDOException('disk full near /var/secret');
+        $failure = new ArchiveException(ArchiveFailure::NotWritten, new \PDOException('locked'));
+        $this->store->location = '/data/ada.sqlite';
         $this->store->saveFailure = $failure;
         $this->fetcher->willReturn(self::URL, PipelineFixtures::article());
 
@@ -272,23 +273,43 @@ final class ArchiveServiceTest extends TestCase
             $this->service->archive(new UrlPointer(self::URL));
             self::fail('Expected an ArchiveException.');
         } catch (ArchiveException $exception) {
-            self::assertSame(ArchiveFailure::NotWritten, $exception->failure);
-            self::assertSame($failure, $exception->getPrevious());
+            self::assertSame($failure, $exception);
+            self::assertSame(
+                ['warning', 'archive.failed', ['url' => self::URL, 'code' => 'archive_not_written', 'store' => '/data/ada.sqlite']],
+                $this->logger->records[2],
+            );
         }
     }
 
-    public function test_a_directory_exception_from_save_is_not_written(): void
+    public function test_a_pdo_exception_from_save_passes_through(): void
     {
-        $failure = new DirectoryException('The data directory could not be created.');
-        $this->store->saveFailure = $failure;
+        $this->store->saveFailure = new \PDOException('locked');
         $this->fetcher->willReturn(self::URL, PipelineFixtures::article());
 
         try {
             $this->service->archive(new UrlPointer(self::URL));
-            self::fail('Expected an ArchiveException.');
-        } catch (ArchiveException $exception) {
-            self::assertSame(ArchiveFailure::NotWritten, $exception->failure);
-            self::assertSame($failure, $exception->getPrevious());
+            self::fail('Expected a PDOException.');
+        } catch (\PDOException) {
+            self::assertSame([
+                ['info', 'archive.start', ['url' => self::URL]],
+                ['info', 'archive.fetch', ['url' => self::URL]],
+            ], $this->logger->records);
+        }
+    }
+
+    public function test_a_directory_exception_from_save_passes_through(): void
+    {
+        $this->store->saveFailure = new DirectoryException('The data directory could not be created.');
+        $this->fetcher->willReturn(self::URL, PipelineFixtures::article());
+
+        try {
+            $this->service->archive(new UrlPointer(self::URL));
+            self::fail('Expected a DirectoryException.');
+        } catch (DirectoryException) {
+            self::assertSame([
+                ['info', 'archive.start', ['url' => self::URL]],
+                ['info', 'archive.fetch', ['url' => self::URL]],
+            ], $this->logger->records);
         }
     }
 
@@ -386,45 +407,9 @@ final class ArchiveServiceTest extends TestCase
         }
     }
 
-    public function test_a_pdo_exception_from_save_logs_failed_with_store(): void
-    {
-        $this->store->location = '/data/ada.sqlite';
-        $this->store->saveFailure = new \PDOException('locked');
-        $this->fetcher->willReturn(self::URL, PipelineFixtures::article());
-
-        try {
-            $this->service->archive(new UrlPointer(self::URL));
-            self::fail('Expected an ArchiveException.');
-        } catch (ArchiveException $exception) {
-            self::assertSame(ArchiveFailure::NotWritten, $exception->failure);
-            self::assertSame(
-                ['warning', 'archive.failed', ['url' => self::URL, 'code' => 'archive_not_written', 'store' => '/data/ada.sqlite']],
-                $this->logger->records[2],
-            );
-        }
-    }
-
-    public function test_a_directory_exception_from_save_logs_failed_with_store(): void
-    {
-        $this->store->location = '/data/ada.sqlite';
-        $this->store->saveFailure = new DirectoryException('The data directory could not be created.');
-        $this->fetcher->willReturn(self::URL, PipelineFixtures::article());
-
-        try {
-            $this->service->archive(new UrlPointer(self::URL));
-            self::fail('Expected an ArchiveException.');
-        } catch (ArchiveException $exception) {
-            self::assertSame(ArchiveFailure::NotWritten, $exception->failure);
-            self::assertSame(
-                ['warning', 'archive.failed', ['url' => self::URL, 'code' => 'archive_not_written', 'store' => '/data/ada.sqlite']],
-                $this->logger->records[2],
-            );
-        }
-    }
-
     public function test_a_save_failure_without_a_location_omits_store(): void
     {
-        $this->store->saveFailure = new \PDOException('locked');
+        $this->store->saveFailure = new ArchiveException(ArchiveFailure::NotWritten, new \PDOException('locked'));
         $this->fetcher->willReturn(self::URL, PipelineFixtures::article());
 
         try {
@@ -464,7 +449,8 @@ final class ArchiveServiceTest extends TestCase
 
     public function test_a_throwing_logger_on_save_failure_still_throws_not_written(): void
     {
-        $this->store->saveFailure = new \PDOException('locked');
+        $failure = new ArchiveException(ArchiveFailure::NotWritten, new \PDOException('locked'));
+        $this->store->saveFailure = $failure;
         $this->fetcher->willReturn(self::URL, PipelineFixtures::article());
         $service = new ArchiveService($this->store, $this->fetcher, $this->lock, new ThrowingLogger());
 
@@ -472,7 +458,7 @@ final class ArchiveServiceTest extends TestCase
             $service->archive(new UrlPointer(self::URL));
             self::fail('Expected an ArchiveException.');
         } catch (ArchiveException $exception) {
-            self::assertSame(ArchiveFailure::NotWritten, $exception->failure);
+            self::assertSame($failure, $exception);
             self::assertInstanceOf(\PDOException::class, $exception->getPrevious());
         }
     }
