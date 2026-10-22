@@ -1,6 +1,6 @@
 # Archive command
 
-Module design for [archive-command.md](../archive-command.md). The decisions in that contract are closed, including the two revisions recorded in [feature.md](../feature.md) under Slice merge: `ArticleFetcher` replaces the orchestrator as the service's dependency, and `OwnerProvider` replaces the controller's own reading of the owner parameter. This spec adopts [adr/0002](../../../adr/0002-second-post-returns-stored-archive.md) and [adr/0004](../../../adr/0004-archive-lookup-is-per-owner.md). [adr/0007](../../../adr/0007-archive-body-mapped-by-map-request-payload.md) stays as the payload slice adopted it. [adr/0001](../../../adr/0001-archive-outcome-status.md) waits for the problem-document slice. [adr/0008](../../../adr/0008-owner-database-schema-splits-body-from-metadata.md) is adopted by [SqliteStore.md](SqliteStore.md). This slice adds no glossary term. This spec is slice 5. Revised by [SqliteStore.md](SqliteStore.md): `Owner` lowercases the email, `ArchiveResult` carries an `ArchiveSummary`, `ArchiveStore` gains `findSummary`, `save` is an upsert, `ArchiveService` takes an `ArchiveLock`, and the in-memory classes move to the tests. Revised by [UrlPointer.md](UrlPointer.md): the URL those ports take is a `UrlPointer`, and the service no longer trims it.
+Module design for [archive-command.md](../archive-command.md). The decisions in that contract are closed, including the two revisions recorded in [feature.md](../feature.md) under Slice merge: `ArticleFetcher` replaces the orchestrator as the service's dependency, and `OwnerProvider` replaces the controller's own reading of the owner parameter. This spec adopts [adr/0002](../../../adr/0002-second-post-returns-stored-archive.md), [adr/0004](../../../adr/0004-archive-lookup-is-per-owner.md), and [adr/0009](../../../adr/0009-fetch-seam-returns-an-article.md). [adr/0007](../../../adr/0007-archive-body-mapped-by-map-request-payload.md) stays as the payload slice adopted it. [adr/0001](../../../adr/0001-archive-outcome-status.md) waits for the problem-document slice. [adr/0008](../../../adr/0008-owner-database-schema-splits-body-from-metadata.md) is adopted by [SqliteStore.md](SqliteStore.md). This slice adds no glossary term. Revised 2026-10-22: `ArticleFetcher` returns an `Article` and throws `ArchiveException`. `ArticleReaderAdapter` maps the library outcome. `ArchiveService` no longer reads library types and no longer takes `ArchiveFailureMapper`. The glossary term Article is that body. Revised 2026-10-22, store save: `ArchiveStore::save` throws `ArchiveException` with `NotWritten` when the archive cannot be stored. `ArchiveService` logs that failure and rethrows the same exception. It does not catch `DirectoryException` or `\PDOException`. A failure of `findSummary` or `find` stays unwrapped. [SqliteStore.md](SqliteStore.md) and [ArchiveLog.md](ArchiveLog.md) record the same move. This spec is slice 5. Revised by [SqliteStore.md](SqliteStore.md): `Owner` lowercases the email, `ArchiveResult` carries an `ArchiveSummary`, `ArchiveStore` gains `findSummary`, `save` is an upsert, `ArchiveService` takes an `ArchiveLock`, and the in-memory classes move to the tests. Revised by [UrlPointer.md](UrlPointer.md): the URL those ports take is a `UrlPointer`, and the service no longer trims it.
 
 This slice replaces the controller in [PayloadAndMapper.md](PayloadAndMapper.md): `create` is no longer the stub. The class got a constructor in this slice. Slice 5b removed it, and the action receives the `ArchiveService` as an argument ([OwnerScopedService.md](OwnerScopedService.md)).
 
@@ -17,14 +17,16 @@ The archive command. It does not know Symfony, HTTP, or SQLite.
 - `ArchiveSummary`: final readonly class. Public `string $url`, `string $title`, `?string $excerpt`, `?string $siteName`. No HTML. `fromArchive(Archive $archive): self` copies those fields and leaves the HTML out. Added by [SqliteStore.md](SqliteStore.md). `#[Exclude]`.
 - `ArchiveOutcome`: enum with `Written` and `AlreadyStored`. `#[Exclude]`.
 - `ArchiveResult`: final readonly class. Public `ArchiveSummary $summary` and `ArchiveOutcome $outcome` (revised by [SqliteStore.md](SqliteStore.md); before that revision the first property was `Archive $archive`). `#[Exclude]`.
-- `ArchiveException`: final class extending `\RuntimeException`. The constructor takes a message and an optional `?\Throwable $previous`. It has no reason enum. The problem-document slice adds what it needs. `#[Exclude]`.
-- `ArchiveStore`: interface. `findSummary(UrlPointer $url): ?ArchiveSummary`, `find(UrlPointer $url): ?Archive`, and `save(Archive $archive): void` (revised by [UrlPointer.md](UrlPointer.md); before that revision the lookup methods took `string $url`). `save` is an upsert (revised by [SqliteStore.md](SqliteStore.md); before that revision there was no `findSummary` and `save` was not an upsert). A store belongs to one owner. No method takes the owner.
+- `ArchiveException`: final class extending `\RuntimeException`. The constructor takes an `ArchiveFailure`, an optional cause, and an optional upstream status. `#[Exclude]`. Slice 6 added the failure and the upstream status. Before that slice the constructor took a message and an optional previous, and it had no reason enum.
+- `ArchiveStore`: interface. `findSummary(UrlPointer $url): ?ArchiveSummary`, `find(UrlPointer $url): ?Archive`, and `save(Archive $archive): void` (revised by [UrlPointer.md](UrlPointer.md); before that revision the lookup methods took `string $url`). `save` is an upsert (revised by [SqliteStore.md](SqliteStore.md); before that revision there was no `findSummary` and `save` was not an upsert). A failure of `save` throws `ArchiveException` with `NotWritten`. A failure of `findSummary` or `find` is not wrapped (revised 2026-10-22; before that revision the service caught `DirectoryException` and `\PDOException` from `save` and built the `ArchiveException`). A store belongs to one owner. No method takes the owner.
 - `ArchiveStoreFactory`: interface. `create(Owner $owner): ArchiveStore`.
-- `ArticleFetcher`: interface. `fetch(UrlPointer $url): PipelineSuccess|PipelineNoContent` (revised by [UrlPointer.md](UrlPointer.md); before that revision the argument was a string). The two result types are the library's. The service reads them. The adapter passes `$url->toString()` to the library.
-- `ArticleReaderAdapter`: final class implementing `ArticleFetcher`. It takes the library `Orchestrator` and returns `fetchArticle($url->toString())`. It adds no logic.
+- `Article`: final readonly class. Public `string $title`, `?string $excerpt`, `?string $siteName`, `string $html`. No URL and no warnings. `#[Exclude]`. Added 2026-10-22.
+- `ArticleFetcher`: interface. `fetch(UrlPointer $url): Article`. A failure throws `ArchiveException` (revised 2026-10-22; before that revision the return was the library's `PipelineSuccess|PipelineNoContent` and the service read those types). The argument is a `UrlPointer` (revised by [UrlPointer.md](UrlPointer.md); before that revision the argument was a string).
+- `ArticleReaderAdapter`: final class implementing `ArticleFetcher`. It takes the library `Orchestrator`. `fetch` calls `fetchArticle($url->toString())`. A `PipelineSuccess` becomes an `Article`: `title`, `excerpt`, and `siteName` come from the document through `PlainText::raw()`, and `excerpt` and `siteName` stay null when the document has none. `html` is the document HTML. Warnings are not read. A `PipelineNoContent` and an `OrchestratorException` become `ArchiveException` through `ArchiveFailureMapper`, which this adapter constructs. Any other throwable passes through. Before 2026-10-22 the adapter returned the library outcome unchanged.
+- `ArchiveFailureMapper`: final class, `#[Exclude]`. It maps a library failure to `ArchiveException`. Only `ArticleReaderAdapter` constructs it. `ArchiveService` does not take it (revised 2026-10-22).
 - `ArchiveLock`: interface. `exclusive(UrlPointer $url, callable $action): mixed` (revised by [UrlPointer.md](UrlPointer.md)). Added by [SqliteStore.md](SqliteStore.md).
 - `ArchiveLockFactory`: interface. `create(Owner $owner): ArchiveLock`. Added by [SqliteStore.md](SqliteStore.md).
-- `ArchiveService`: final class, no interface, `#[Exclude]`. The constructor takes `ArchiveStore`, `ArticleFetcher`, `ArchiveLock`, and `ArchiveFailureMapper` (revised by [SqliteStore.md](SqliteStore.md); before that revision it took the store and the fetcher only). It does not hold the `Owner`, because the store and the lock are already bound to it.
+- `ArchiveService`: final class, no interface, `#[Exclude]`. The constructor takes `ArchiveStore`, `ArticleFetcher`, and `ArchiveLock` (revised 2026-10-22; [SqliteStore.md](SqliteStore.md) had added `ArchiveFailureMapper` after the lock, and before that revision the constructor took the store and the fetcher only). It does not hold the `Owner`, because the store and the lock are already bound to it. It does not name a library type.
 - `ArchiveServiceFactory`: final class, no state. The constructor takes one `ArticleFetcher`, one `ArchiveStoreFactory`, and one `ArchiveLockFactory`. `create(Owner $owner): ArchiveService` returns a service with that owner's store and lock (revised by [SqliteStore.md](SqliteStore.md)).
 
 `ArchiveService::archive(UrlPointer $url): ArchiveResult`, as revised by [UrlPointer.md](UrlPointer.md) (before that revision the argument was a string and step 1 trimmed it):
@@ -32,10 +34,9 @@ The archive command. It does not know Symfony, HTTP, or SQLite.
 1. The pointer already holds the stored name. This method does not trim.
 2. `exclusive($url)` around the rest. The lock, already bound to the owner, keys that call with the email, a NUL byte, and `$url->toString()`.
 3. `findSummary($url)`. A hit returns `AlreadyStored` with that summary. The fetcher is not called.
-4. A miss calls `fetch($url)`. Library failures become `ArchiveException` as slice 6 left them. Any other throwable passes through. Nothing is saved.
-5. `PipelineNoContent` becomes `ArchiveException`. Nothing is saved. This covers both a page with no article and an article that is empty after purification.
-6. `PipelineSuccess` becomes `Archive`. `url` is `$url->toString()`. `title`, `excerpt`, and `siteName` come from `$success->document` through `PlainText::raw()`, and `excerpt` and `siteName` stay null when the document has none. `html` is `$success->document->html`. Warnings are not read.
-7. `save($archive)`. A `DirectoryException` and a `PDOException` each become `ArchiveException` with `NotWritten` (revised by [SqliteStore.md](SqliteStore.md); before that revision only a `PDOException` was caught). `Written` carries a summary built from that `Archive`.
+4. A miss calls `fetch($url)`. The fetcher returns an `Article` or throws `ArchiveException`. Any other throwable passes through the fetcher. Nothing is saved. Before 2026-10-22 the service itself mapped `OrchestratorException` and `PipelineNoContent`.
+5. The `Article` becomes `Archive`. `url` is `$url->toString()`. `title`, `excerpt`, `siteName`, and `html` are copied from the `Article`.
+6. `save($archive)`. The store throws `ArchiveException` with `NotWritten` when the archive cannot be stored. The service logs `archive.failed` and rethrows that same exception. Any other throwable from `save` passes through. Before 2026-10-22 the service caught `DirectoryException` and `\PDOException` and built the `ArchiveException` (that catch was added by [SqliteStore.md](SqliteStore.md); before the catch, only a `\PDOException` was translated). `Written` carries a summary built from that `Archive`.
 
 `https://example.com/a` and `https://example.com/a/` are two archives. A leading or trailing NUL is not part of the stored name. Two overlapping first POSTs of one URL are owned by [SqliteStore.md](SqliteStore.md).
 
@@ -90,11 +91,11 @@ A second POST of the same string finds the summary, does not fetch, and answers 
 
 ## Errors
 
-Every failure after the body map is an `ArchiveException` from the service. The controller does not catch it. Symfony's own error response is the answer until the problem-document slice. The tests do not assert its status or its text. They assert only that the body is not the success JSON and the content type is not `application/problem+json`.
+Every failure after the body map is an `ArchiveException` from the service. The controller does not catch it. Slice 6 answers it with the error document. The 2026-10-22 revision does not change those codes. A route test that registers a fetch failure registers an `ArchiveException`, not a library throwable. Before slice 6, Symfony's own error response was the answer, and the tests asserted only that the body was not the success JSON.
 
 A failed fetch stores nothing, so the next POST of that URL fetches again. This slice has no negative cache.
 
-`""`, `" "`, and `not-a-url` pass the body map. In production the library's `UrlGuard` rejects them inside the orchestrator, and the adapter lets that `OrchestratorException` reach the service, which wraps it. In the tests the fake rejects them the same way.
+`""`, `" "`, and `not-a-url` pass the body map. In production the library's `UrlGuard` rejects them inside the orchestrator, and the adapter wraps that failure as `ArchiveException`. In the tests the fake throws `ArchiveException` for a URL with no registered outcome.
 
 The 400, 415, and 405 refusals stay as the payload slice left them.
 
@@ -102,12 +103,12 @@ The 400, 415, and 405 refusals stay as the payload slice left them.
 
 Support class `Yumo\Eleanor\Tests\Support\FakeArticleFetcher` in `tests/Support/`:
 
-- `willReturn(string $url, PipelineSuccess|PipelineNoContent $outcome)`.
-- `willThrow(string $url, \Throwable $failure)`.
+- `willReturn(string $url, Article $article)` (revised 2026-10-22; before that revision the outcome was `PipelineSuccess|PipelineNoContent`).
+- `willThrow(string $url, ArchiveException $failure)` (revised 2026-10-22; before that revision the argument was any `\Throwable`).
 - `fetchCount(?string $url = null): int`.
-- A URL with no registered outcome throws `OrchestratorException(OrchestratorError::UrlGuard)`, as the real guard would for a string that is not a usable URL.
+- A URL with no registered outcome throws `ArchiveException` with `ArchiveFailure::UrlRejected`. Before 2026-10-22 the fake threw `OrchestratorException(OrchestratorError::UrlGuard)` and the service mapped that to the same failure.
 
-A small builder in `tests/Support/` makes a `PipelineSuccess` from a title, an optional excerpt and site name, and HTML, with optional warnings.
+A small builder in `tests/Support/` makes an `Article` from a title, an optional excerpt and site name, and HTML. It does not build a library document.
 
 Unit tests, no kernel, in `tests/Archive/` and `tests/Api/Owner/`:
 
@@ -116,16 +117,16 @@ Unit tests, no kernel, in `tests/Archive/` and `tests/Api/Owner/`:
 - `InMemoryArchiveStoreTest`: an unknown URL is absent. `save` then `find` returns the same archive. A store for another owner from the same shelf does not see it. A second store for the same owner does.
 - `InMemoryArchiveStoreFactoryTest`: two `create` calls for the same owner share rows, and another owner does not.
 - `ArchiveServiceFactoryTest`: with the real in-memory factory and the fake, the second service for the same owner returns `AlreadyStored` for what the first wrote.
-- `ArchiveServiceTest`: the cases listed in the contract's Testing Decisions. In addition, `url` is the string passed in, not the document's `sourceUrl`, and a failed fetch leaves the next call free to fetch again.
+- `ArchiveServiceTest`: the cases listed in the contract's Testing Decisions. In addition, `url` is the string passed in, and a failed fetch leaves the next call free to fetch again. The test builds an `Article`, not a library document.
 
-HTTP test: `CreateArchiveRouteTest` stays the one automated seam, and calls `$client->disableReboot()` so the shelf survives between two requests. It reads the fake and its `fetchCount`. Cases:
+HTTP test: `CreateArchiveRouteTest` stays the HTTP seam, and calls `$client->disableReboot()` so the shelf survives between two requests. It reads the fake and its `fetchCount`. Cases:
 
 - A new URL: route `create_archive`, 201, `application/json`, `{"url":...,"title":...}` with `url` first, no email.
 - The same URL again: 200, the same body, one fetch.
 - A different URL: 201, a second fetch.
 - A title with a quote and a backslash decodes to the same title.
-- An empty title (`PlainText` of `""`) gives `"title":""`.
-- `""`, `" "`, `not-a-url`, a `PipelineNoContent`, and a thrown failure: not the success JSON, not `application/problem+json`.
+- An empty title gives `"title":""`.
+- `""`, `" "`, `not-a-url`, an `ArchiveException` for an empty article, and any other thrown `ArchiveException`: not the success JSON, not `application/problem+json`.
 - A query string, `Accept: text/html`, an extra property, and a charset on the content type: still the archive.
 - The 400, 415, GET, HEAD, and kernel boot cases stay.
 
@@ -135,8 +136,8 @@ HTTP test: `CreateArchiveRouteTest` stays the one automated seam, and calls `$cl
 
 `./bin/quality` passing is an acceptance check, not a test.
 
+`ArticleReaderAdapter` is tested with an `Orchestrator` built from test collaborators. `Orchestrator` is `final`, and its constructor is the library's test seam. Those tests cover one success, both empty reasons, each library failure code, a failure with no finer reason, the upstream status number, and a throwable that is not a library failure. The success asserts the `Article` fields and that a warning is absent. A thrown library failure keeps its cause. An empty page has no cause. Any other throwable passes through. They replace `ArchiveFailureMapperTest` as the test surface for that translation. The command tests do not import a library type.
+
 ## Out of scope
 
 The contract's Out of Scope list stands. Specifically for this module: a store that survives a process, a negative cache, URL normalization, the authenticated `OwnerProvider`, and any change to the library. The domain lines for an archive live in [ArchiveLog.md](ArchiveLog.md).
-
-`ArticleReaderAdapter` has no test of its own. The library's tests prove the orchestrator, and the adapter has one line.

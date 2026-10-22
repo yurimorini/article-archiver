@@ -9,7 +9,7 @@ The stored copy of one page for one owner. That owner has one archive of the pag
 _Avoid_: Article, bookmark, snapshot
 
 **Article**:
-The purified body of a page.
+The purified body of a page: a title, an optional excerpt, an optional site name, and the purified HTML. It has no URL.
 _Avoid_: Archive, page copy
 
 **URL pointer**:
