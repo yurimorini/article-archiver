@@ -10,6 +10,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Yumo\Eleanor\Archive\ArchiveException;
 use Yumo\Eleanor\Archive\ArchiveFailure;
 use Yumo\Eleanor\Tests\Support\ArchiveDirectories;
+use Yumo\Eleanor\Tests\Support\Bearer;
 use Yumo\Eleanor\Tests\Support\FakeArticleFetcher;
 use Yumo\Eleanor\Tests\Support\PipelineFixtures;
 
@@ -97,7 +98,7 @@ final class ErrorResponseRouteTest extends WebTestCase
         string $message,
     ): void {
         $client = static::createClient();
-        $client->request('POST', '/api/archives', [], [], $server, $content);
+        $client->request('POST', '/api/archives', [], [], $this->authorized($server), $content);
 
         $this->assertErrorResponse($client, $status, $code, $message);
         self::assertSame(0, $this->fetcher()->fetchCount());
@@ -146,7 +147,7 @@ final class ErrorResponseRouteTest extends WebTestCase
     public function test_a_failure_reaching_the_action_carries_the_request_id(): void
     {
         $client = static::createClient();
-        $client->request('POST', '/api/archives', [], [], ['CONTENT_TYPE' => 'application/json'], '{}');
+        $client->request('POST', '/api/archives', [], [], $this->authorized(['CONTENT_TYPE' => 'application/json']), '{}');
 
         self::assertResponseStatusCodeSame(400);
         self::assertNotSame('', (string) $client->getResponse()->headers->get('X-Request-Id'));
@@ -216,8 +217,18 @@ final class ErrorResponseRouteTest extends WebTestCase
             '/api/archives',
             [],
             [],
-            ['CONTENT_TYPE' => 'application/json'],
+            $this->authorized(['CONTENT_TYPE' => 'application/json']),
             json_encode(['url' => $url], JSON_THROW_ON_ERROR),
         );
+    }
+
+    /**
+     * @param array<string, string> $server
+     *
+     * @return array<string, string>
+     */
+    private function authorized(array $server): array
+    {
+        return [...$server, 'HTTP_AUTHORIZATION' => Bearer::header()];
     }
 }

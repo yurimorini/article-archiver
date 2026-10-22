@@ -8,6 +8,11 @@ use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\UnsupportedMediaTypeHttpException;
+use Symfony\Component\Security\Core\Authentication\AuthenticationTrustResolver;
+use Symfony\Component\Security\Core\Authentication\AuthenticationTrustResolverInterface;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
+use Symfony\Component\Security\Core\Exception\AccessDeniedException;
+use Symfony\Component\Security\Core\Exception\AuthenticationException;
 use Symfony\Component\Serializer\Exception\NotEncodableValueException;
 use Yumo\Eleanor\Api\Response\ErrorResponse;
 use Yumo\Eleanor\Api\Response\Reply;
@@ -21,6 +26,18 @@ use Yumo\Eleanor\Archive\ArchiveFailure;
  */
 final class ErrorTranslator
 {
+    private readonly AuthenticationTrustResolverInterface $trustResolver;
+
+    /**
+     * Creates the translator. Without a token storage no call counts as fully authenticated.
+     */
+    public function __construct(
+        private readonly ?TokenStorageInterface $tokenStorage = null,
+        ?AuthenticationTrustResolverInterface $trustResolver = null,
+    ) {
+        $this->trustResolver = $trustResolver ?? new AuthenticationTrustResolver();
+    }
+
     /**
      * Returns the error reply for the throwable.
      *
@@ -113,12 +130,19 @@ final class ErrorTranslator
     private function requestFailure(\Throwable $error): ?RequestFailure
     {
         return match (true) {
+            $error instanceof AuthenticationException => RequestFailure::Unauthenticated,
+            $error instanceof AccessDeniedException && !$this->isFullyAuthenticated() => RequestFailure::Unauthenticated,
             $error instanceof NotFoundHttpException => RequestFailure::NotFound,
             $error instanceof MethodNotAllowedHttpException => RequestFailure::MethodNotAllowed,
             $error instanceof UnsupportedMediaTypeHttpException => RequestFailure::UnsupportedMediaType,
             $error instanceof HttpExceptionInterface && $error->getStatusCode() === 400 => $this->badRequest($error),
             default => null,
         };
+    }
+
+    private function isFullyAuthenticated(): bool
+    {
+        return $this->tokenStorage !== null && $this->trustResolver->isFullFledged($this->tokenStorage->getToken());
     }
 
     private function badRequest(\Throwable $error): RequestFailure

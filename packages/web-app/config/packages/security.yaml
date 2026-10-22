@@ -1,0 +1,11 @@
+security:
+    firewalls:
+        api:
+            pattern: ^/api
+            stateless: true
+            custom_authenticators:
+                - Yumo\Eleanor\Api\Security\BearerAuthenticator
+
+    # Note: Only the *first* matching rule is applied
+    access_control:
+        - { path: ^/api, roles: IS_AUTHENTICATED }

@@ -7,8 +7,12 @@
 # Put parameters here that don't need to change on each machine where the app is deployed
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
-    # The email of the one owner. The firewall slice replaces this with the authenticated caller.
+    # The email of the one owner. The bearer secret authenticates a call as this owner. The secret is the environment variable below.
     eleanor.owner_email: 'owner@example.com'
+
+    # The bearer secret. A missing variable becomes the empty default.
+    env(ELEANOR_BEARER_TOKEN): ''
+    eleanor.bearer_token: '%env(ELEANOR_BEARER_TOKEN)%'
 
     # The directory that holds one SQLite file per owner.
     eleanor.data_dir: '%kernel.project_dir%/var/data'
@@ -35,6 +39,14 @@ services:
 
     Yumo\Eleanor\Api\Owner\ConfiguredOwnerProvider:
         arguments:
+            $email: '%eleanor.owner_email%'
+
+    Yumo\Eleanor\Api\Owner\OwnerProvider:
+        alias: Yumo\Eleanor\Api\Owner\AuthenticatedOwnerProvider
+
+    Yumo\Eleanor\Api\Security\BearerAuthenticator:
+        arguments:
+            $secret: '%eleanor.bearer_token%'
             $email: '%eleanor.owner_email%'
 
     Yumo\Eleanor\Archive\Lock\FlockArchiveLockFactory:

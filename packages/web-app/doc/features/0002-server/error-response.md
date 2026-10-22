@@ -116,7 +116,7 @@ Every failure under `/api` answers with the same small JSON object: a stable `co
 ## Out of Scope
 
 - `application/problem+json`, `type`, `title`, `detail`, `instance`, and any other member of that standard. They are not adopted. A member can be added later, because clients ignore members they do not know.
-- 401 and 403, which belong to the firewall and token slices.
+- 401 and 403, which belonged to the firewall and token slices. [bearer.md](bearer.md) adopts the 401. The 403 stays out of that slice until a later permission exists.
 - `archive_not_written` and any failure of a durable store, which belong to the SQLite slice.
 - The idempotency key and its 409 and 422.
 - Translation or localization of `message`.

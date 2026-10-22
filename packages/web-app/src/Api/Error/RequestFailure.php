@@ -26,6 +26,9 @@ enum RequestFailure: string
     /** The request is not sent as JSON. */
     case UnsupportedMediaType = 'unsupported_media_type';
 
+    /** The call carries no valid bearer secret. */
+    case Unauthenticated = 'unauthenticated';
+
     /**
      * Returns the HTTP status to answer with.
      */
@@ -33,6 +36,7 @@ enum RequestFailure: string
     {
         return match ($this) {
             self::InvalidJson, self::InvalidBody => 400,
+            self::Unauthenticated => 401,
             self::NotFound => 404,
             self::MethodNotAllowed => 405,
             self::UnsupportedMediaType => 415,
@@ -47,6 +51,7 @@ enum RequestFailure: string
         return match ($this) {
             self::InvalidJson => 'The request body is not valid JSON.',
             self::InvalidBody => 'The request body must be a JSON object with a string url.',
+            self::Unauthenticated => 'The request is not authenticated.',
             self::NotFound => 'The path does not exist.',
             self::MethodNotAllowed => 'The method is not allowed for this path.',
             self::UnsupportedMediaType => 'The request must be sent as application/json.',

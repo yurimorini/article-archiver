@@ -10,6 +10,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\BrowserKit\Response;
 use Symfony\Component\HttpFoundation\Request;
 use Yumo\Eleanor\Tests\Support\ArchiveDirectories;
+use Yumo\Eleanor\Tests\Support\Bearer;
 use Yumo\Eleanor\Tests\Support\FakeArticleFetcher;
 use Yumo\Eleanor\Tests\Support\PipelineFixtures;
 
@@ -42,7 +43,7 @@ final class CreateArchiveRouteTest extends WebTestCase
     {
         $client = static::createClient();
         $this->fetcher()->willReturn('https://example.com/a', PipelineFixtures::article());
-        $client->request('POST', $uri, [], [], $server, $content);
+        $client->request('POST', $uri, [], [], $this->authorized($server), $content);
 
         self::assertRouteSame('create_archive');
         self::assertResponseStatusCodeSame(201);
@@ -206,9 +207,19 @@ final class CreateArchiveRouteTest extends WebTestCase
             '/api/archives',
             [],
             [],
-            ['CONTENT_TYPE' => 'application/json'],
+            $this->authorized(['CONTENT_TYPE' => 'application/json']),
             json_encode(['url' => $url], JSON_THROW_ON_ERROR),
         );
+    }
+
+    /**
+     * @param array<string, string> $server
+     *
+     * @return array<string, string>
+     */
+    private function authorized(array $server): array
+    {
+        return [...$server, 'HTTP_AUTHORIZATION' => Bearer::header()];
     }
 
     private function matchedRoute(object $request): mixed

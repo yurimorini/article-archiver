@@ -28,7 +28,8 @@
         "symfony/property-access": "8.1.*",
         "symfony/monolog-bundle": "4.0.*",
         "symfony/lock": "8.1.*",
-        "ext-pdo_sqlite": "*"
+        "ext-pdo_sqlite": "*",
+        "symfony/security-bundle": "8.1.*"
     },
     "require-dev": {
         "phpunit/phpunit": "^11.0",

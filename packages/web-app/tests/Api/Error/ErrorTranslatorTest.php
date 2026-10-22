@@ -11,6 +11,7 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\UnsupportedMediaTypeHttpException;
+use Symfony\Component\Security\Core\Exception\CustomUserMessageAuthenticationException;
 use Symfony\Component\Serializer\Exception\NotEncodableValueException;
 use Yumo\Eleanor\Api\Error\ErrorTranslator;
 use Yumo\Eleanor\Archive\ArchiveException;
@@ -79,6 +80,12 @@ final class ErrorTranslatorTest extends TestCase
             415,
             'unsupported_media_type',
             'The request must be sent as application/json.',
+        ];
+        yield 'unauthenticated' => [
+            new CustomUserMessageAuthenticationException('Unauthenticated.'),
+            401,
+            'unauthenticated',
+            'The request is not authenticated.',
         ];
         yield 'extract_no_content' => [
             new ArchiveException(ArchiveFailure::ExtractNoContent),

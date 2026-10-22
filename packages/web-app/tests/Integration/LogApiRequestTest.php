@@ -10,6 +10,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Yumo\Eleanor\Request\EnrichedRequest;
 use Yumo\Eleanor\Tests\Support\ArchiveDirectories;
+use Yumo\Eleanor\Tests\Support\Bearer;
 use Yumo\Eleanor\Tests\Support\FakeArticleFetcher;
 use Yumo\Eleanor\Tests\Support\PipelineFixtures;
 
@@ -165,6 +166,7 @@ final class LogApiRequestTest extends WebTestCase
     private function postArchives(LoggingBrowser $client, array $server = []): void
     {
         $server['CONTENT_TYPE'] = 'application/json';
+        $server['HTTP_AUTHORIZATION'] = Bearer::header();
         $fetcher = static::getContainer()->get(FakeArticleFetcher::class);
         self::assertInstanceOf(FakeArticleFetcher::class, $fetcher);
         $fetcher->willReturn('https://example.test/a', PipelineFixtures::article());

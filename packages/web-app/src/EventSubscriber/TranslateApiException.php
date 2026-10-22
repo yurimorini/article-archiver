@@ -12,6 +12,7 @@ use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Yumo\Eleanor\Api\Error\ErrorTranslator;
+use Yumo\Eleanor\Api\Error\RequestFailure;
 use Yumo\Eleanor\Api\Response\ErrorResponse;
 use Yumo\Eleanor\Api\Response\Reply;
 use Yumo\Eleanor\Api\Response\ReplyResponder;
@@ -58,6 +59,11 @@ final class TranslateApiException implements EventSubscriberInterface
         $headers = $error instanceof HttpExceptionInterface ? $error->getHeaders() : [];
 
         $event->setResponse($this->responder->respond($reply, $headers));
+
+        if ($reply->body->code === RequestFailure::Unauthenticated->value) {
+            // The security listener would otherwise replace this body.
+            $event->stopPropagation();
+        }
 
         if ($reply->status >= 500) {
             $this->logFailure($request, $error, $reply);

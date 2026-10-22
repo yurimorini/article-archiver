@@ -8,8 +8,6 @@ use Yumo\Eleanor\Archive\Owner;
 
 /**
  * Answers every call with the owner whose email is configured.
- *
- * A later slice replaces it with a provider that reads the authenticated caller.
  */
 final class ConfiguredOwnerProvider implements OwnerProvider
 {

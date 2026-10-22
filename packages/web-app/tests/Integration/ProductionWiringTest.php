@@ -11,6 +11,7 @@ use Yumo\ArtcleReader\Orchestrator\OrchestratorError;
 use Yumo\ArtcleReader\Orchestrator\OrchestratorException;
 use Yumo\Eleanor\Archive\ArchiveException;
 use Yumo\Eleanor\Kernel;
+use Yumo\Eleanor\Tests\Support\Bearer;
 
 /**
  * Proves that the production container reaches the real library orchestrator.
@@ -26,7 +27,7 @@ final class ProductionWiringTest extends TestCase
         $request = Request::create(
             '/api/archives',
             'POST',
-            server: ['CONTENT_TYPE' => 'application/json'],
+            server: ['CONTENT_TYPE' => 'application/json', 'HTTP_AUTHORIZATION' => Bearer::header()],
             content: '{"url":"not-a-url"}',
         );
 
