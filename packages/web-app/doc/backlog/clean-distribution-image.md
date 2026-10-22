@@ -8,7 +8,7 @@ A later activity designs the build that publishes a clean image. That image omit
 
 Already recorded elsewhere, and left as they are:
 
-- [Package layout](../../../article-reader/doc/features/workspace/specs/PackageLayout.md) keeps one development image from the root `Dockerfile`.
+- [Package layout](../../../article-reader/doc/features/workspace/design/PackageLayout.md) keeps one development image from the root `Dockerfile`.
 - [Bootstrap](../features/0001-bootstrap/feature.md) leaves a per-package Dockerfile as a later decision. A second image was out of scope for that feature.
 
 The development image ships SQLite 3.40.1 (Debian bookworm). The WAL-reset bug in [Sqlite.md](../features/0002-server/research/Sqlite.md) is fixed in 3.51.3, with backports in 3.44.6 and 3.50.7. The clean image should carry a SQLite that has the fix. The owner database is WAL ([adr/0003](../adr/0003-owner-database-is-wal.md)), so this matters for the runtime.

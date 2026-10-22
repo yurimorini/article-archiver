@@ -8,7 +8,7 @@
 
 **Tech Stack:** PHP 8.5, Symfony 8.1, PHPUnit 11, PDO SQLite, `./bin/test`, `./bin/quality`.
 
-**Spec:** `packages/web-app/doc/features/0002-server/specs/SqliteStore.md`, `packages/web-app/doc/features/0002-server/specs/ArchiveCommand.md`, and `packages/web-app/doc/features/0002-server/specs/ArchiveLog.md`. The index note is [Store save failure](../feature.md#store-save-failure-2026-10-22).
+**Spec:** `packages/web-app/doc/features/0002-server/design/SqliteStore.md`, `packages/web-app/doc/features/0002-server/design/ArchiveCommand.md`, and `packages/web-app/doc/features/0002-server/design/ArchiveLog.md`. The index note is [Store save failure](../feature.md#store-save-failure-2026-10-22).
 
 ## Global Constraints
 
@@ -90,7 +90,7 @@ EOF
 **Files:**
 - Modify: `packages/web-app/src/Archive/ArchiveService.php`
 - Modify: `packages/web-app/tests/Archive/ArchiveServiceTest.php`
-- Modify: `packages/web-app/doc/features/0002-server/specs/ArchiveLog.md`
+- Modify: `packages/web-app/doc/features/0002-server/design/ArchiveLog.md`
 - Modify: `packages/web-app/doc/features/0002-server/feature.md` (the Store save failure section only)
 
 **Interfaces:**
@@ -143,7 +143,7 @@ In `feature.md`, under Store save failure, link this plan and delete the sentenc
 `feature.md` also holds uncommitted bearer-slice edits. Do not `git add` that file. The Store save failure paragraph stays in the working tree until the bearer edits are committed on their own.
 
 ```bash
-git add packages/web-app/src/Archive/ArchiveService.php packages/web-app/tests/Archive/ArchiveServiceTest.php packages/web-app/doc/features/0002-server/specs/ArchiveLog.md
+git add packages/web-app/src/Archive/ArchiveService.php packages/web-app/tests/Archive/ArchiveServiceTest.php packages/web-app/doc/features/0002-server/design/ArchiveLog.md
 git commit -m "$(cat <<'EOF'
 refactor(web-app): log a save failure without catching sqlite
 

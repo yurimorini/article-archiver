@@ -8,7 +8,7 @@
 
 **Tech Stack:** Bash launcher, Docker image `log-read-php`, Composer scripts already declared in the library `composer.json`.
 
-**Spec:** `doc/features/workspace/specs/PackageLayout.md` (after the move: `packages/article-reader/doc/features/workspace/specs/PackageLayout.md`)
+**Spec:** `doc/features/workspace/design/PackageLayout.md` (after the move: `packages/article-reader/doc/features/workspace/design/PackageLayout.md`)
 
 ## Global Constraints
 

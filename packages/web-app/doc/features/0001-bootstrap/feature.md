@@ -25,7 +25,7 @@ packages/web-app/
 
 ## Spec
 
-`[specs/Bootstrap.md](specs/Bootstrap.md)`
+`[design/Bootstrap.md](design/Bootstrap.md)`
 
 ## Current status
 

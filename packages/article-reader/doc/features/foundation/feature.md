@@ -41,12 +41,12 @@ Amendments after a stage spec was marked done. The living spec is current; the e
 
 | Stage                  | Responsibility                                                                                                   | Output                                        | Spec                                                         |
 | ---------------------- | ---------------------------------------------------------------------------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------ |
-| **UrlGuard**           | Normalize URL; scheme/host/credentials policy; SSRF DNS + public-IP check; keep IPs for pin                      | `SafeFetchTarget` / `GuardResult`             | `[specs/UrlGuard.md](specs/UrlGuard.md)`                     |
-| **HttpFetcher**        | Single Guzzle GET with DNS pin, timeouts, Content-Type + size gates; **no redirects**; **no** charset transcoder | `FetchedPage`                                 | `[specs/HttpFetcher.md](specs/HttpFetcher.md)`               |
-| **EncodingNormalizer** | Charset cascade → UTF-8; quality `Ok` \| `Degraded`; propagate `sourceUrl`                                       | `EncodingOutcome` (`Utf8Html`)                | `[specs/EncodingNormalizer.md](specs/EncodingNormalizer.md)` |
-| **ArticleExtractor**   | Readability main-content + fused metadata (JSON-LD / og / …); soft `NoContent` vs hard parse failures | `ExtractResult` / `ReadableDocument`          | `[specs/ArticleExtractor.md](specs/ArticleExtractor.md)`     |
-| **HtmlSanitizer**      | HTMLPurifier policy (UTF-8 fixed, tight URI schemes, debug cache/errors)                                         | `SafeDocument`                                | `[specs/HtmlSanitizer.md](specs/HtmlSanitizer.md)`           |
-| **Orchestrator**       | Compose stages; map exceptions; `PipelineSuccess` / `PipelineNoContent`; CLI/library entry                        | `PipelineSuccess` \| `PipelineNoContent` \| throws `OrchestratorException` | `[specs/Orchestrator.md](specs/Orchestrator.md)`             |
+| **UrlGuard**           | Normalize URL; scheme/host/credentials policy; SSRF DNS + public-IP check; keep IPs for pin                      | `SafeFetchTarget` / `GuardResult`             | `[design/UrlGuard.md](design/UrlGuard.md)`                     |
+| **HttpFetcher**        | Single Guzzle GET with DNS pin, timeouts, Content-Type + size gates; **no redirects**; **no** charset transcoder | `FetchedPage`                                 | `[design/HttpFetcher.md](design/HttpFetcher.md)`               |
+| **EncodingNormalizer** | Charset cascade → UTF-8; quality `Ok` \| `Degraded`; propagate `sourceUrl`                                       | `EncodingOutcome` (`Utf8Html`)                | `[design/EncodingNormalizer.md](design/EncodingNormalizer.md)` |
+| **ArticleExtractor**   | Readability main-content + fused metadata (JSON-LD / og / …); soft `NoContent` vs hard parse failures | `ExtractResult` / `ReadableDocument`          | `[design/ArticleExtractor.md](design/ArticleExtractor.md)`     |
+| **HtmlSanitizer**      | HTMLPurifier policy (UTF-8 fixed, tight URI schemes, debug cache/errors)                                         | `SafeDocument`                                | `[design/HtmlSanitizer.md](design/HtmlSanitizer.md)`           |
+| **Orchestrator**       | Compose stages; map exceptions; `PipelineSuccess` / `PipelineNoContent`; CLI/library entry                        | `PipelineSuccess` \| `PipelineNoContent` \| throws `OrchestratorException` | `[design/Orchestrator.md](design/Orchestrator.md)`             |
 
 
 Stack (from research / `composer.json`): Guzzle, `craftcms/url-validator` (planned), `fossar/guzzle-transcoder` helpers / Transcoder for conversion (not as fetch middleware), `fivefilters/readability.php`, `ezyang/htmlpurifier`.
@@ -100,7 +100,7 @@ Each phase should land as a **testable vertical slice** of that stage (unit test
 
 ### Phase 1 — UrlGuard
 
-Implement per `[specs/UrlGuard.md](specs/UrlGuard.md)`:
+Implement per `[design/UrlGuard.md](design/UrlGuard.md)`:
 
 - Types: `SafeFetchTarget`, `GuardResult`, `UrlGuardException` + `UrlGuardError`, `SsrfUrlValidator` + Craft adapter.
 - Local policy (trim, `parse_url`, `http`/`https`, host required, reject credentials) then SSRF validate → public IPs.
@@ -110,7 +110,7 @@ Implement per `[specs/UrlGuard.md](specs/UrlGuard.md)`:
 
 ### Phase 2 — HttpFetcher
 
-Implement per `[specs/HttpFetcher.md](specs/HttpFetcher.md)`:
+Implement per `[design/HttpFetcher.md](design/HttpFetcher.md)`:
 
 - Types: `FetchPolicy`, `FetchedPage`, `HttpFetcherException` + `HttpFetcherError`.
 - Guzzle GET with `CURLOPT_RESOLVE` from `SafeFetchTarget`; `allow_redirects => false`; timeouts; Content-Type + max-body gates (header + stream).
@@ -120,7 +120,7 @@ Implement per `[specs/HttpFetcher.md](specs/HttpFetcher.md)`:
 
 ### Phase 3 — EncodingNormalizer
 
-Implement per `[specs/EncodingNormalizer.md](specs/EncodingNormalizer.md)`:
+Implement per `[design/EncodingNormalizer.md](design/EncodingNormalizer.md)`:
 
 - Types: `Utf8Html` (includes `sourceUrl` from `FetchedPage::$requestUri`), `EncodingOutcome`, `EncodingQuality`, `EncodingError`, hard-failure exception only when UTF-8 is impossible.
 - Cascade: BOM → HTTP charset → meta prescan → UTF-8 validity → optional detect; prefer HTTP over meta; no Guzzle transcoder middleware.
@@ -130,7 +130,7 @@ Implement per `[specs/EncodingNormalizer.md](specs/EncodingNormalizer.md)`:
 
 ### Phase 4 — ArticleExtractor
 
-Implement per `[specs/ArticleExtractor.md](specs/ArticleExtractor.md)`:
+Implement per `[design/ArticleExtractor.md](design/ArticleExtractor.md)`:
 
 - Types: `ExtractPolicy`, `ExtractResult` / `ExtractStatus`, `PlainText`, `ReadableDocument`, `ArticleExtractorException` + `ArticleExtractorError`.
 - Thin wrapper around `fivefilters/readability.php`; map soft no-content (including empty/whitespace HTML) to `ExtractResult::NoContent`; hard `ParseException` (element limit) → tagged exception.
@@ -145,7 +145,7 @@ Implement per `[specs/ArticleExtractor.md](specs/ArticleExtractor.md)`:
 
 ### Phase 5 — HtmlSanitizer
 
-Implement per `[specs/HtmlSanitizer.md](specs/HtmlSanitizer.md)`:
+Implement per `[design/HtmlSanitizer.md](design/HtmlSanitizer.md)`:
 
 - Types: `PurifyPolicy`, `SafeDocument` (copies `PlainText` metadata), `HtmlSanitizerException` + `HtmlSanitizerError`.
 - Purifier: `Core.Encoding=UTF-8` fixed; `URI.AllowedSchemes` from policy (MVP allowlist `http`/`https`/`mailto` only; hard-reject `javascript`/`data`/`file`); production definition cache via `PipelineOptions::$purifierCachePath` / constructor only; `debug` maps to cache-off / optional CollectErrors only.
@@ -155,7 +155,7 @@ Implement per `[specs/HtmlSanitizer.md](specs/HtmlSanitizer.md)`:
 
 ### Phase 6 — Orchestrator + entrypoint
 
-1. Implement per `[specs/Orchestrator.md](specs/Orchestrator.md)` (already written): stage order, `PipelineSuccess` / `PipelineNoContent`, exception wrap, factory + CLI API.
+1. Implement per `[design/Orchestrator.md](design/Orchestrator.md)` (already written): stage order, `PipelineSuccess` / `PipelineNoContent`, exception wrap, factory + CLI API.
 2. Wire UrlGuard → HttpFetcher → EncodingNormalizer → ArticleExtractor → HtmlSanitizer.
 3. Replace spike `bin/run` with a thin CLI that calls the orchestrator.
 4. One integration/smoke path (mocked HTTP or a fixed public URL) proving the full happy path.

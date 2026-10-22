@@ -8,7 +8,7 @@
 
 **Tech Stack:** PHP 8.5, Symfony 8.1, `symfony/serializer` `8.1.*`, `symfony/validator` `8.1.*`, existing PHPUnit 11, `symfony/browser-kit` `8.1.*`, `./bin/composer`, `./bin/test`, `./bin/quality`.
 
-**Spec:** `packages/web-app/doc/features/0002-server/specs/PayloadAndMapper.md`
+**Spec:** `packages/web-app/doc/features/0002-server/design/PayloadAndMapper.md`
 
 ## Global Constraints
 
@@ -45,7 +45,7 @@
 - Delete: `packages/web-app/src/Controller/Api/CreateArchiveController.php`.
 - Modify: `packages/web-app/config/routes.yaml` — import path and namespace.
 - Modify: `packages/web-app/tests/Integration/CreateArchiveRouteTest.php` — accepted rows and refusal rows.
-- Modify: `packages/web-app/doc/features/0002-server/specs/EmptyRoute.md` — the move is no longer waiting.
+- Modify: `packages/web-app/doc/features/0002-server/design/EmptyRoute.md` — the move is no longer waiting.
 - Modify: `packages/web-app/README.md` — the curl sends JSON.
 - Modify: `packages/web-app/doc/features/0002-server/feature.md` — slice 4 status, at the start and at the end.
 
@@ -62,7 +62,7 @@
 - Create: `packages/web-app/src/Api/Controller/CreateArchiveController.php`
 - Delete: `packages/web-app/src/Controller/Api/CreateArchiveController.php`
 - Modify: `packages/web-app/config/routes.yaml`
-- Modify: `packages/web-app/doc/features/0002-server/specs/EmptyRoute.md`
+- Modify: `packages/web-app/doc/features/0002-server/design/EmptyRoute.md`
 - Modify: `packages/web-app/doc/features/0002-server/feature.md`
 - Test: `packages/web-app/tests/Integration/CreateArchiveRouteTest.php`
 
@@ -184,7 +184,7 @@ In `packages/web-app/config/routes.yaml`, change only the resource path and name
         namespace: Yumo\Eleanor\Api\Controller
 ```
 
-In `packages/web-app/doc/features/0002-server/specs/EmptyRoute.md`, replace the sentence `The finished plan and the application code still use the old directory until that move is implemented.` with `The payload slice moved the class. The finished empty-route plan stays the record of the code written then.`
+In `packages/web-app/doc/features/0002-server/design/EmptyRoute.md`, replace the sentence `The finished plan and the application code still use the old directory until that move is implemented.` with `The payload slice moved the class. The finished empty-route plan stays the record of the code written then.`
 
 - [ ] **Step 6: Run the tests to verify they pass**
 
@@ -200,7 +200,7 @@ Expected: exit code 0.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add packages/web-app/composer.json packages/web-app/composer.lock packages/web-app/src/Api/Dto/CreateArchiveBody.php packages/web-app/src/Api/Controller/CreateArchiveController.php packages/web-app/src/Controller/Api/CreateArchiveController.php packages/web-app/config/routes.yaml packages/web-app/tests/Integration/CreateArchiveRouteTest.php packages/web-app/doc/features/0002-server/specs/EmptyRoute.md packages/web-app/doc/features/0002-server/feature.md
+git add packages/web-app/composer.json packages/web-app/composer.lock packages/web-app/src/Api/Dto/CreateArchiveBody.php packages/web-app/src/Api/Controller/CreateArchiveController.php packages/web-app/src/Controller/Api/CreateArchiveController.php packages/web-app/config/routes.yaml packages/web-app/tests/Integration/CreateArchiveRouteTest.php packages/web-app/doc/features/0002-server/design/EmptyRoute.md packages/web-app/doc/features/0002-server/feature.md
 git commit -m "$(cat <<'EOF'
 Map the archive body before the empty-route stub.
 

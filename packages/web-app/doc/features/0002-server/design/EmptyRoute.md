@@ -1,6 +1,6 @@
 # Empty route
 
-Module design for [empty-route.md](../empty-route.md). The decisions in that contract are closed. This slice adds no glossary term. It adopts [adr/0005](../../../adr/0005-api-routes-are-a-stateless-import.md) and [adr/0006](../../../adr/0006-kernel-tests-live-in-integration.md).
+Module design for [empty-route.md](../specs/empty-route.md). The decisions in that contract are closed. This slice adds no glossary term. It adopts [adr/0005](../../../adr/0005-api-routes-are-a-stateless-import.md) and [adr/0006](../../../adr/0006-kernel-tests-live-in-integration.md).
 
 ## Module
 

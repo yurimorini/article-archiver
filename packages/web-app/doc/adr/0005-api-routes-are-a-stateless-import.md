@@ -1,6 +1,6 @@
 # JSON routes sit under a stateless /api import
 
-Status: accepted. The [empty-route spec](../features/0002-server/specs/EmptyRoute.md) adopts this.
+Status: accepted. The [empty-route spec](../features/0002-server/design/EmptyRoute.md) adopts this.
 
 JSON controllers live in `src/Api/Controller/` (`Yumo\Eleanor\Api\Controller`). One YAML import loads that directory, not `src/Api/`. The body type for a command lives beside it, under `src/Api/Dto/`, and is not part of this import. The directory was `src/Controller/Api/` (`Yumo\Eleanor\Controller\Api`). The payload design moved the controller so the API surface is one tree. The application code keeps the old directory until that move is implemented. The import sets `prefix: /api`, `trailing_slash_on_root: false`, and `stateless: true`. Each action declares the path after the prefix, the HTTP methods, and the format. `POST /api/archives` is path `/archives`, name `create_archive`, methods `POST`, format `json`. There is no route alias.
 

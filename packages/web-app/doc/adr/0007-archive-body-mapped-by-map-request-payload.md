@@ -1,6 +1,6 @@
 # The archive body is mapped by MapRequestPayload
 
-Status: accepted. The [payload-and-mapper spec](../features/0002-server/specs/PayloadAndMapper.md) adopts this.
+Status: accepted. The [payload-and-mapper spec](../features/0002-server/design/PayloadAndMapper.md) adopts this.
 
 `POST /api/archives` maps the JSON body with `#[MapRequestPayload]` before the action runs. The action method stays `create`. Eleanor adds `symfony/serializer`, `symfony/validator`, and `symfony/property-access` at `8.1.*`. Property access stays, because FrameworkBundle removes the object normalizer without it. The body DTO is `Yumo\Eleanor\Api\Dto\CreateArchiveBody` in `src/Api/Dto/`. It is not a controller. The route import loads `src/Api/Controller/` and does not load this directory. `CreateArchiveBody` has one property, `?string $url = null`, with `NotNull` and without `NotBlank`. The attribute sets `acceptFormat: 'json'` and `validationFailedStatusCode: 400`. Unknown properties are ignored. Any string, including an empty one, reaches the action. `UrlGuard` is the later judge of that string.
 

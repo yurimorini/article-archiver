@@ -8,7 +8,7 @@
 
 **Tech Stack:** PHP 8.5, PSR-3 `LoggerInterface`, PHPUnit.
 
-**Spec:** [ArchiveLog.md](../specs/ArchiveLog.md)
+**Spec:** [ArchiveLog.md](../design/ArchiveLog.md)
 
 ## Global Constraints
 

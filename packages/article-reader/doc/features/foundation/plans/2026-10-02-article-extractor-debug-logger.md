@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-02  
 **Feature:** [Foundation pipeline](../feature.md)  
-**Amends:** [ArticleExtractor](../specs/ArticleExtractor.md) (Phase 4)  
+**Amends:** [ArticleExtractor](../design/ArticleExtractor.md) (Phase 4)  
 **Supersedes:** the original `ExtractPolicy::$debug` → Readability `error_log()` contract in that spec and in [plans/2026-09-22-article-extractor.md](../plans/2026-09-22-article-extractor.md)
 
 This is a tracked amendment of the living ArticleExtractor spec. The current mapping lives in the spec. This file records what changed and why.

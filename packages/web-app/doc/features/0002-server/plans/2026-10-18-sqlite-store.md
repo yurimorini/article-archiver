@@ -8,7 +8,7 @@
 
 **Tech Stack:** PHP 8.5, Symfony 8.1, PDO `pdo_sqlite`, `symfony/lock` 8.1.*, PHPUnit 11, `./bin/test`, `./bin/quality`.
 
-**Spec:** `packages/web-app/doc/features/0002-server/specs/SqliteStore.md`
+**Spec:** `packages/web-app/doc/features/0002-server/design/SqliteStore.md`
 
 ## Global Constraints
 
@@ -239,7 +239,7 @@ Quote, backslash, and non-ASCII titles already have route tests. `ErrorResponseR
 
 - [ ] **Step 2: Run `./bin/test web-app -- --filter 'ArchiveServiceTest|ErrorTranslatorTest|CreateArchiveRouteTest'`.** Expected: FAIL, constructor arguments or `NotWritten` missing.
 
-- [ ] **Step 3: Implement** the service, the factory, the enum case, both presenter `match` arms, and the OpenAPI 500 enum entry `ArchiveFailure::NotWritten->value`. `services_test.yaml` maps `eleanor.lock_dir` to `'%env(ELEANOR_LOCK_DIR)%'`. `ArchiveDirectories::isolate` already sets that env. Update `ArchiveServiceFactoryTest` and `ArchiveServiceResolverTest` to pass an `ArchiveLockFactory`. A test-only factory that returns `FakeArchiveLock` is enough there, except the second-owner case, which uses `FlockArchiveLockFactory` on the temp lock directory so the production factory is what the test builds. The same-owner factory test can keep the in-memory store and a fake lock. Run `./bin/composer web-app openapi` and commit the regenerated `doc/openapi.yaml`. In `feature.md`, set slice 7 to `Done`, link this plan and `specs/SqliteStore.md`, and delete the leftover row about the second owner.
+- [ ] **Step 3: Implement** the service, the factory, the enum case, both presenter `match` arms, and the OpenAPI 500 enum entry `ArchiveFailure::NotWritten->value`. `services_test.yaml` maps `eleanor.lock_dir` to `'%env(ELEANOR_LOCK_DIR)%'`. `ArchiveDirectories::isolate` already sets that env. Update `ArchiveServiceFactoryTest` and `ArchiveServiceResolverTest` to pass an `ArchiveLockFactory`. A test-only factory that returns `FakeArchiveLock` is enough there, except the second-owner case, which uses `FlockArchiveLockFactory` on the temp lock directory so the production factory is what the test builds. The same-owner factory test can keep the in-memory store and a fake lock. Run `./bin/composer web-app openapi` and commit the regenerated `doc/openapi.yaml`. In `feature.md`, set slice 7 to `Done`, link this plan and `design/SqliteStore.md`, and delete the leftover row about the second owner.
 
 - [ ] **Step 4: Run `./bin/test web-app` and `./bin/quality`.** Expected: both exit 0.
 

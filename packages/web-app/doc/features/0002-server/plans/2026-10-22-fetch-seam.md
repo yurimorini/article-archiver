@@ -8,7 +8,7 @@
 
 **Tech Stack:** PHP 8.5, Symfony 8.1, PHPUnit 11, `yumo/article-reader`, `./bin/test`, `./bin/quality`.
 
-**Spec:** `packages/web-app/doc/features/0002-server/specs/ArchiveCommand.md` and `packages/web-app/doc/features/0002-server/fetch-seam.md`. [adr/0009](../../../adr/0009-fetch-seam-returns-an-article.md) is the decision.
+**Spec:** `packages/web-app/doc/features/0002-server/design/ArchiveCommand.md` and `packages/web-app/doc/features/0002-server/specs/fetch-seam.md`. [adr/0009](../../../adr/0009-fetch-seam-returns-an-article.md) is the decision.
 
 ## Global Constraints
 

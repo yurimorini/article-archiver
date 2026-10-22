@@ -8,7 +8,7 @@
 
 **Tech Stack:** PHP `^8.5`, PHPUnit `^11`, `ezyang/htmlpurifier` `^4.19` (lockfile v4.19.1), PSR-4 `Yumo\ArtcleReader\` → `src/`.
 
-**Spec:** `doc/features/foundation/specs/HtmlSanitizer.md` (also `doc/features/foundation/feature.md` Phase 5)
+**Spec:** `doc/features/foundation/design/HtmlSanitizer.md` (also `doc/features/foundation/feature.md` Phase 5)
 
 ## Global Constraints
 

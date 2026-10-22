@@ -24,18 +24,6 @@ The secret is the environment variable `ELEANOR_BEARER_TOKEN`. The Owner sets it
 echo 'ELEANOR_BEARER_TOKEN=change-me' >> packages/web-app/.env.local
 ```
 
-A call without a valid secret answers 401:
-
-```json
-{"code":"unauthenticated","message":"The request is not authenticated."}
-```
-
-If the variable is missing or empty, the server cannot check any secret and answers 500:
-
-```json
-{"code":"unexpected","message":"Something went wrong on the server."}
-```
-
 A valid secret authenticates the Owner. The Owner is still the email in the `eleanor.owner_email` parameter.
 
 ## Examples

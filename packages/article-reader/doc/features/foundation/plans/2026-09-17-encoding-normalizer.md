@@ -8,7 +8,7 @@
 
 **Tech Stack:** PHP `^8.5`, PHPUnit `^11`, `ext-mbstring`, `fossar/guzzle-transcoder` `^0.3.2` (`ContentTypeExtractor`), `fossar/transcoder` `^3.0` (`Ddeboer\Transcoder\TranscoderInterface`; this package `replace`s `ddeboer/transcoder`), PSR-4 `Yumo\ArtcleReader\` → `src/`.
 
-**Spec:** `doc/features/foundation/specs/EncodingNormalizer.md` (also `doc/features/foundation/feature.md` Phase 3)
+**Spec:** `doc/features/foundation/design/EncodingNormalizer.md` (also `doc/features/foundation/feature.md` Phase 3)
 
 ## Global Constraints
 

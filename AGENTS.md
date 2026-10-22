@@ -20,7 +20,7 @@ Write exclusively in English.
 
 - Project rules: `.agents/rules/`
 - Skills: `.agents/skills/<name>/SKILL.md`
-- Feature layout and the grill → contract → tickets → spec → plan flow: read `.agents/rules/feature-framework.md` before organizing a feature or writing a contract, ticket, spec, or plan.
+- Feature layout and the grill → functional spec → tickets → design → plan flow: read `.agents/rules/feature-framework.md` before organizing a feature or writing a functional spec, ticket, design, or plan.
 
 Run the caveman skill from the first message
 
@@ -36,7 +36,7 @@ The project uses Docker. `bin/` at the git root is the launcher for the packages
 
 ### Issue tracker
 
-Tickets live in the owning package's `doc/issues` folder. Contracts and specs stay in the feature folder. See `.agents/rules/issue-tracker.md`.
+Tickets live in the feature's `tickets/` folder. Functional specs live in `specs/`. Designs live in `design/`. See `.agents/rules/issue-tracker.md`.
 
 ### Triage labels
 

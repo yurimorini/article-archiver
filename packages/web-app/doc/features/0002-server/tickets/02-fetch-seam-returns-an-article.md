@@ -1,8 +1,8 @@
 # 02: The fetch seam returns an Article
 
-**Feature:** [0002-server](../features/0002-server/feature.md)
+**Feature:** [0002-server](../feature.md)
 
-**Contract:** [fetch-seam.md](../features/0002-server/fetch-seam.md)
+**Contract:** [fetch-seam.md](../specs/fetch-seam.md)
 
 **What to build:** An owner who posts a URL pointer still receives the same archive result and the same failure codes. The archive command receives an Article, the purified body with no URL, or an archive failure. It no longer speaks the reader pipeline. The adapter behind the fetch seam is the only module that maps the library outcome.
 

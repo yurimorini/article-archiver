@@ -8,7 +8,7 @@
 
 **Tech Stack:** PHP 8.5, Symfony 8.1, Monolog 3.12, PHPUnit 11, `./bin/test`, `./bin/quality`.
 
-**Spec:** `packages/web-app/doc/features/0002-server/specs/ArchiveLog.md`
+**Spec:** `packages/web-app/doc/features/0002-server/design/ArchiveLog.md`
 
 ## Global Constraints
 

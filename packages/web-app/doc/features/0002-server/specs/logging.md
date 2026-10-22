@@ -1,6 +1,6 @@
 **Status:** ready-for-agent
 
-The module design is [specs/Logging.md](specs/Logging.md). Where the two files disagree, the spec wins. It replaces the single `http.request` line with `http.request.start` and `http.request.finish`, adds `RequestEnricher` and `EnrichedRequest`, and points `LogApiRequestTest` at the enriched request instead of the log files.
+The module design is [design/Logging.md](../design/Logging.md). It replaces the single `http.request` line with `http.request.start` and `http.request.finish`, adds `RequestEnricher` and `EnrichedRequest`, and points `LogApiRequestTest` at the enriched request instead of the log files.
 
 ## Problem Statement
 

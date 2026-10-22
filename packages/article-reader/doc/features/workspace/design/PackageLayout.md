@@ -16,7 +16,7 @@ One git repository. The git root is the Cursor workspace.
   bin/                         # launcher only
   Dockerfile                   # shared development image
   packages/article-reader/     # library, current tree moved here
-  packages/web-app/            # Eleanor; see packages/web-app/doc/features/bootstrap/specs/Bootstrap.md
+  packages/web-app/            # Eleanor; see packages/web-app/doc/features/0001-bootstrap/design/Bootstrap.md
 ```
 
 ### Library
@@ -28,17 +28,17 @@ Moved as they are:
 - `composer.json`, `composer.lock`
 - `src/`, `tests/`
 - `phpstan.neon.dist`, `phpunit.xml.dist`, `.php-cs-fixer.dist.php`
-- `doc/` → `packages/article-reader/doc/`, same internal tree (`features/foundation/specs`, `plans`, `context`, and this file)
+- `doc/` → `packages/article-reader/doc/`, same internal tree (`features/foundation/design`, `plans`, `context`, and this file)
 
 The Composer package name is `yumo/article-reader`. It replaced `yumo/log-read` so the Composer name matches the package directory. The PSR-4 namespace stays `Yumo\ArtcleReader\` → `src/` and `Yumo\ArtcleReader\Tests\` → `tests/`. PHPStan, php-cs-fixer, and PHPUnit configs keep paths relative to the package (`src`, `tests`). They work because the launcher sets the working directory to the package.
 
-`src/` will keep receiving pipeline feature files. Those features stay specified by `packages/article-reader/doc/features/foundation/specs/`.
+`src/` will keep receiving pipeline feature files. Those features stay specified by `packages/article-reader/doc/features/foundation/design/`.
 
 `bin/run` moves to `packages/article-reader/bin/run`. It is the pipeline spike, not a launcher command. Its `require` of `../vendor/autoload.php` still resolves to the library `vendor/` after the move. The spike is not rewritten here.
 
 ### Web app
 
-The layout change left `packages/web-app/` as an empty placeholder (`.gitkeep` only). The Eleanor bootstrap replaced that placeholder. The living contract is `packages/web-app/doc/features/bootstrap/specs/Bootstrap.md`: Composer package `yumo/eleanor`, the library path requirement, the same PHP tooling, and no PSR-4 map until the namespace is chosen.
+The layout change left `packages/web-app/` as an empty placeholder (`.gitkeep` only). The Eleanor bootstrap replaced that placeholder. The living contract is `packages/web-app/doc/features/0001-bootstrap/design/Bootstrap.md`: Composer package `yumo/eleanor`, the library path requirement, the same PHP tooling, and no PSR-4 map until the namespace is chosen.
 
 ### Gitignore
 
@@ -52,11 +52,11 @@ The root `.gitignore` already lists `vendor/`, `.composer/`, `.phpunit.cache/`, 
 
 - Do not create `docs/superpowers/specs/` or `docs/superpowers/plans/`.
 - Specs and plans go in the `doc/` of the package whose files the task changes.
-- Library work, including the unfinished pipeline: `packages/article-reader/doc/features/<feature>/specs/` and `packages/article-reader/doc/features/<feature>/plans/`. The pipeline feature folder stays `features/foundation/`.
-- App work, once `packages/web-app` has a `doc/` tree: the same `doc/features/<feature>/specs/` and `.../plans/` layout under `packages/web-app/doc/`.
+- Library work, including the unfinished pipeline: `packages/article-reader/doc/features/<feature>/design/` and `packages/article-reader/doc/features/<feature>/plans/`. The pipeline feature folder stays `features/foundation/`.
+- App work, once `packages/web-app` has a `doc/` tree: the same `doc/features/<feature>/design/` and `.../plans/` layout under `packages/web-app/doc/`.
 - The package is the one that owns the files being edited. A pipeline task writes under `article-reader`. An app task writes under `web-app`.
 
-This spec is workspace layout, not a pipeline stage. It lives at `doc/features/workspace/specs/PackageLayout.md` and moves with `doc/`, so its path after the move is `packages/article-reader/doc/features/workspace/specs/PackageLayout.md`.
+This spec is workspace layout, not a pipeline stage. It lives at `doc/features/workspace/design/PackageLayout.md` and moves with `doc/`, so its path after the move is `packages/article-reader/doc/features/workspace/design/PackageLayout.md`.
 
 ## Cursor rules
 
@@ -118,7 +118,7 @@ Per-package `COMPOSER_HOME` keeps parallel `composer install` runs from sharing 
 
 ## Connecting the two packages
 
-The layout change did not create the web app Composer file. The Eleanor bootstrap did. The connection rules below still hold. The full manifest, including PHP `^8.5`, dev tooling, and the absent autoload map, is `packages/web-app/doc/features/bootstrap/specs/Bootstrap.md`.
+The layout change did not create the web app Composer file. The Eleanor bootstrap did. The connection rules below still hold. The full manifest, including PHP `^8.5`, dev tooling, and the absent autoload map, is `packages/web-app/doc/features/0001-bootstrap/design/Bootstrap.md`.
 
 The dependency is one way. The app requires the library. The library does not require the app.
 

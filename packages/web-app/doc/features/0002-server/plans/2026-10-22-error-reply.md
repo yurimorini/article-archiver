@@ -8,7 +8,7 @@
 
 **Tech Stack:** PHP 8.5, Symfony 8.1, PHPUnit 11, `./bin/test`, `./bin/quality`.
 
-**Spec:** `packages/web-app/doc/features/0002-server/specs/SqliteStore.md` (Errors). The index note is [Error reply](../feature.md#error-reply-2026-10-22). ADR 0001 stays.
+**Spec:** `packages/web-app/doc/features/0002-server/design/SqliteStore.md` (Errors). The index note is [Error reply](../feature.md#error-reply-2026-10-22). ADR 0001 stays.
 
 ## Global Constraints
 
@@ -69,7 +69,7 @@ Search `packages/web-app/src` and `packages/web-app/tests` for `ArchiveFailurePr
 
 In the Error reply section of `feature.md`, replace the section body with:
 
-> Not a new slice, and not the current ticket. `ArchiveFailurePresenter` was one adapter on a seam nothing else implements. The status and message tables live in `ErrorTranslator`, the module that turns a throwable into a `Reply`. `TranslateApiException` stays the HTTP adapter. [SqliteStore.md](specs/SqliteStore.md) names `ErrorTranslator` for the `NotWritten` row. Plan: [error reply](plans/2026-10-22-error-reply.md). ADR 0001 stays. The four status classes do not move.
+> Not a new slice, and not the current ticket. `ArchiveFailurePresenter` was one adapter on a seam nothing else implements. The status and message tables live in `ErrorTranslator`, the module that turns a throwable into a `Reply`. `TranslateApiException` stays the HTTP adapter. [SqliteStore.md](../design/SqliteStore.md) names `ErrorTranslator` for the `NotWritten` row. Plan: [error reply](plans/2026-10-22-error-reply.md). ADR 0001 stays. The four status classes do not move.
 
 In the Application code cell, replace `Api\Error\{RequestFailure, ArchiveFailurePresenter, ErrorTranslator}` with `Api\Error\{RequestFailure, ErrorTranslator}`. Do not edit the current-ticket row.
 

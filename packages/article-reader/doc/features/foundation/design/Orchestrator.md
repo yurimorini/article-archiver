@@ -55,7 +55,7 @@ Illegal states:
 Refs:
 
 - [Parse, don’t validate](https://lexi-lambda.github.io/blog/2019/11/05/parse-don-t-validate/)
-- Stage specs under `doc/features/foundation/specs/`
+- Stage specs under `doc/features/foundation/design/`
 - `doc/features/foundation/feature.md` Phase 6
 
 ---

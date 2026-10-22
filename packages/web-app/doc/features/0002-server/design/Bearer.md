@@ -1,6 +1,6 @@
 # Bearer
 
-Module design for [bearer.md](../bearer.md). The decisions in that contract are closed. This slice adds no glossary term and no ADR. It adopts the stateless `/api` import in [adr/0005](../../../adr/0005-api-routes-are-a-stateless-import.md).
+Module design for [bearer.md](../specs/bearer.md). The decisions in that contract are closed. This slice adds no glossary term and no ADR. It adopts the stateless `/api` import in [adr/0005](../../../adr/0005-api-routes-are-a-stateless-import.md).
 
 A later login adds a second authenticator on the same firewall. `BearerAuthenticator` stays the check of `ELEANOR_BEARER_TOKEN`. The second authenticator validates its own credential and puts an email on the identity. `AuthenticatedOwnerProvider` reads that email and does not learn which authenticator wrote it. This slice does not add the second authenticator, a password check, a JWT, or a cookie.
 
@@ -8,7 +8,7 @@ A later login adds a second authenticator on the same firewall. `BearerAuthentic
 
 [ArchiveCommand.md](ArchiveCommand.md) and [OwnerScopedService.md](OwnerScopedService.md) leave `OwnerProvider` as the source of the `Owner`. The HTTP alias becomes `AuthenticatedOwnerProvider`. `ConfiguredOwnerProvider` stays a class. It is no longer that alias. `ArchiveServiceResolver` and `CreateArchiveController` stay as they are.
 
-[error-response.md](../error-response.md) left 401 to this slice and maps every unknown throwable to 500 `unexpected`. This slice adds `unauthenticated`. A missing secret stays on that 500 path and writes its own log line first.
+[error-response.md](../specs/error-response.md) left 401 to this slice and maps every unknown throwable to 500 `unexpected`. This slice adds `unauthenticated`. A missing secret stays on that 500 path and writes its own log line first.
 
 ## Modules
 

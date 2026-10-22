@@ -8,7 +8,7 @@
 
 **Tech Stack:** PHP 8.5, Symfony 8.1, existing PHPUnit 11, `symfony/browser-kit` `8.1.*`, `bin/docker-run`, `bin/test`, `bin/quality`.
 
-**Spec:** `packages/web-app/doc/features/0002-server/specs/EmptyRoute.md`
+**Spec:** `packages/web-app/doc/features/0002-server/design/EmptyRoute.md`
 
 ## Global Constraints
 
@@ -395,7 +395,7 @@ In `packages/web-app/doc/features/0002-server/feature.md`:
 - Empty route status cell: `Done`.
 - Next slice: `3 — Logging. Not started.`
 - Application code: `Yumo\Eleanor\Kernel` boots. `POST /api/archives` is `create_archive`. The boot test is `tests/Integration/KernelTest.php`.
-- Specs and plans: link `specs/EmptyRoute.md` and `plans/2026-10-12-empty-route.md` beside the kernel plan.
+- Specs and plans: link `design/EmptyRoute.md` and `plans/2026-10-12-empty-route.md` beside the kernel plan.
 
 - [ ] **Step 8: Commit**
 

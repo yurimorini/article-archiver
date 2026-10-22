@@ -76,7 +76,7 @@ The same route accepts a JSON object whose `url` is a string, including an empty
 
 ## Implementation Decisions
 
-- This contract adopts [adr/0007](../../adr/0007-archive-body-mapped-by-map-request-payload.md). [PayloadAndMapper.md](specs/PayloadAndMapper.md) adopts that ADR, so it is accepted. [adr/0001](../../adr/0001-archive-outcome-status.md) still owns archive outcomes. 415 is the media type, before that command. [adr/0005](../../adr/0005-api-routes-are-a-stateless-import.md) stays as the empty-route slice adopted it.
+- This contract adopts [adr/0007](../../../adr/0007-archive-body-mapped-by-map-request-payload.md). [PayloadAndMapper.md](../design/PayloadAndMapper.md) adopts that ADR, so it is accepted. [adr/0001](../../../adr/0001-archive-outcome-status.md) still owns archive outcomes. 415 is the media type, before that command. [adr/0005](../../../adr/0005-api-routes-are-a-stateless-import.md) stays as the empty-route slice adopted it.
 - The route stays `POST /api/archives`, name `create_archive`, action `Yumo\Eleanor\Api\Controller\CreateArchiveController::create`, format `json`, no alias, no version segment, no trailing slash. The import loads `src/Api/Controller/`, not `src/Api/`. The import prefix, `stateless`, and `trailing_slash_on_root` do not change.
 - The action argument is mapped with `MapRequestPayload` before the action runs. `acceptFormat` is `json`. `validationFailedStatusCode` is 400.
 - The body DTO is not a glossary term. It is `Yumo\Eleanor\Api\Dto\CreateArchiveBody` in `src/Api/Dto/`. Its only property is a nullable string `url` defaulting to null, constrained with `NotNull` and not with `NotBlank`. The DTO does not enter a service. The action does not put `url` in the response.
@@ -110,6 +110,6 @@ The same route accepts a JSON object whose `url` is a string, including an empty
 
 ## Further Notes
 
-- [PayloadAndMapper.md](specs/PayloadAndMapper.md) adopts adr/0007, so that ADR is accepted. This contract already follows it.
+- [PayloadAndMapper.md](../design/PayloadAndMapper.md) adopts adr/0007, so that ADR is accepted. This contract already follows it.
 - The 200 on an accepted body is the empty-route stub. It is not the stored-archive 200, and it is not the 201 of a new archive.
 - Slice 3, logging, is still the next implementation slice. This contract is slice 4.

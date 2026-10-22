@@ -8,7 +8,7 @@
 
 **Tech Stack:** PHP 8.5, Symfony 8.1 (HttpKernel, Serializer), PHPUnit 11, `zircote/swagger-php` (dev only), `./bin/test`, `./bin/quality`.
 
-**Spec:** Contract `packages/web-app/doc/features/0002-server/error-response.md`. No module spec exists for this slice. The contract left three items to the spec. This plan closes them in "Decisions" below.
+**Spec:** Contract `packages/web-app/doc/features/0002-server/specs/error-response.md`. No module spec exists for this slice. The contract left three items to the spec. This plan closes them in "Decisions" below.
 
 ## Decisions the contract left open
 

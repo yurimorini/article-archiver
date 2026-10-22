@@ -1,6 +1,6 @@
 # The owner database splits the archive body from its metadata, and search is deferred
 
-Status: accepted. The [SQLite store spec](../features/0002-server/specs/SqliteStore.md) adopts this.
+Status: accepted. The [SQLite store spec](../features/0002-server/design/SqliteStore.md) adopts this.
 
 The owner's SQLite file has three tables in version 1: `meta`, `archive`, and `archive_body`. `meta` is a key and value table. It holds the owner email and the creation time. `archive` holds one row per archive: an integer id, the unique `url`, the `title`, the nullable `excerpt` and `site_name`, and `created_at` as UTC ISO-8601 text. `archive_body` holds the purified `html` and shares the archive's id as its key, with a foreign key and `ON DELETE CASCADE`. The schema version lives in `PRAGMA user_version`. Numbered migrations each run once. Each connection sets `foreign_keys` and `busy_timeout`.
 

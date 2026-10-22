@@ -8,7 +8,7 @@
 
 **Tech Stack:** PHP 8.5, Composer PSR-4, Docker launchers in `bin/`.
 
-**Spec:** The user named the target namespace `Yumo\ArtcleReader`. `packages/article-reader/doc/features/workspace/specs/PackageLayout.md` still says `Yumo\LogRead` and is updated by the same replace.
+**Spec:** The user named the target namespace `Yumo\ArtcleReader`. `packages/article-reader/doc/features/workspace/design/PackageLayout.md` still says `Yumo\LogRead` and is updated by the same replace.
 
 ## Global Constraints
 
@@ -39,7 +39,7 @@
 
 - Modify: every text file under the git root that contains `Yumo\LogRead` or the two-backslash form `Yumo\\LogRead`, except this plan.
 - Known hits: `packages/article-reader/src/**/*.php`, `packages/article-reader/tests/**/*.php`, `packages/article-reader/composer.json`, `packages/web-app/composer.lock`, and the markdown files under `packages/article-reader/doc/features/foundation/` and `packages/article-reader/doc/features/workspace/` that name the old prefix.
-- Do not modify: `packages/article-reader/doc/features/foundation/specs/HttpFetcher.md` (only `LogRead/0.1`).
+- Do not modify: `packages/article-reader/doc/features/foundation/design/HttpFetcher.md` (only `LogRead/0.1`).
 
 **Interfaces:**
 

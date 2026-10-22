@@ -1,6 +1,6 @@
 # Payload and mapper
 
-Module design for [payload-and-mapper.md](../payload-and-mapper.md). The decisions in that contract are closed. This slice adds no glossary term. It adopts [adr/0007](../../../adr/0007-archive-body-mapped-by-map-request-payload.md). [adr/0001](../../../adr/0001-archive-outcome-status.md) still owns archive outcomes. 415 is the media type, before that command. [adr/0005](../../../adr/0005-api-routes-are-a-stateless-import.md) stays as the empty-route slice adopted it.
+Module design for [payload-and-mapper.md](../specs/payload-and-mapper.md). The decisions in that contract are closed. This slice adds no glossary term. It adopts [adr/0007](../../../adr/0007-archive-body-mapped-by-map-request-payload.md). [adr/0001](../../../adr/0001-archive-outcome-status.md) still owns archive outcomes. 415 is the media type, before that command. [adr/0005](../../../adr/0005-api-routes-are-a-stateless-import.md) stays as the empty-route slice adopted it.
 
 This slice replaces two rules in [EmptyRoute.md](EmptyRoute.md): `create` has no parameter, and a wrong content type is not 415. Logging stays the next implementation slice. This spec is slice 4.
 

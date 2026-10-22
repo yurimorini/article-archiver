@@ -1,6 +1,6 @@
 # The fetch seam returns an Article
 
-Status: accepted by [Archive command](../features/0002-server/specs/ArchiveCommand.md).
+Status: accepted by [Archive command](../features/0002-server/design/ArchiveCommand.md).
 
 `Orchestrator` is final, so the archive command cannot call it and still replace it in a test. The first seam hid that class and nothing else: `ArticleFetcher` returned the library's `PipelineSuccess` or `PipelineNoContent`, and the command read those types. The adapter passed the outcome through.
 

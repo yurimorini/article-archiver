@@ -61,7 +61,7 @@ The fetch seam returns an Article or throws an archive failure. The archive comm
 
 ## Implementation Decisions
 
-- This contract deepens the fetch seam recorded in [adr/0009](../../adr/0009-fetch-seam-returns-an-article.md). The module design in [ArchiveCommand.md](specs/ArchiveCommand.md) adopts that ADR. [adr/0001](../../adr/0001-archive-outcome-status.md) still owns the status classes. [adr/0002](../../adr/0002-second-post-returns-stored-archive.md) still owns the second POST. The wire codes do not change.
+- This contract deepens the fetch seam recorded in [adr/0009](../../../adr/0009-fetch-seam-returns-an-article.md). The module design in [ArchiveCommand.md](../design/ArchiveCommand.md) adopts that ADR. [adr/0001](../../../adr/0001-archive-outcome-status.md) still owns the status classes. [adr/0002](../../../adr/0002-second-post-returns-stored-archive.md) still owns the second POST. The wire codes do not change.
 - The fetch interface takes a URL pointer and returns an Article. A failure throws `ArchiveException`. It does not return a library success or a library empty page.
 - An Article has a title, an optional excerpt, an optional site name, and the purified HTML. It has no URL and no warnings. The archive command builds the Archive from it. The Archive's `url` is the URL pointer's string. The other fields are copied. `excerpt` and `siteName` stay null when the Article has none.
 - The adapter calls the library orchestrator with the pointer's string. A library success becomes an Article by the field copy above. Warnings are dropped. A library empty page and a library orchestrator failure become `ArchiveException` through the existing failure mapper. The adapter constructs that mapper. Any other throwable passes through.

@@ -1,10 +1,10 @@
 # Logging
 
-Module design for [logging.md](../logging.md). This slice adds no glossary term. It adopts [adr/0005](../../../adr/0005-api-routes-are-a-stateless-import.md) and [adr/0006](../../../adr/0006-kernel-tests-live-in-integration.md).
+Module design for [logging.md](../specs/logging.md). This slice adds no glossary term. It adopts [adr/0005](../../../adr/0005-api-routes-are-a-stateless-import.md) and [adr/0006](../../../adr/0006-kernel-tests-live-in-integration.md).
 
 Revised by [ArchiveLog.md](ArchiveLog.md): `RequestIdProcessor` and the `domain` lines of `ArchiveService` live there. This file keeps the HTTP lines.
 
-Where this file and the contract disagree, this file wins. The replacements are:
+The functional spec is [logging.md](../specs/logging.md). This design records the module. The replacements are:
 
 - Two `application` lines, `http.request.start` before the action and `http.request.finish` after it. Both stay level `info`.
 - The id rule is `RequestIdFactory`. The facts stored on the request are `EnrichedRequest`, built by `RequestEnricher`.

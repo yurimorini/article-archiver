@@ -8,7 +8,7 @@
 
 **Tech Stack:** PHP ^8.5, Symfony 8.1 (framework-bundle, serializer, validator), PHPUnit ^11, PHPStan level 8, php-cs-fixer. Library: `Yumo\ArtcleReader` from `packages/article-reader`.
 
-**Spec:** [specs/ArchiveCommand.md](../specs/ArchiveCommand.md). Contract: [archive-command.md](../archive-command.md).
+**Spec:** [design/ArchiveCommand.md](../design/ArchiveCommand.md). Contract: [archive-command.md](../specs/archive-command.md).
 
 ## Global Constraints
 

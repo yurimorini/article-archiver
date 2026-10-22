@@ -8,7 +8,7 @@
 
 **Tech Stack:** PHP 8.5, Symfony 8.1, PHPUnit 11, `./bin/test`, `./bin/quality`.
 
-**Spec:** `packages/web-app/doc/features/0002-server/specs/UrlPointer.md`
+**Spec:** `packages/web-app/doc/features/0002-server/design/UrlPointer.md`
 
 ## Global Constraints
 

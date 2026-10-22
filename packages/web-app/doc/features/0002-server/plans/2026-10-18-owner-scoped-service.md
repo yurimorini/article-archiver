@@ -8,7 +8,7 @@
 
 **Tech Stack:** PHP 8.5, Symfony 8.1 HttpKernel, PHPUnit 11, `./bin/test`, `./bin/quality`.
 
-**Spec:** `packages/web-app/doc/features/0002-server/specs/OwnerScopedService.md`
+**Spec:** `packages/web-app/doc/features/0002-server/design/OwnerScopedService.md`
 
 ## Global Constraints
 
@@ -77,7 +77,7 @@
 - Modify: `packages/web-app/doc/features/0002-server/feature.md`
 
 - [ ] **Step 1: Check the resolver order.** Run `./bin/docker-run web-app php bin/console debug:container debug.argument_resolver.inner`. Expected: `ArchiveServiceResolver` is listed, and it is below `RequestAttributeValueResolver` (priority 100). If it is above, set a lower priority with `#[AsTaggedItem(priority: ...)]` and add a line to the spec.
-- [ ] **Step 2: Update `feature.md`.** Slice 5b status `Done` with a link to the plan. In "Application code": the controller has no constructor and receives `ArchiveService` from `ArchiveServiceResolver`. In "Specs and plans": add the [Owner-scoped service](specs/OwnerScopedService.md) spec and this plan. In the slice merge section, add one line that records why slice 5b replaced the controller's constructor dependencies.
+- [ ] **Step 2: Update `feature.md`.** Slice 5b status `Done` with a link to the plan. In "Application code": the controller has no constructor and receives `ArchiveService` from `ArchiveServiceResolver`. In "Specs and plans": add the [Owner-scoped service](../design/OwnerScopedService.md) spec and this plan. In the slice merge section, add one line that records why slice 5b replaced the controller's constructor dependencies.
 - [ ] **Step 3: Run `./bin/quality`.** Expected: exit 0, both `cs-check` and `phpstan` clean. If `cs-check` fails, run `./bin/cs-fix`, then `./bin/quality` again. A PHPStan failure is fixed in the code, not suppressed.
 - [ ] **Step 4: Run `./bin/test web-app`.** Expected: all PASS.
 - [ ] **Step 5: Commit** `docs: record slice 5b`.

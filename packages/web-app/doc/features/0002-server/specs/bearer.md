@@ -67,9 +67,9 @@ Every call under `/api` requires the configured bearer secret. The client sends 
 
 ## Implementation Decisions
 
-- Slices 8 and 9 of [feature.md](feature.md) are one slice. The contract is this file. No ADR is added. The glossary gains no term. The authenticated caller is the Owner. "User" stays an avoided word for that person.
-- This contract adopts the configured bearer from [research/Login.md](research/Login.md) and does not adopt human login, the passkey, or the session. It adopts the 401 that [error-response.md](error-response.md) left to the firewall and token slices, and it does not adopt the 403. A 403 waits until a call can be authenticated and still lack a permission.
-- The route import stays the stateless `/api` import of [adr/0005](../../adr/0005-api-routes-are-a-stateless-import.md). One firewall covers `/api`, is stateless, and requires an authenticated caller. A path outside `/api` is not this firewall's. The router still runs first. An unknown path stays 404 and a wrong method stays 405, with `Allow` on the 405, without the secret being judged. A matched route is judged before the body mapper runs.
+- Slices 8 and 9 of [feature.md](../feature.md) are one slice. The contract is this file. No ADR is added. The glossary gains no term. The authenticated caller is the Owner. "User" stays an avoided word for that person.
+- This contract adopts the configured bearer from [research/Login.md](../research/Login.md) and does not adopt human login, the passkey, or the session. It adopts the 401 that [error-response.md](error-response.md) left to the firewall and token slices, and it does not adopt the 403. A 403 waits until a call can be authenticated and still lack a permission.
+- The route import stays the stateless `/api` import of [adr/0005](../../../adr/0005-api-routes-are-a-stateless-import.md). One firewall covers `/api`, is stateless, and requires an authenticated caller. A path outside `/api` is not this firewall's. The router still runs first. An unknown path stays 404 and a wrong method stays 405, with `Allow` on the 405, without the secret being judged. A matched route is judged before the body mapper runs.
 - The credential is the `Authorization` header. The scheme is Bearer, compared without regard to case. The value after the scheme is compared to `ELEANOR_BEARER_TOKEN` exactly. A missing header, another scheme, an empty value, and a value that does not match are one failure.
 - That failure answers 401 with `code` `unauthenticated` and `message` `The request is not authenticated.` The content type is `application/json`. There is no `WWW-Authenticate` header. There is no `X-Request-Id`. Symfony's own authentication page does not replace this JSON.
 - `ELEANOR_BEARER_TOKEN` is an environment variable. A committed file holds no production value. The local uncommitted environment file holds the Owner's value. The test environment holds a test value so the kernel boots. The email parameter is unchanged and is not read from the secret.
@@ -103,6 +103,6 @@ Every call under `/api` requires the configured bearer secret. The client sends 
 
 ## Further Notes
 
-- [feature.md](feature.md) records the merge of the firewall row and the token row into this slice. The module spec and the execution plan come next. The plan is where the README section is written.
+- [feature.md](../feature.md) records the merge of the firewall row and the token row into this slice. The module spec and the execution plan come next. The plan is where the README section is written.
 - [error-response.md](error-response.md) left 401 and 403 to the firewall and token slices. This contract takes the 401. The 403 stays out of scope there as well, until some later slice has a permission to refuse.
-- [research/Login.md](research/Login.md) remains the record of human login. This contract does not promote that record into a decision.
+- [research/Login.md](../research/Login.md) remains the record of human login. This contract does not promote that record into a decision.

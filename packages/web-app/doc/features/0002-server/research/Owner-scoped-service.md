@@ -13,7 +13,7 @@ Every later controller that works on one owner's data needs the same two steps. 
 - `OwnerProvider::owner()` returns the `Owner` of the current call. `ConfiguredOwnerProvider` reads the configured email. The firewall slice replaces it with a provider that reads the authenticated caller. See the revised bullet in [feature.md](../feature.md) (slice merge, 2026-10-18).
 - `ArchiveServiceFactory::create(Owner)` returns an `ArchiveService` bound to that owner's store. The factory holds no state.
 - `LogApiRequest` listens to `kernel.controller`, builds an `EnrichedRequest`, and stores it in `request->attributes`.
-- [Controller.md](Controller.md) says the controller receives the application service in the constructor. The [Archive command](../specs/ArchiveCommand.md) spec locks the controller asking the provider and calling the factory. Both would be revised by any option below.
+- [Controller.md](Controller.md) says the controller receives the application service in the constructor. The [Archive command](../design/ArchiveCommand.md) spec locks the controller asking the provider and calling the factory. Both would be revised by any option below.
 
 ## There is no middleware that injects into a controller
 
@@ -75,11 +75,11 @@ Checked in slice 5b: `ServiceValueResolver` has priority `-50` and `DefaultValue
 
 ## Resolved by slice 5b
 
-[OwnerScopedService.md](../specs/OwnerScopedService.md) adopts the resolver option.
+[OwnerScopedService.md](../design/OwnerScopedService.md) adopts the resolver option.
 
 - Global resolver, not targeted. `ArchiveService` stays `#[Exclude]`. Only the factory is a service.
 - Own slice 5b, not part of slice 8.
-- The revised choices in [Controller.md](Controller.md) and in the [Archive command](../specs/ArchiveCommand.md) spec were revised with the user's agreement.
+- The revised choices in [Controller.md](Controller.md) and in the [Archive command](../design/ArchiveCommand.md) spec were revised with the user's agreement.
 
 ## Still open
 
