@@ -6,6 +6,8 @@ namespace Yumo\Eleanor\Archive\Sqlite;
 
 use Symfony\Component\DependencyInjection\Attribute\Exclude;
 use Yumo\Eleanor\Archive\Archive;
+use Yumo\Eleanor\Archive\ArchiveException;
+use Yumo\Eleanor\Archive\ArchiveFailure;
 use Yumo\Eleanor\Archive\ArchiveStore;
 use Yumo\Eleanor\Archive\ArchiveSummary;
 use Yumo\Eleanor\Archive\Owner;
@@ -15,7 +17,7 @@ use Yumo\Eleanor\Archive\UrlPointer;
  * Keeps one owner's archives in one SQLite file.
  *
  * A lookup never creates the file. The first `save` opens the connection, which creates the file and its directory.
- * A directory that cannot be created raises `DirectoryException`. A database error raises `\PDOException`.
+ * `save` throws `ArchiveException`. The connection still raises `DirectoryException` and `\PDOException`.
  *
  * `$store = new SqliteArchiveStore($owner, new SqliteConnection('/data/ada.sqlite', new SqliteSchema()));`
  */
@@ -35,6 +37,8 @@ final class SqliteArchiveStore implements ArchiveStore
 
     /**
      * Returns the light fields this owner stored for `$url`, or null when there is none.
+     *
+     * A failure is not wrapped.
      */
     public function findSummary(UrlPointer $url): ?ArchiveSummary
     {
@@ -48,6 +52,8 @@ final class SqliteArchiveStore implements ArchiveStore
 
     /**
      * Returns the archive this owner stored for `$url`, or null when there is none.
+     *
+     * A failure is not wrapped.
      */
     public function find(UrlPointer $url): ?Archive
     {
@@ -65,23 +71,31 @@ final class SqliteArchiveStore implements ArchiveStore
 
     /**
      * Stores `$archive` under its URL. A second save of the same URL replaces the title, excerpt, site name and HTML.
+     *
+     * @throws ArchiveException When the archive cannot be stored, with `NotWritten`
      */
     public function save(Archive $archive): void
     {
-        $this->withConnection(function (\PDO $pdo) use ($archive): void {
-            try {
-                $pdo->beginTransaction();
-                $this->writeOwner($pdo);
-                $id = $this->writeArchive($pdo, $archive);
-                $this->writeBody($pdo, $id, $archive->html);
-                $pdo->commit();
-            } catch (\Throwable $failure) {
-                if ($pdo->inTransaction()) {
-                    $pdo->rollBack();
+        try {
+            $this->withConnection(function (\PDO $pdo) use ($archive): void {
+                try {
+                    $pdo->beginTransaction();
+                    $this->writeOwner($pdo);
+                    $id = $this->writeArchive($pdo, $archive);
+                    $this->writeBody($pdo, $id, $archive->html);
+                    $pdo->commit();
+                } catch (\Throwable $failure) {
+                    if ($pdo->inTransaction()) {
+                        $pdo->rollBack();
+                    }
+                    throw $failure;
                 }
-                throw $failure;
-            }
-        });
+            });
+        } catch (DirectoryException $error) {
+            throw new ArchiveException(ArchiveFailure::NotWritten, $error);
+        } catch (\PDOException $error) {
+            throw new ArchiveException(ArchiveFailure::NotWritten, $error);
+        }
     }
 
     /**
