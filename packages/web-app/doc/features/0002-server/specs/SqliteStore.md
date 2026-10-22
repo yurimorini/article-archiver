@@ -141,7 +141,7 @@ A failed fetch stores nothing.
 
 ## Errors
 
-A failed `save` throws `ArchiveException` with `ArchiveFailure::NotWritten` (`archive_not_written`) from `SqliteArchiveStore`. The cause is the `DirectoryException` when the directory could not be created, and the `\PDOException` when the database failed. `ArchiveService` logs `archive.failed` and rethrows that exception. It does not catch those two types. `ArchiveFailurePresenter` maps `NotWritten` to 500 and the fixed sentence `The archive could not be stored.` The driver text is not in that sentence. `TranslateApiException` already logs the exception, and therefore the cause, on the `application` channel for a status of 500 or above.
+A failed `save` throws `ArchiveException` with `ArchiveFailure::NotWritten` (`archive_not_written`) from `SqliteArchiveStore`. The cause is the `DirectoryException` when the directory could not be created, and the `\PDOException` when the database failed. `ArchiveService` logs `archive.failed` and rethrows that exception. It does not catch those two types. `ErrorTranslator` maps `NotWritten` to 500 and the fixed sentence `The archive could not be stored.` The driver text is not in that sentence. `TranslateApiException` already logs the exception, and therefore the cause, on the `application` channel for a status of 500 or above.
 
 A failure of `findSummary` or `find` is not wrapped. `ErrorTranslator` turns that throwable into 500 `unexpected` with `Something went wrong on the server.`
 

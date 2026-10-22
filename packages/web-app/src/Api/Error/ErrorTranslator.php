@@ -22,13 +22,6 @@ use Yumo\Eleanor\Archive\ArchiveFailure;
 final class ErrorTranslator
 {
     /**
-     * Creates the translator.
-     */
-    public function __construct(private readonly ArchiveFailurePresenter $archive = new ArchiveFailurePresenter())
-    {
-    }
-
-    /**
      * Returns the error reply for the throwable.
      *
      * @return Reply<ErrorResponse>
@@ -55,9 +48,66 @@ final class ErrorTranslator
         $failure = $error->failure;
 
         return new Reply(
-            $this->archive->status($failure),
-            new ErrorResponse($failure->value, $this->archive->message($failure, $error->upstreamStatus)),
+            $this->status($failure),
+            new ErrorResponse($failure->value, $this->message($failure, $error->upstreamStatus)),
         );
+    }
+
+    /**
+     * Returns the HTTP status to answer with.
+     */
+    private function status(ArchiveFailure $failure): int
+    {
+        return match ($failure) {
+            ArchiveFailure::UrlSyntax,
+            ArchiveFailure::UrlPolicy,
+            ArchiveFailure::UrlRejected => 400,
+            ArchiveFailure::ExtractNoContent,
+            ArchiveFailure::SanitizedEmpty,
+            ArchiveFailure::Redirect,
+            ArchiveFailure::ContentType,
+            ArchiveFailure::BodyTooLarge => 422,
+            ArchiveFailure::Transport,
+            ArchiveFailure::UpstreamStatus => 502,
+            ArchiveFailure::Encoding,
+            ArchiveFailure::Extract,
+            ArchiveFailure::Sanitize,
+            ArchiveFailure::NotWritten,
+            ArchiveFailure::Unexpected => 500,
+        };
+    }
+
+    /**
+     * Returns the fixed message for people. `$upstreamStatus` only shapes the `upstream_status` message.
+     */
+    private function message(ArchiveFailure $failure, ?int $upstreamStatus): string
+    {
+        return match ($failure) {
+            ArchiveFailure::UrlSyntax => 'The URL is not valid.',
+            ArchiveFailure::UrlPolicy => 'The URL is not allowed.',
+            ArchiveFailure::UrlRejected => 'The URL was refused.',
+            ArchiveFailure::ExtractNoContent => 'The page has no article.',
+            ArchiveFailure::SanitizedEmpty => 'The article is empty after purification.',
+            ArchiveFailure::Redirect => 'The page redirects. Send the final URL.',
+            ArchiveFailure::ContentType => 'The page is not HTML.',
+            ArchiveFailure::BodyTooLarge => 'The page is larger than the size limit.',
+            ArchiveFailure::Transport => "The page's site could not be reached.",
+            ArchiveFailure::UpstreamStatus => $this->upstreamMessage($upstreamStatus),
+            ArchiveFailure::Encoding => "The page's character encoding could not be read.",
+            ArchiveFailure::Extract => 'The article could not be extracted.',
+            ArchiveFailure::Sanitize => 'The article could not be purified.',
+            ArchiveFailure::NotWritten => 'The archive could not be stored.',
+            ArchiveFailure::Unexpected => 'Something went wrong on the server.',
+        };
+    }
+
+    private function upstreamMessage(?int $upstreamStatus): string
+    {
+        if ($upstreamStatus === null) {
+            return "The page's site answered with an error status.";
+        }
+
+        return "The page's site answered with status {$upstreamStatus}.";
     }
 
     private function requestFailure(\Throwable $error): ?RequestFailure
