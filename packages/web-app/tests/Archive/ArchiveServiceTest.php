@@ -6,18 +6,13 @@ namespace Yumo\Eleanor\Tests\Archive;
 
 use PHPUnit\Framework\TestCase;
 use Psr\Log\AbstractLogger;
-use Yumo\ArtcleReader\Orchestrator\OrchestratorError;
-use Yumo\ArtcleReader\Orchestrator\OrchestratorException;
-use Yumo\ArtcleReader\Orchestrator\PipelineNoContent;
-use Yumo\ArtcleReader\Orchestrator\PipelineSuccess;
-use Yumo\ArtcleReader\Orchestrator\PipelineWarning;
-use Yumo\ArtcleReader\Orchestrator\PipelineWarningCode;
 use Yumo\Eleanor\Archive\Archive;
 use Yumo\Eleanor\Archive\ArchiveException;
 use Yumo\Eleanor\Archive\ArchiveFailure;
 use Yumo\Eleanor\Archive\ArchiveOutcome;
 use Yumo\Eleanor\Archive\ArchiveService;
 use Yumo\Eleanor\Archive\ArchiveSummary;
+use Yumo\Eleanor\Archive\Article;
 use Yumo\Eleanor\Archive\ArticleFetcher;
 use Yumo\Eleanor\Archive\Sqlite\DirectoryException;
 use Yumo\Eleanor\Archive\UrlPointer;
@@ -58,7 +53,7 @@ final class ArchiveServiceTest extends TestCase
 
     public function test_first_archive_fetches_saves_and_is_written(): void
     {
-        $this->fetcher->willReturn(self::URL, PipelineFixtures::success());
+        $this->fetcher->willReturn(self::URL, PipelineFixtures::article());
 
         $result = $this->service->archive(new UrlPointer(self::URL));
         $summary = $result->summary;
@@ -71,7 +66,7 @@ final class ArchiveServiceTest extends TestCase
 
     public function test_second_archive_is_already_stored_and_does_not_fetch(): void
     {
-        $this->fetcher->willReturn(self::URL, PipelineFixtures::success());
+        $this->fetcher->willReturn(self::URL, PipelineFixtures::article());
         $first = $this->service->archive(new UrlPointer(self::URL));
 
         $second = $this->service->archive(new UrlPointer(self::URL));
@@ -83,27 +78,27 @@ final class ArchiveServiceTest extends TestCase
 
     public function test_archive_holds_the_five_fields_as_plain_values(): void
     {
-        $this->fetcher->willReturn(self::URL, PipelineFixtures::success('Title', 'Excerpt', 'Site', '<p>Body</p>'));
+        $this->fetcher->willReturn(self::URL, PipelineFixtures::article('Title', 'Excerpt', 'Site', '<p>Body</p>'));
 
         $this->service->archive(new UrlPointer(self::URL));
 
         self::assertEquals(new Archive(self::URL, 'Title', 'Excerpt', 'Site', '<p>Body</p>'), $this->store->find(new UrlPointer(self::URL)));
     }
 
-    public function test_text_fields_are_stored_as_raw_text_not_escaped_html(): void
+    public function test_text_fields_are_stored_as_the_article_text(): void
     {
-        $this->fetcher->willReturn(self::URL, PipelineFixtures::success('A & "B"', 'C & <b>D</b>', 'E & F'));
+        $this->fetcher->willReturn(self::URL, PipelineFixtures::article('A & "B"', 'C & <b>D</b>', 'E & F'));
 
         $summary = $this->service->archive(new UrlPointer(self::URL))->summary;
 
         self::assertSame('A & "B"', $summary->title);
-        self::assertSame('C & D', $summary->excerpt);
+        self::assertSame('C & <b>D</b>', $summary->excerpt);
         self::assertSame('E & F', $summary->siteName);
     }
 
     public function test_excerpt_and_site_name_stay_null_when_missing(): void
     {
-        $this->fetcher->willReturn(self::URL, PipelineFixtures::success());
+        $this->fetcher->willReturn(self::URL, PipelineFixtures::article());
 
         $summary = $this->service->archive(new UrlPointer(self::URL))->summary;
 
@@ -113,85 +108,56 @@ final class ArchiveServiceTest extends TestCase
 
     public function test_url_is_the_string_passed_in_not_the_source_url(): void
     {
-        $this->fetcher->willReturn(self::URL, PipelineFixtures::success(sourceUrl: 'https://example.com/other'));
+        $this->fetcher->willReturn(self::URL, PipelineFixtures::article());
 
         $summary = $this->service->archive(new UrlPointer(self::URL))->summary;
 
         self::assertSame(self::URL, $summary->url);
     }
 
-    public function test_warning_is_left_out_of_the_archive(): void
-    {
-        $warning = new PipelineWarning(PipelineWarningCode::EncodingDegraded, 'Lossy conversion');
-        $this->fetcher->willReturn(self::URL, PipelineFixtures::success(warnings: [$warning]));
-
-        $this->service->archive(new UrlPointer(self::URL));
-
-        self::assertEquals(new Archive(self::URL, 'Title', null, null, '<p>Body</p>'), $this->store->find(new UrlPointer(self::URL)));
-    }
-
     public function test_no_content_becomes_archive_exception_and_stores_nothing(): void
     {
-        $this->fetcher->willReturn(self::URL, PipelineFixtures::noContent());
+        $this->fetcher->willThrow(self::URL, new ArchiveException(ArchiveFailure::ExtractNoContent));
 
         try {
             $this->service->archive(new UrlPointer(self::URL));
             self::fail('Expected an ArchiveException.');
         } catch (ArchiveException $exception) {
-            self::assertSame(ArchiveFailure::SanitizedEmpty, $exception->failure);
+            self::assertSame(ArchiveFailure::ExtractNoContent, $exception->failure);
             self::assertNull($this->store->find(new UrlPointer(self::URL)));
         }
     }
 
     public function test_thrown_failure_becomes_archive_exception_with_that_cause(): void
     {
-        $failure = new OrchestratorException(OrchestratorError::Fetch);
+        $cause = new \RuntimeException('boom');
+        $failure = new ArchiveException(ArchiveFailure::Transport, $cause);
         $this->fetcher->willThrow(self::URL, $failure);
 
         try {
             $this->service->archive(new UrlPointer(self::URL));
             self::fail('Expected an ArchiveException.');
         } catch (ArchiveException $exception) {
-            self::assertSame(ArchiveFailure::Unexpected, $exception->failure);
-            self::assertSame($failure, $exception->getPrevious());
+            self::assertSame(ArchiveFailure::Transport, $exception->failure);
+            self::assertSame($cause, $exception->getPrevious());
             self::assertNull($this->store->find(new UrlPointer(self::URL)));
         }
     }
 
-    public function test_an_error_from_the_fetcher_passes_through(): void
+    public function test_an_unregistered_url_is_url_rejected(): void
     {
-        $this->fetcher->willThrow(self::URL, new \Error('boom'));
-
-        $this->expectException(\Error::class);
-
-        $this->service->archive(new UrlPointer(self::URL));
-    }
-
-    public function test_a_runtime_exception_from_the_fetcher_passes_through(): void
-    {
-        $this->fetcher->willThrow(self::URL, new \RuntimeException('boom'));
-
-        $this->expectException(\RuntimeException::class);
-
-        $this->service->archive(new UrlPointer(self::URL));
-    }
-
-    public function test_a_throwable_that_passes_through_stores_nothing(): void
-    {
-        $this->fetcher->willThrow(self::URL, new \RuntimeException('boom'));
-
         try {
             $this->service->archive(new UrlPointer(self::URL));
-        } catch (\RuntimeException $exception) {
-            self::assertNotInstanceOf(ArchiveException::class, $exception);
+            self::fail('Expected an ArchiveException.');
+        } catch (ArchiveException $exception) {
+            self::assertSame(ArchiveFailure::UrlRejected, $exception->failure);
+            self::assertNull($this->store->find(new UrlPointer(self::URL)));
         }
-
-        self::assertNull($this->store->find(new UrlPointer(self::URL)));
     }
 
     public function test_a_failed_fetch_leaves_the_next_call_free_to_fetch(): void
     {
-        $this->fetcher->willThrow(self::URL, new OrchestratorException(OrchestratorError::Fetch));
+        $this->fetcher->willThrow(self::URL, new ArchiveException(ArchiveFailure::Transport));
 
         foreach ([1, 2] as $attempt) {
             try {
@@ -205,8 +171,8 @@ final class ArchiveServiceTest extends TestCase
 
     public function test_trailing_slash_is_another_archive(): void
     {
-        $this->fetcher->willReturn(self::URL, PipelineFixtures::success());
-        $this->fetcher->willReturn(self::URL . '/', PipelineFixtures::success());
+        $this->fetcher->willReturn(self::URL, PipelineFixtures::article());
+        $this->fetcher->willReturn(self::URL . '/', PipelineFixtures::article());
         $this->service->archive(new UrlPointer(self::URL));
 
         $result = $this->service->archive(new UrlPointer(self::URL . '/'));
@@ -217,7 +183,7 @@ final class ArchiveServiceTest extends TestCase
 
     public function test_leading_and_trailing_nul_are_trimmed_before_lock_and_store(): void
     {
-        $this->fetcher->willReturn(self::URL, PipelineFixtures::success());
+        $this->fetcher->willReturn(self::URL, PipelineFixtures::article());
 
         $this->service->archive(new UrlPointer("\0" . self::URL . "\0"));
 
@@ -230,7 +196,7 @@ final class ArchiveServiceTest extends TestCase
     public function test_a_nul_in_the_middle_stays_part_of_the_url(): void
     {
         $url = "https://example.com/\0a";
-        $this->fetcher->willReturn($url, PipelineFixtures::success());
+        $this->fetcher->willReturn($url, PipelineFixtures::article());
 
         $this->service->archive(new UrlPointer($url));
 
@@ -241,7 +207,7 @@ final class ArchiveServiceTest extends TestCase
     public function test_surrounding_spaces_stay_part_of_the_url(): void
     {
         $url = ' ' . self::URL;
-        $this->fetcher->willReturn($url, PipelineFixtures::success());
+        $this->fetcher->willReturn($url, PipelineFixtures::article());
 
         $this->service->archive(new UrlPointer($url));
 
@@ -251,7 +217,7 @@ final class ArchiveServiceTest extends TestCase
 
     public function test_lookup_fetch_and_save_run_inside_the_lock(): void
     {
-        $this->fetcher->willReturn(self::URL, PipelineFixtures::success());
+        $this->fetcher->willReturn(self::URL, PipelineFixtures::article());
         $service = new ArchiveService($this->store, $this->loggingFetcher(), $this->lock, $this->logger);
 
         $service->archive(new UrlPointer(self::URL));
@@ -261,7 +227,7 @@ final class ArchiveServiceTest extends TestCase
 
     public function test_waiter_returns_already_stored_without_a_fetch(): void
     {
-        $this->fetcher->willReturn(self::URL, PipelineFixtures::success());
+        $this->fetcher->willReturn(self::URL, PipelineFixtures::article());
         $this->service->archive(new UrlPointer(self::URL));
         $fetchesBefore = $this->fetcher->fetchCount();
 
@@ -273,7 +239,7 @@ final class ArchiveServiceTest extends TestCase
 
     public function test_lock_is_released_when_the_fetch_throws(): void
     {
-        $this->fetcher->willThrow(self::URL, new OrchestratorException(OrchestratorError::Fetch));
+        $this->fetcher->willThrow(self::URL, new ArchiveException(ArchiveFailure::Transport));
         $service = new ArchiveService($this->store, $this->loggingFetcher(), $this->lock, $this->logger);
 
         try {
@@ -288,7 +254,7 @@ final class ArchiveServiceTest extends TestCase
     public function test_a_lock_that_is_not_taken_still_archives(): void
     {
         $lock = new FakeArchiveLock($this->log, holds: false);
-        $this->fetcher->willReturn(self::URL, PipelineFixtures::success());
+        $this->fetcher->willReturn(self::URL, PipelineFixtures::article());
 
         $result = $this->serviceWith($lock)->archive(new UrlPointer(self::URL));
 
@@ -300,7 +266,7 @@ final class ArchiveServiceTest extends TestCase
     {
         $failure = new \PDOException('disk full near /var/secret');
         $this->store->saveFailure = $failure;
-        $this->fetcher->willReturn(self::URL, PipelineFixtures::success());
+        $this->fetcher->willReturn(self::URL, PipelineFixtures::article());
 
         try {
             $this->service->archive(new UrlPointer(self::URL));
@@ -315,7 +281,7 @@ final class ArchiveServiceTest extends TestCase
     {
         $failure = new DirectoryException('The data directory could not be created.');
         $this->store->saveFailure = $failure;
-        $this->fetcher->willReturn(self::URL, PipelineFixtures::success());
+        $this->fetcher->willReturn(self::URL, PipelineFixtures::article());
 
         try {
             $this->service->archive(new UrlPointer(self::URL));
@@ -347,7 +313,7 @@ final class ArchiveServiceTest extends TestCase
     public function test_a_miss_logs_start_fetch_and_written(): void
     {
         $this->store->location = '/data/ada.sqlite';
-        $this->fetcher->willReturn(self::URL, PipelineFixtures::success());
+        $this->fetcher->willReturn(self::URL, PipelineFixtures::article());
 
         $result = $this->service->archive(new UrlPointer(self::URL));
 
@@ -361,7 +327,7 @@ final class ArchiveServiceTest extends TestCase
 
     public function test_a_miss_without_a_location_omits_store(): void
     {
-        $this->fetcher->willReturn(self::URL, PipelineFixtures::success());
+        $this->fetcher->willReturn(self::URL, PipelineFixtures::article());
 
         $this->service->archive(new UrlPointer(self::URL));
 
@@ -373,7 +339,7 @@ final class ArchiveServiceTest extends TestCase
 
     public function test_a_hit_logs_start_and_already_stored(): void
     {
-        $this->fetcher->willReturn(self::URL, PipelineFixtures::success());
+        $this->fetcher->willReturn(self::URL, PipelineFixtures::article());
         $this->service->archive(new UrlPointer(self::URL));
         $this->logger->records = [];
 
@@ -390,7 +356,7 @@ final class ArchiveServiceTest extends TestCase
     public function test_a_mapped_fetch_failure_logs_failed_without_store(): void
     {
         $this->store->location = '/data/ada.sqlite';
-        $this->fetcher->willThrow(self::URL, new OrchestratorException(OrchestratorError::Fetch));
+        $this->fetcher->willThrow(self::URL, new ArchiveException(ArchiveFailure::Transport));
 
         try {
             $this->service->archive(new UrlPointer(self::URL));
@@ -399,7 +365,7 @@ final class ArchiveServiceTest extends TestCase
             self::assertSame([
                 ['info', 'archive.start', ['url' => self::URL]],
                 ['info', 'archive.fetch', ['url' => self::URL]],
-                ['warning', 'archive.failed', ['url' => self::URL, 'code' => 'unexpected']],
+                ['warning', 'archive.failed', ['url' => self::URL, 'code' => 'transport']],
             ], $this->logger->records);
         }
     }
@@ -407,7 +373,7 @@ final class ArchiveServiceTest extends TestCase
     public function test_an_empty_page_logs_failed_without_store(): void
     {
         $this->store->location = '/data/ada.sqlite';
-        $this->fetcher->willReturn(self::URL, PipelineFixtures::noContent());
+        $this->fetcher->willThrow(self::URL, new ArchiveException(ArchiveFailure::SanitizedEmpty));
 
         try {
             $this->service->archive(new UrlPointer(self::URL));
@@ -424,7 +390,7 @@ final class ArchiveServiceTest extends TestCase
     {
         $this->store->location = '/data/ada.sqlite';
         $this->store->saveFailure = new \PDOException('locked');
-        $this->fetcher->willReturn(self::URL, PipelineFixtures::success());
+        $this->fetcher->willReturn(self::URL, PipelineFixtures::article());
 
         try {
             $this->service->archive(new UrlPointer(self::URL));
@@ -442,7 +408,7 @@ final class ArchiveServiceTest extends TestCase
     {
         $this->store->location = '/data/ada.sqlite';
         $this->store->saveFailure = new DirectoryException('The data directory could not be created.');
-        $this->fetcher->willReturn(self::URL, PipelineFixtures::success());
+        $this->fetcher->willReturn(self::URL, PipelineFixtures::article());
 
         try {
             $this->service->archive(new UrlPointer(self::URL));
@@ -459,7 +425,7 @@ final class ArchiveServiceTest extends TestCase
     public function test_a_save_failure_without_a_location_omits_store(): void
     {
         $this->store->saveFailure = new \PDOException('locked');
-        $this->fetcher->willReturn(self::URL, PipelineFixtures::success());
+        $this->fetcher->willReturn(self::URL, PipelineFixtures::article());
 
         try {
             $this->service->archive(new UrlPointer(self::URL));
@@ -486,24 +452,9 @@ final class ArchiveServiceTest extends TestCase
         }
     }
 
-    public function test_an_error_from_the_fetcher_logs_start_and_fetch(): void
-    {
-        $this->fetcher->willThrow(self::URL, new \Error('boom'));
-
-        try {
-            $this->service->archive(new UrlPointer(self::URL));
-            self::fail('Expected an Error.');
-        } catch (\Error) {
-            self::assertSame([
-                ['info', 'archive.start', ['url' => self::URL]],
-                ['info', 'archive.fetch', ['url' => self::URL]],
-            ], $this->logger->records);
-        }
-    }
-
     public function test_a_throwing_logger_still_returns_written(): void
     {
-        $this->fetcher->willReturn(self::URL, PipelineFixtures::success());
+        $this->fetcher->willReturn(self::URL, PipelineFixtures::article());
         $service = new ArchiveService($this->store, $this->fetcher, $this->lock, new ThrowingLogger());
 
         $result = $service->archive(new UrlPointer(self::URL));
@@ -514,7 +465,7 @@ final class ArchiveServiceTest extends TestCase
     public function test_a_throwing_logger_on_save_failure_still_throws_not_written(): void
     {
         $this->store->saveFailure = new \PDOException('locked');
-        $this->fetcher->willReturn(self::URL, PipelineFixtures::success());
+        $this->fetcher->willReturn(self::URL, PipelineFixtures::article());
         $service = new ArchiveService($this->store, $this->fetcher, $this->lock, new ThrowingLogger());
 
         try {
@@ -544,7 +495,7 @@ final class ArchiveServiceTest extends TestCase
             {
             }
 
-            public function fetch(UrlPointer $url): PipelineSuccess|PipelineNoContent
+            public function fetch(UrlPointer $url): Article
             {
                 $this->log->append('fetch');
 

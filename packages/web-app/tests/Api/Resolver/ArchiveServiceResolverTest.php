@@ -35,7 +35,7 @@ final class ArchiveServiceResolverTest extends TestCase
     protected function setUp(): void
     {
         $fetcher = new FakeArticleFetcher();
-        $fetcher->willReturn(self::URL, PipelineFixtures::success());
+        $fetcher->willReturn(self::URL, PipelineFixtures::article());
         $this->factory = new ArchiveServiceFactory(
             $fetcher,
             new InMemoryArchiveStoreFactory(new InMemoryArchiveShelf()),

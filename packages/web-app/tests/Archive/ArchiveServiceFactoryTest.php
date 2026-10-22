@@ -27,7 +27,7 @@ final class ArchiveServiceFactoryTest extends TestCase
     public function test_second_service_for_one_owner_sees_the_first_archive(): void
     {
         $fetcher = new FakeArticleFetcher();
-        $fetcher->willReturn('https://example.com/a', PipelineFixtures::success());
+        $fetcher->willReturn('https://example.com/a', PipelineFixtures::article());
         $factory = new ArchiveServiceFactory(
             $fetcher,
             new InMemoryArchiveStoreFactory(new InMemoryArchiveShelf()),
@@ -48,7 +48,7 @@ final class ArchiveServiceFactoryTest extends TestCase
     {
         $root = ArchiveDirectories::isolate();
         $fetcher = new FakeArticleFetcher();
-        $fetcher->willReturn('https://example.com/a', PipelineFixtures::success());
+        $fetcher->willReturn('https://example.com/a', PipelineFixtures::article());
         $factory = new ArchiveServiceFactory(
             $fetcher,
             new SqliteArchiveStoreFactory($root . '/data'),

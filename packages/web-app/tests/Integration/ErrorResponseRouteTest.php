@@ -7,13 +7,8 @@ namespace Yumo\Eleanor\Tests\Integration;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Yumo\ArtcleReader\HttpFetcher\HttpFetcherError;
-use Yumo\ArtcleReader\HttpFetcher\HttpFetcherException;
-use Yumo\ArtcleReader\Orchestrator\OrchestratorError;
-use Yumo\ArtcleReader\Orchestrator\OrchestratorException;
-use Yumo\ArtcleReader\Orchestrator\PipelineNoContent;
-use Yumo\ArtcleReader\UrlGuard\UrlGuardError;
-use Yumo\ArtcleReader\UrlGuard\UrlGuardException;
+use Yumo\Eleanor\Archive\ArchiveException;
+use Yumo\Eleanor\Archive\ArchiveFailure;
 use Yumo\Eleanor\Tests\Support\ArchiveDirectories;
 use Yumo\Eleanor\Tests\Support\FakeArticleFetcher;
 use Yumo\Eleanor\Tests\Support\PipelineFixtures;
@@ -32,39 +27,35 @@ final class ErrorResponseRouteTest extends WebTestCase
     }
 
     /**
-     * @return iterable<string, array{\Throwable|PipelineNoContent, int, string, string}>
+     * @return iterable<string, array{ArchiveException, int, string, string}>
      */
     public static function archiveFailureProvider(): iterable
     {
-        yield 'url_syntax' => [self::urlGuard(UrlGuardError::Syntax), 400, 'url_syntax', 'The URL is not valid.'];
-        yield 'url_policy' => [self::urlGuard(UrlGuardError::Policy), 400, 'url_policy', 'The URL is not allowed.'];
-        yield 'url_rejected' => [self::urlGuard(UrlGuardError::Rejected), 400, 'url_rejected', 'The URL was refused.'];
-        yield 'extract_no_content' => [PipelineFixtures::noArticle(), 422, 'extract_no_content', 'The page has no article.'];
-        yield 'sanitized_empty' => [PipelineFixtures::noContent(), 422, 'sanitized_empty', 'The article is empty after purification.'];
-        yield 'redirect' => [self::fetch(new HttpFetcherException(HttpFetcherError::Redirect, statusCode: 301)), 422, 'redirect', 'The page redirects. Send the final URL.'];
-        yield 'content_type' => [self::fetch(new HttpFetcherException(HttpFetcherError::ContentType)), 422, 'content_type', 'The page is not HTML.'];
-        yield 'body_too_large' => [self::fetch(new HttpFetcherException(HttpFetcherError::BodyTooLarge)), 422, 'body_too_large', 'The page is larger than the size limit.'];
-        yield 'transport' => [self::fetch(new HttpFetcherException(HttpFetcherError::Transport)), 502, 'transport', "The page's site could not be reached."];
-        yield 'upstream_status' => [self::fetch(new HttpFetcherException(HttpFetcherError::HttpStatus, statusCode: 503)), 502, 'upstream_status', "The page's site answered with status 503."];
-        yield 'encoding' => [new OrchestratorException(OrchestratorError::Encoding), 500, 'encoding', "The page's character encoding could not be read."];
-        yield 'extract' => [new OrchestratorException(OrchestratorError::Extract), 500, 'extract', 'The article could not be extracted.'];
-        yield 'sanitize' => [new OrchestratorException(OrchestratorError::Sanitize), 500, 'sanitize', 'The article could not be purified.'];
-        yield 'unexpected' => [new OrchestratorException(OrchestratorError::Unexpected), 500, 'unexpected', 'Something went wrong on the server.'];
+        yield 'url_syntax' => [new ArchiveException(ArchiveFailure::UrlSyntax), 400, 'url_syntax', 'The URL is not valid.'];
+        yield 'url_policy' => [new ArchiveException(ArchiveFailure::UrlPolicy), 400, 'url_policy', 'The URL is not allowed.'];
+        yield 'url_rejected' => [new ArchiveException(ArchiveFailure::UrlRejected), 400, 'url_rejected', 'The URL was refused.'];
+        yield 'extract_no_content' => [new ArchiveException(ArchiveFailure::ExtractNoContent), 422, 'extract_no_content', 'The page has no article.'];
+        yield 'sanitized_empty' => [new ArchiveException(ArchiveFailure::SanitizedEmpty), 422, 'sanitized_empty', 'The article is empty after purification.'];
+        yield 'redirect' => [new ArchiveException(ArchiveFailure::Redirect), 422, 'redirect', 'The page redirects. Send the final URL.'];
+        yield 'content_type' => [new ArchiveException(ArchiveFailure::ContentType), 422, 'content_type', 'The page is not HTML.'];
+        yield 'body_too_large' => [new ArchiveException(ArchiveFailure::BodyTooLarge), 422, 'body_too_large', 'The page is larger than the size limit.'];
+        yield 'transport' => [new ArchiveException(ArchiveFailure::Transport), 502, 'transport', "The page's site could not be reached."];
+        yield 'upstream_status' => [new ArchiveException(ArchiveFailure::UpstreamStatus, upstreamStatus: 503), 502, 'upstream_status', "The page's site answered with status 503."];
+        yield 'encoding' => [new ArchiveException(ArchiveFailure::Encoding), 500, 'encoding', "The page's character encoding could not be read."];
+        yield 'extract' => [new ArchiveException(ArchiveFailure::Extract), 500, 'extract', 'The article could not be extracted.'];
+        yield 'sanitize' => [new ArchiveException(ArchiveFailure::Sanitize), 500, 'sanitize', 'The article could not be purified.'];
+        yield 'unexpected' => [new ArchiveException(ArchiveFailure::Unexpected), 500, 'unexpected', 'Something went wrong on the server.'];
     }
 
     #[DataProvider('archiveFailureProvider')]
     public function test_archive_failure_answers_its_code_and_message(
-        \Throwable|PipelineNoContent $outcome,
+        ArchiveException $failure,
         int $status,
         string $code,
         string $message,
     ): void {
         $client = static::createClient();
-        if ($outcome instanceof \Throwable) {
-            $this->fetcher()->willThrow(self::URL, $outcome);
-        } else {
-            $this->fetcher()->willReturn(self::URL, $outcome);
-        }
+        $this->fetcher()->willThrow(self::URL, $failure);
 
         $this->postUrl($client, self::URL);
 
@@ -164,7 +155,7 @@ final class ErrorResponseRouteTest extends WebTestCase
     public function test_unexpected_error_answers_the_fixed_sentence(): void
     {
         $client = static::createClient();
-        $this->fetcher()->willThrow(self::URL, new \Error('/etc/secret'));
+        $this->fetcher()->willThrow(self::URL, new ArchiveException(ArchiveFailure::Unexpected, new \RuntimeException('/etc/secret')));
 
         $this->postUrl($client, self::URL);
 
@@ -176,28 +167,18 @@ final class ErrorResponseRouteTest extends WebTestCase
     {
         $client = static::createClient();
         $client->disableReboot();
-        $this->fetcher()->willThrow(self::URL, self::fetch(new HttpFetcherException(HttpFetcherError::Transport)));
+        $this->fetcher()->willThrow(self::URL, new ArchiveException(ArchiveFailure::Transport));
 
         $this->postUrl($client, self::URL);
 
         self::assertResponseStatusCodeSame(502);
         self::assertSame(1, $this->fetcher()->fetchCount(self::URL));
 
-        $this->fetcher()->willReturn(self::URL, PipelineFixtures::success());
+        $this->fetcher()->willReturn(self::URL, PipelineFixtures::article());
         $this->postUrl($client, self::URL);
 
         self::assertResponseStatusCodeSame(201);
         self::assertSame(2, $this->fetcher()->fetchCount(self::URL));
-    }
-
-    private static function urlGuard(UrlGuardError $error): OrchestratorException
-    {
-        return new OrchestratorException(OrchestratorError::UrlGuard, previous: new UrlGuardException($error));
-    }
-
-    private static function fetch(HttpFetcherException $previous): OrchestratorException
-    {
-        return new OrchestratorException(OrchestratorError::Fetch, previous: $previous);
     }
 
     private function assertErrorResponse(KernelBrowser $client, int $status, string $code, string $message): void

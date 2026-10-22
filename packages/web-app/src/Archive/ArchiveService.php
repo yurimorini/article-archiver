@@ -6,9 +6,6 @@ namespace Yumo\Eleanor\Archive;
 
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Exclude;
-use Yumo\ArtcleReader\Orchestrator\OrchestratorException;
-use Yumo\ArtcleReader\Orchestrator\PipelineNoContent;
-use Yumo\ArtcleReader\Orchestrator\PipelineSuccess;
 use Yumo\Eleanor\Archive\Sqlite\DirectoryException;
 
 /**
@@ -20,7 +17,7 @@ use Yumo\Eleanor\Archive\Sqlite\DirectoryException;
 final class ArchiveService
 {
     /**
-     * Creates the service from the store of one owner, the fetcher that downloads pages, the lock of that owner, the domain logger, and the failure mapper.
+     * Creates the service from the store of one owner, the fetcher that downloads pages, the lock of that owner, and the domain logger.
      */
     public function __construct(
         /** The store of the owner this service works for. */
@@ -31,8 +28,6 @@ final class ArchiveService
         private ArchiveLock $lock,
         /** The domain logger that records what this command does. */
         private LoggerInterface $logger,
-        /** The mapper that turns library failures into archive failures. */
-        private ArchiveFailureMapper $failures = new ArchiveFailureMapper(),
     ) {
     }
 
@@ -85,39 +80,26 @@ final class ArchiveService
     }
 
     /**
-     * Fetches `$url`. A failed fetch and an empty outcome both become an `ArchiveException`.
-     * Any other throwable is not an archive failure and passes through.
+     * Fetches `$url`. The fetcher throws `ArchiveException` when the page cannot be archived.
      *
      * @throws ArchiveException
      */
-    private function fetch(UrlPointer $url): PipelineSuccess
+    private function fetch(UrlPointer $url): Article
     {
-        try {
-            $outcome = $this->fetcher->fetch($url);
-        } catch (OrchestratorException $failure) {
-            throw $this->failures->fromOrchestrator($failure);
-        }
-
-        if ($outcome instanceof PipelineNoContent) {
-            throw $this->failures->fromEmpty($outcome);
-        }
-
-        return $outcome;
+        return $this->fetcher->fetch($url);
     }
 
     /**
-     * Builds the archive of `$url` from a fetched article. Warnings are not kept.
+     * Builds the archive of `$url` from a fetched article.
      */
-    private function fromSuccess(UrlPointer $url, PipelineSuccess $success): Archive
+    private function fromSuccess(UrlPointer $url, Article $article): Archive
     {
-        $document = $success->document;
-
         return new Archive(
             $url->toString(),
-            $document->title->raw(),
-            $document->excerpt?->raw(),
-            $document->siteName?->raw(),
-            $document->html,
+            $article->title,
+            $article->excerpt,
+            $article->siteName,
+            $article->html,
         );
     }
 

@@ -10,12 +10,25 @@ use Yumo\ArtcleReader\HtmlSanitizer\SafeDocument;
 use Yumo\ArtcleReader\Orchestrator\PipelineNoContent;
 use Yumo\ArtcleReader\Orchestrator\PipelineSuccess;
 use Yumo\ArtcleReader\Orchestrator\PipelineWarning;
+use Yumo\Eleanor\Archive\Article;
 
 /**
- * Builds library fetch outcomes for tests without a real fetch.
+ * Builds an article, and the library outcomes the adapter test still needs.
  */
 final class PipelineFixtures
 {
+    /**
+     * Builds an article from plain strings. It has no URL and no warnings.
+     */
+    public static function article(
+        string $title = 'Title',
+        ?string $excerpt = null,
+        ?string $siteName = null,
+        string $html = '<p>Body</p>',
+    ): Article {
+        return new Article($title, $excerpt, $siteName, $html);
+    }
+
     /**
      * Builds a successful fetch outcome from plain strings.
      *

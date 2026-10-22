@@ -167,7 +167,7 @@ final class LogApiRequestTest extends WebTestCase
         $server['CONTENT_TYPE'] = 'application/json';
         $fetcher = static::getContainer()->get(FakeArticleFetcher::class);
         self::assertInstanceOf(FakeArticleFetcher::class, $fetcher);
-        $fetcher->willReturn('https://example.test/a', PipelineFixtures::success());
+        $fetcher->willReturn('https://example.test/a', PipelineFixtures::article());
         $client->request('POST', '/api/archives', server: $server, content: '{"url":"https://example.test/a"}');
     }
 

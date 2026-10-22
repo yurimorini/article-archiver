@@ -41,7 +41,7 @@ final class CreateArchiveRouteTest extends WebTestCase
     public function test_new_url_returns_201_and_the_archive_json(string $uri, array $server, string $content): void
     {
         $client = static::createClient();
-        $this->fetcher()->willReturn('https://example.com/a', PipelineFixtures::success());
+        $this->fetcher()->willReturn('https://example.com/a', PipelineFixtures::article());
         $client->request('POST', $uri, [], [], $server, $content);
 
         self::assertRouteSame('create_archive');
@@ -54,7 +54,7 @@ final class CreateArchiveRouteTest extends WebTestCase
     {
         $client = static::createClient();
         $firstFetcher = $this->fetcher();
-        $firstFetcher->willReturn('https://example.com/a', PipelineFixtures::success());
+        $firstFetcher->willReturn('https://example.com/a', PipelineFixtures::article());
 
         $this->postUrl($client, 'https://example.com/a');
         $first = $this->responseBody($client->getInternalResponse());
@@ -70,7 +70,7 @@ final class CreateArchiveRouteTest extends WebTestCase
     public function test_second_kernel_on_the_same_directory_returns_200_without_a_fetch(): void
     {
         $client = static::createClient();
-        $this->fetcher()->willReturn('https://example.com/a', PipelineFixtures::success());
+        $this->fetcher()->willReturn('https://example.com/a', PipelineFixtures::article());
         $this->postUrl($client, 'https://example.com/a');
         self::assertResponseStatusCodeSame(201);
         static::ensureKernelShutdown();
@@ -87,8 +87,8 @@ final class CreateArchiveRouteTest extends WebTestCase
     {
         $client = static::createClient();
         $client->disableReboot();
-        $this->fetcher()->willReturn('https://example.com/a', PipelineFixtures::success('First'));
-        $this->fetcher()->willReturn('https://example.com/b', PipelineFixtures::success('Second'));
+        $this->fetcher()->willReturn('https://example.com/a', PipelineFixtures::article('First'));
+        $this->fetcher()->willReturn('https://example.com/b', PipelineFixtures::article('Second'));
 
         $this->postUrl($client, 'https://example.com/a');
         $this->postUrl($client, 'https://example.com/b');
@@ -101,7 +101,7 @@ final class CreateArchiveRouteTest extends WebTestCase
     public function test_leading_and_trailing_nul_in_the_body_are_not_part_of_the_stored_url(): void
     {
         $client = static::createClient();
-        $this->fetcher()->willReturn('https://example.com/a', PipelineFixtures::success());
+        $this->fetcher()->willReturn('https://example.com/a', PipelineFixtures::article());
 
         $this->postUrl($client, "\0https://example.com/a\0");
 
@@ -113,7 +113,7 @@ final class CreateArchiveRouteTest extends WebTestCase
     {
         $title = 'He said "hi" \\ and left';
         $client = static::createClient();
-        $this->fetcher()->willReturn('https://example.com/a', PipelineFixtures::success($title));
+        $this->fetcher()->willReturn('https://example.com/a', PipelineFixtures::article($title));
 
         $this->postUrl($client, 'https://example.com/a');
 
@@ -125,7 +125,7 @@ final class CreateArchiveRouteTest extends WebTestCase
     public function test_missing_title_is_an_empty_string(): void
     {
         $client = static::createClient();
-        $this->fetcher()->willReturn('https://example.com/a', PipelineFixtures::success(''));
+        $this->fetcher()->willReturn('https://example.com/a', PipelineFixtures::article(''));
 
         $this->postUrl($client, 'https://example.com/a');
 
@@ -135,7 +135,7 @@ final class CreateArchiveRouteTest extends WebTestCase
     public function test_non_ascii_title_and_slashes_stay_readable(): void
     {
         $client = static::createClient();
-        $this->fetcher()->willReturn('https://example.com/a/b', PipelineFixtures::success('Café', sourceUrl: 'https://example.com/a/b'));
+        $this->fetcher()->willReturn('https://example.com/a/b', PipelineFixtures::article('Café'));
 
         $this->postUrl($client, 'https://example.com/a/b');
 
@@ -146,7 +146,7 @@ final class CreateArchiveRouteTest extends WebTestCase
     {
         $dataDirectory = ArchiveDirectories::isolate() . '/data';
         $client = static::createClient();
-        $this->fetcher()->willReturn('https://example.com/a', PipelineFixtures::success());
+        $this->fetcher()->willReturn('https://example.com/a', PipelineFixtures::article());
         // The container runs as root, so a read-only mode would still be writable. A file in the place of the directory cannot be.
         rmdir($dataDirectory);
         touch($dataDirectory);
