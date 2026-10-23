@@ -151,6 +151,85 @@ final class ImportUrlListCommandTest extends WebTestCase
         self::assertSame(1, substr_count($display, 'SKIPPED'));
     }
 
+    public function test_a_second_run_does_not_fetch(): void
+    {
+        file_put_contents('one.txt', "https://example.com/a\n");
+        $this->fetcher()->willReturn('https://example.com/a', PipelineFixtures::article('Title'));
+        $this->runImport('one.txt', ['--owner' => 'ada@example.com']);
+
+        $exit = $this->runImport('one.txt', ['--owner' => 'ada@example.com']);
+
+        self::assertSame(0, $exit);
+        self::assertStringContainsString(
+            str_pad('ALREADY STORED', 16) . 'https://example.com/a',
+            $this->tester->getDisplay(),
+        );
+        self::assertStringContainsString("Already stored 1\n", $this->tester->getDisplay());
+        self::assertSame(1, $this->fetcher()->fetchCount('https://example.com/a'));
+    }
+
+    public function test_two_copies_fetch_once(): void
+    {
+        file_put_contents('two.txt', "https://example.com/a\nhttps://example.com/a\n");
+        $this->fetcher()->willReturn('https://example.com/a', PipelineFixtures::article('Title'));
+
+        $exit = $this->runImport('two.txt', ['--owner' => 'ada@example.com']);
+
+        self::assertSame(0, $exit);
+        self::assertStringContainsString(
+            str_pad('ARCHIVED', 16) . "https://example.com/a\n" . str_pad('ALREADY STORED', 16) . 'https://example.com/a',
+            $this->tester->getDisplay(),
+        );
+        self::assertStringContainsString("Written 1\nAlready stored 1\n", $this->tester->getDisplay());
+        self::assertSame(1, $this->fetcher()->fetchCount('https://example.com/a'));
+    }
+
+    public function test_scheme_case_is_kept(): void
+    {
+        $url = 'HTTPS://Example.com/A';
+        file_put_contents('case.txt', $url . "\n");
+        $this->fetcher()->willReturn($url, PipelineFixtures::article('Title'));
+
+        $this->runImport('case.txt', ['--owner' => 'ada@example.com']);
+        $first = $this->tester->getDisplay();
+        $this->runImport('case.txt', ['--owner' => 'ada@example.com']);
+
+        self::assertStringContainsString(str_pad('ARCHIVED', 16) . $url, $first);
+        self::assertStringContainsString(str_pad('ALREADY STORED', 16) . $url, $this->tester->getDisplay());
+        self::assertSame(1, $this->fetcher()->fetchCount($url));
+    }
+
+    public function test_crlf_does_not_stay_in_the_url(): void
+    {
+        file_put_contents('crlf.txt', "https://example.com/a\r\n");
+        $this->fetcher()->willReturn('https://example.com/a', PipelineFixtures::article('Title'));
+
+        $this->runImport('crlf.txt', ['--owner' => 'ada@example.com']);
+
+        self::assertStringContainsString(
+            str_pad('ARCHIVED', 16) . "https://example.com/a\n",
+            $this->tester->getDisplay(),
+        );
+        self::assertStringNotContainsString("\r", $this->tester->getDisplay());
+        self::assertSame(1, $this->fetcher()->fetchCount('https://example.com/a'));
+    }
+
+    public function test_owner_case_is_the_same_owner(): void
+    {
+        file_put_contents('owner.txt', "https://example.com/a\n");
+        $this->fetcher()->willReturn('https://example.com/a', PipelineFixtures::article('Title'));
+        $this->runImport('owner.txt', ['--owner' => 'Owner@Example.com']);
+
+        $exit = $this->runImport('owner.txt', ['--owner' => 'owner@example.com']);
+
+        self::assertSame(0, $exit);
+        self::assertStringContainsString(
+            str_pad('ALREADY STORED', 16) . 'https://example.com/a',
+            $this->tester->getDisplay(),
+        );
+        self::assertSame(1, $this->fetcher()->fetchCount('https://example.com/a'));
+    }
+
     public function test_an_unknown_option_exits_1(): void
     {
         $exit = $this->runImport('unused.txt', ['--owner' => 'ada@example.com', '--parallel' => '1']);
