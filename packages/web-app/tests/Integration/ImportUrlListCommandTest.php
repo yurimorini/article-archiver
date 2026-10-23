@@ -10,6 +10,7 @@ use Symfony\Component\Console\Tester\ApplicationTester;
 use Symfony\Component\HttpKernel\KernelInterface;
 use Yumo\Eleanor\Tests\Support\ArchiveDirectories;
 use Yumo\Eleanor\Tests\Support\FakeArticleFetcher;
+use Yumo\Eleanor\Tests\Support\PipelineFixtures;
 
 /**
  * Proves `archive:import` through one console run.
@@ -93,6 +94,26 @@ final class ImportUrlListCommandTest extends WebTestCase
         self::assertSame(0, $this->fetcher()->fetchCount());
     }
 
+    public function test_one_url_is_archived(): void
+    {
+        file_put_contents('one.txt', "https://example.com/a\n");
+        $this->fetcher()->willReturn('https://example.com/a', PipelineFixtures::article('Title'));
+
+        $exit = $this->runImport('one.txt', ['--owner' => 'ada@example.com']);
+
+        self::assertSame(0, $exit);
+        self::assertStringContainsString(
+            str_pad('ARCHIVED', 16) . 'https://example.com/a',
+            $this->tester->getDisplay(),
+        );
+        self::assertStringContainsString(
+            "Written 1\nAlready stored 0\nFailed 0\nSkipped 0\n",
+            $this->tester->getDisplay(),
+        );
+        self::assertSame(1, $this->fetcher()->fetchCount('https://example.com/a'));
+        self::assertFileDoesNotExist('error.log');
+    }
+
     public function test_an_unknown_option_exits_1(): void
     {
         $exit = $this->runImport('unused.txt', ['--owner' => 'ada@example.com', '--parallel' => '1']);
@@ -121,7 +142,9 @@ final class ImportUrlListCommandTest extends WebTestCase
      */
     private function runImport(string $file, array $input): int
     {
-        static::bootKernel();
+        if (!static::$booted) {
+            static::bootKernel();
+        }
         $kernel = static::$kernel;
         if (!$kernel instanceof KernelInterface) {
             throw new \RuntimeException('The kernel is not booted.');

@@ -11,3 +11,8 @@ services:
 
     Yumo\Eleanor\Archive\ArticleFetcher:
         alias: Yumo\Eleanor\Tests\Support\FakeArticleFetcher
+
+    Yumo\Eleanor\Tests\Support\FixedSsrfUrlValidator: ~
+
+    Yumo\ArtcleReader\UrlGuard\SsrfUrlValidator:
+        alias: Yumo\Eleanor\Tests\Support\FixedSsrfUrlValidator

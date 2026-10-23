@@ -11,6 +11,9 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\ConsoleOutputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Yumo\ArtcleReader\UrlGuard\UrlGuard;
+use Yumo\Eleanor\Archive\ArchiveServiceFactory;
+use Yumo\Eleanor\Archive\Owner;
 
 /**
  * Archives each URL in a file for one owner.
@@ -24,13 +27,19 @@ use Symfony\Component\Console\Output\OutputInterface;
 final class ImportCommand extends Command
 {
     /**
-     * Creates the command from the stream factory and the summary formatter.
+     * Creates the command from the stream, the formatters, the guard, and the archive factory.
      */
     public function __construct(
         /** Opens the import file as candidates. The command does not name a line reader. */
         private readonly CandidateStreamFactory $streams,
         /** Builds the heading and the totals. */
         private readonly ImportSummaryFormatter $summary,
+        /** Builds one result row. */
+        private readonly ResultLineFormatter $lines,
+        /** Rejects a candidate before the archive write. */
+        private readonly UrlGuard $guard,
+        /** Builds the archive service of the owner named on the command. */
+        private readonly ArchiveServiceFactory $archiveServices,
     ) {
         parent::__construct();
     }
@@ -41,7 +50,7 @@ final class ImportCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         try {
-            $this->requireOwner($input);
+            $email = $this->requireOwner($input);
             $file = $this->fileArgument($input);
             $stream = $this->streams->open($file);
         } catch (\RuntimeException $failure) {
@@ -50,12 +59,23 @@ final class ImportCommand extends Command
             return Command::FAILURE;
         }
 
+        $processor = new UrlProcessor($this->guard, $this->archiveServices->create(new Owner($email)));
         $output->write($this->summary->heading($file));
         $tally = new ImportTally();
+        $sawRow = false;
         foreach ($stream->candidates() as $candidate) {
+            $sawRow = true;
             if ($candidate === null) {
+                $output->writeln($this->lines->blank());
                 $tally->skip();
+                continue;
             }
+            $result = $processor->process($candidate);
+            $output->writeln($this->lines->line($result));
+            $tally->record($result);
+        }
+        if ($sawRow) {
+            $output->writeln('');
         }
         if ($tally->failed() === 0 && is_file('error.log')) {
             unlink('error.log');
@@ -72,14 +92,18 @@ final class ImportCommand extends Command
     }
 
     /**
+     * Returns the owner email from the command.
+     *
      * @throws \RuntimeException When the owner email is empty
      */
-    private function requireOwner(InputInterface $input): void
+    private function requireOwner(InputInterface $input): string
     {
         $owner = $input->getOption('owner');
         if (!\is_string($owner) || $owner === '') {
             throw new \RuntimeException('The owner email is empty.');
         }
+
+        return $owner;
     }
 
     /**

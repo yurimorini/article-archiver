@@ -63,3 +63,5 @@ services:
 
     Yumo\Eleanor\Import\CandidateStreamFactory:
         alias: Yumo\Eleanor\Import\LineCandidateStreamFactory
+
+    Yumo\ArtcleReader\UrlGuard\UrlGuard: ~
