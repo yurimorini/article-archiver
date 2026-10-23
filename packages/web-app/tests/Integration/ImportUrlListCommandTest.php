@@ -8,6 +8,8 @@ use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Console\Tester\ApplicationTester;
 use Symfony\Component\HttpKernel\KernelInterface;
+use Yumo\Eleanor\Archive\ArchiveException;
+use Yumo\Eleanor\Archive\ArchiveFailure;
 use Yumo\Eleanor\Tests\Support\ArchiveDirectories;
 use Yumo\Eleanor\Tests\Support\FakeArticleFetcher;
 use Yumo\Eleanor\Tests\Support\PipelineFixtures;
@@ -228,6 +230,60 @@ final class ImportUrlListCommandTest extends WebTestCase
             $this->tester->getDisplay(),
         );
         self::assertSame(1, $this->fetcher()->fetchCount('https://example.com/a'));
+    }
+
+    public function test_a_failed_url_does_not_stop_the_next(): void
+    {
+        file_put_contents('two.txt', "https://example.com/a\nhttps://example.com/b\n");
+        $this->fetcher()->willThrow('https://example.com/a', new ArchiveException(ArchiveFailure::Transport));
+        $this->fetcher()->willReturn('https://example.com/b', PipelineFixtures::article('Title'));
+
+        $exit = $this->runImport('two.txt', ['--owner' => 'ada@example.com']);
+
+        $display = $this->tester->getDisplay();
+        self::assertSame(1, $exit);
+        self::assertStringContainsString(
+            str_pad('ERROR', 16) . "https://example.com/a\n" . str_pad('ARCHIVED', 16) . 'https://example.com/b',
+            $display,
+        );
+        self::assertStringContainsString("Written 1\nAlready stored 0\nFailed 1\n", $display);
+        self::assertSame("https://example.com/a\ttransport\n", file_get_contents('error.log'));
+        $cwd = getcwd();
+        self::assertIsString($cwd);
+        self::assertStringEndsWith("For error details see {$cwd}/error.log\n", $display);
+        self::assertSame(1, $this->fetcher()->fetchCount('https://example.com/a'));
+        self::assertSame(1, $this->fetcher()->fetchCount('https://example.com/b'));
+    }
+
+    public function test_error_log_cannot_be_written(): void
+    {
+        $source = sys_get_temp_dir() . '/eleanor-import-src-' . bin2hex(random_bytes(4));
+        mkdir($source);
+        $file = $source . '/one.txt';
+        file_put_contents($file, "https://example.com/a\n");
+        $this->fetcher()->willThrow('https://example.com/a', new ArchiveException(ArchiveFailure::Transport));
+
+        $locked = sys_get_temp_dir() . '/eleanor-import-locked-' . bin2hex(random_bytes(4));
+        mkdir($locked);
+        mkdir($locked . '/error.log');
+        chmod($locked, 0555);
+        $restore = getcwd();
+        chdir($locked);
+        try {
+            $exit = $this->runImport($file, ['--owner' => 'ada@example.com']);
+            $display = $this->tester->getDisplay();
+            $errorOutput = $this->tester->getErrorOutput();
+        } finally {
+            if (\is_string($restore)) {
+                chdir($restore);
+            }
+            chmod($locked, 0755);
+        }
+
+        self::assertSame(1, $exit);
+        self::assertStringContainsString("Written 0\nAlready stored 0\nFailed 1\nSkipped 0\n", $display);
+        self::assertStringNotContainsString('For error details see', $display);
+        self::assertStringContainsString('The error log could not be written.', $errorOutput);
     }
 
     public function test_an_unknown_option_exits_1(): void

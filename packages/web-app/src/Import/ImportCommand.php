@@ -77,12 +77,20 @@ final class ImportCommand extends Command
         if ($sawRow) {
             $output->writeln('');
         }
-        if ($tally->failed() === 0 && is_file('error.log')) {
+        $errorLogPath = null;
+        $exit = Command::SUCCESS;
+        if ($tally->errors() !== []) {
+            $errorLogPath = $this->writeErrorLog($tally);
+            $exit = Command::FAILURE;
+            if ($errorLogPath === null) {
+                $this->errorOutput($output)->writeln('The error log could not be written.');
+            }
+        } elseif (is_file('error.log')) {
             unlink('error.log');
         }
-        $output->write($this->summary->footer($tally, null));
+        $output->write($this->summary->footer($tally, $errorLogPath));
 
-        return Command::SUCCESS;
+        return $exit;
     }
 
     protected function configure(): void
@@ -126,5 +134,35 @@ final class ImportCommand extends Command
         }
 
         return $output;
+    }
+
+    /**
+     * Writes `error.log` in the working directory and returns its absolute path.
+     *
+     * Returns null when the file cannot be written. The totals are still printed.
+     */
+    private function writeErrorLog(ImportTally $tally): ?string
+    {
+        $body = '';
+        foreach ($tally->errors() as $error) {
+            $body .= $error['url'] . "\t" . $error['code'] . "\n";
+        }
+
+        set_error_handler(static fn (int $severity, string $message): bool => true);
+        try {
+            $written = file_put_contents('error.log', $body);
+        } finally {
+            restore_error_handler();
+        }
+        if ($written === false) {
+            return null;
+        }
+
+        $cwd = getcwd();
+        if ($cwd === false) {
+            return null;
+        }
+
+        return $cwd . '/error.log';
     }
 }
