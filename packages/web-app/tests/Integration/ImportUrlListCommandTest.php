@@ -1,0 +1,110 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Yumo\Eleanor\Tests\Integration;
+
+use Symfony\Bundle\FrameworkBundle\Console\Application;
+use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Console\Tester\ApplicationTester;
+use Symfony\Component\HttpKernel\KernelInterface;
+use Yumo\Eleanor\Tests\Support\ArchiveDirectories;
+
+/**
+ * Proves `archive:import` through one console run.
+ */
+final class ImportUrlListCommandTest extends WebTestCase
+{
+    private string $previousCwd;
+
+    private ApplicationTester $tester;
+
+    protected function setUp(): void
+    {
+        ArchiveDirectories::isolate();
+        parent::setUp();
+        $cwd = getcwd();
+        if ($cwd === false) {
+            throw new \RuntimeException('The working directory could not be read.');
+        }
+        $this->previousCwd = $cwd;
+        $work = sys_get_temp_dir() . '/eleanor-import-' . bin2hex(random_bytes(6));
+        mkdir($work);
+        chdir($work);
+    }
+
+    protected function tearDown(): void
+    {
+        chdir($this->previousCwd);
+        parent::tearDown();
+    }
+
+    public function test_an_empty_owner_fails_before_importing(): void
+    {
+        $exit = $this->runImport('unused.txt', ['--owner' => '']);
+
+        self::assertSame(1, $exit);
+        self::assertSame('', $this->tester->getDisplay());
+        self::assertStringContainsString('The owner email is empty.', $this->tester->getErrorOutput());
+        self::assertStringNotContainsString('Importing:', $this->tester->getErrorOutput());
+    }
+
+    public function test_a_missing_file_leaves_error_log(): void
+    {
+        file_put_contents('error.log', 'old');
+
+        $exit = $this->runImport('missing.txt', ['--owner' => 'ada@example.com']);
+
+        self::assertSame(1, $exit);
+        self::assertSame('old', file_get_contents('error.log'));
+        self::assertStringNotContainsString('Importing:', $this->tester->getDisplay());
+        self::assertStringNotContainsString('Importing:', $this->tester->getErrorOutput());
+        self::assertStringContainsString('The import file could not be read.', $this->tester->getErrorOutput());
+    }
+
+    public function test_a_directory_is_not_a_file(): void
+    {
+        file_put_contents('error.log', 'old');
+        mkdir('not-a-file');
+
+        $exit = $this->runImport('not-a-file', ['--owner' => 'ada@example.com']);
+
+        self::assertSame(1, $exit);
+        self::assertSame('old', file_get_contents('error.log'));
+        self::assertStringNotContainsString('Importing:', $this->tester->getDisplay());
+        self::assertStringNotContainsString('Importing:', $this->tester->getErrorOutput());
+        self::assertStringContainsString('The import file could not be read.', $this->tester->getErrorOutput());
+    }
+
+    public function test_an_unknown_option_exits_1(): void
+    {
+        $exit = $this->runImport('unused.txt', ['--owner' => 'ada@example.com', '--parallel' => '1']);
+
+        self::assertSame(1, $exit);
+        self::assertStringContainsString('--parallel', $this->tester->getErrorOutput());
+        self::assertStringNotContainsString('Importing:', $this->tester->getDisplay());
+        self::assertStringNotContainsString('Importing:', $this->tester->getErrorOutput());
+    }
+
+    /**
+     * Runs `archive:import` with `$file` and `$input`, and returns the exit status.
+     *
+     * @param array<string, string> $input
+     */
+    private function runImport(string $file, array $input): int
+    {
+        static::bootKernel();
+        $kernel = static::$kernel;
+        if (!$kernel instanceof KernelInterface) {
+            throw new \RuntimeException('The kernel is not booted.');
+        }
+        $application = new Application($kernel);
+        $application->setAutoExit(false);
+        $this->tester = new ApplicationTester($application);
+
+        return $this->tester->run(
+            ['command' => 'archive:import', 'file' => $file, ...$input],
+            ['capture_stderr_separately' => true, 'decorated' => false],
+        );
+    }
+}
