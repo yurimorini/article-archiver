@@ -60,22 +60,22 @@ final class ImportCommand extends Command
         }
 
         $processor = new UrlProcessor($this->guard, $this->archiveServices->create(new Owner($email)));
-        $output->write($this->summary->heading($file));
+        $output->write($this->summary->heading($file), false, OutputInterface::OUTPUT_RAW);
         $tally = new ImportTally();
         $sawRow = false;
         foreach ($stream->candidates() as $candidate) {
             $sawRow = true;
             if ($candidate === null) {
-                $output->writeln($this->lines->blank());
+                $output->writeln($this->lines->blank(), OutputInterface::OUTPUT_RAW);
                 $tally->skip();
                 continue;
             }
             $result = $processor->process($candidate);
-            $output->writeln($this->lines->line($result));
+            $output->writeln($this->lines->line($result), OutputInterface::OUTPUT_RAW);
             $tally->record($result);
         }
         if ($sawRow) {
-            $output->writeln('');
+            $output->writeln('', OutputInterface::OUTPUT_RAW);
         }
         $errorLogPath = null;
         $exit = Command::SUCCESS;
@@ -85,10 +85,11 @@ final class ImportCommand extends Command
             if ($errorLogPath === null) {
                 $this->errorOutput($output)->writeln('The error log could not be written.');
             }
-        } elseif (is_file('error.log')) {
-            unlink('error.log');
+        } elseif (!$this->deleteErrorLog()) {
+            $this->errorOutput($output)->writeln('The error log could not be removed.');
+            $exit = Command::FAILURE;
         }
-        $output->write($this->summary->footer($tally, $errorLogPath));
+        $output->write($this->summary->footer($tally, $errorLogPath), false, OutputInterface::OUTPUT_RAW);
 
         return $exit;
     }
@@ -164,5 +165,22 @@ final class ImportCommand extends Command
         }
 
         return $cwd . '/error.log';
+    }
+
+    /**
+     * Deletes a pre-existing `error.log`. Returns false when the file is still there.
+     */
+    private function deleteErrorLog(): bool
+    {
+        if (!is_file('error.log')) {
+            return true;
+        }
+
+        set_error_handler(static fn (int $severity, string $message): bool => true);
+        try {
+            return unlink('error.log');
+        } finally {
+            restore_error_handler();
+        }
     }
 }

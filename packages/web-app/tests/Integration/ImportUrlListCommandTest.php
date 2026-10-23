@@ -286,6 +286,72 @@ final class ImportUrlListCommandTest extends WebTestCase
         self::assertStringContainsString('The error log could not be written.', $errorOutput);
     }
 
+    public function test_a_markup_line_is_printed_as_written(): void
+    {
+        file_put_contents('markup.txt', "<info>not a url</info>\n");
+
+        $exit = $this->runImport('markup.txt', ['--owner' => 'ada@example.com']);
+
+        self::assertSame(0, $exit);
+        self::assertStringContainsString(
+            str_pad('SKIPPED', 16) . "<info>not a url</info>\n",
+            $this->tester->getDisplay(),
+        );
+    }
+
+    public function test_error_log_cannot_be_removed(): void
+    {
+        $source = sys_get_temp_dir() . '/eleanor-import-src-' . bin2hex(random_bytes(4));
+        mkdir($source, 0o755);
+        $file = $source . '/empty.txt';
+        file_put_contents($file, '');
+        chmod($file, 0o644);
+
+        $locked = sys_get_temp_dir() . '/eleanor-import-locked-' . bin2hex(random_bytes(4));
+        mkdir($locked, 0o755);
+        file_put_contents($locked . '/error.log', 'old');
+        chmod($locked, 0o555);
+
+        $nobody = posix_getpwnam('nobody');
+        self::assertIsArray($nobody);
+        static::bootKernel();
+        $restore = getcwd();
+        chdir($locked);
+        $dropped = posix_seteuid($nobody['uid']);
+        try {
+            self::assertTrue($dropped);
+            $exit = $this->runImport($file, ['--owner' => 'ada@example.com']);
+            $display = $this->tester->getDisplay();
+            $errorOutput = $this->tester->getErrorOutput();
+        } finally {
+            posix_seteuid(0);
+            if (\is_string($restore)) {
+                chdir($restore);
+            }
+            chmod($locked, 0o755);
+        }
+
+        self::assertSame(1, $exit);
+        self::assertStringContainsString("Written 0\nAlready stored 0\nFailed 0\nSkipped 0\n", $display);
+        self::assertStringContainsString('The error log could not be removed.', $errorOutput);
+        self::assertSame('old', file_get_contents($locked . '/error.log'));
+    }
+
+    public function test_a_leading_bom_is_not_part_of_the_url(): void
+    {
+        file_put_contents('bom.txt', "\xEF\xBB\xBFhttps://example.com/a\n");
+        $this->fetcher()->willReturn('https://example.com/a', PipelineFixtures::article('Title'));
+
+        $exit = $this->runImport('bom.txt', ['--owner' => 'ada@example.com']);
+
+        self::assertSame(0, $exit);
+        self::assertStringContainsString(
+            str_pad('ARCHIVED', 16) . "https://example.com/a\n",
+            $this->tester->getDisplay(),
+        );
+        self::assertSame(1, $this->fetcher()->fetchCount('https://example.com/a'));
+    }
+
     public function test_an_unknown_option_exits_1(): void
     {
         $exit = $this->runImport('unused.txt', ['--owner' => 'ada@example.com', '--parallel' => '1']);

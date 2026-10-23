@@ -50,11 +50,26 @@ final class LineCandidateStream implements CandidateStream
     private function lines(): \Generator
     {
         try {
+            $this->discardLeadingBom();
             while (($line = fgets($this->handle)) !== false) {
                 yield $this->withoutLineEnding($line);
             }
         } finally {
             fclose($this->handle);
+        }
+    }
+
+    /**
+     * Drops a UTF-8 BOM at the start of the file. A BOM later in the file stays.
+     */
+    private function discardLeadingBom(): void
+    {
+        $prefix = fread($this->handle, 3);
+        if ($prefix === "\xEF\xBB\xBF") {
+            return;
+        }
+        if (\is_string($prefix) && $prefix !== '') {
+            rewind($this->handle);
         }
     }
 
