@@ -9,6 +9,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Console\Tester\ApplicationTester;
 use Symfony\Component\HttpKernel\KernelInterface;
 use Yumo\Eleanor\Tests\Support\ArchiveDirectories;
+use Yumo\Eleanor\Tests\Support\FakeArticleFetcher;
 
 /**
  * Proves `archive:import` through one console run.
@@ -76,6 +77,22 @@ final class ImportUrlListCommandTest extends WebTestCase
         self::assertStringContainsString('The import file could not be read.', $this->tester->getErrorOutput());
     }
 
+    public function test_an_empty_file_deletes_error_log(): void
+    {
+        file_put_contents('error.log', 'old');
+        file_put_contents('empty.txt', '');
+
+        $exit = $this->runImport('empty.txt', ['--owner' => 'ada@example.com']);
+
+        self::assertSame(0, $exit);
+        self::assertSame(
+            "Importing: empty.txt\n\nWritten 0\nAlready stored 0\nFailed 0\nSkipped 0\n",
+            $this->tester->getDisplay(),
+        );
+        self::assertFileDoesNotExist('error.log');
+        self::assertSame(0, $this->fetcher()->fetchCount());
+    }
+
     public function test_an_unknown_option_exits_1(): void
     {
         $exit = $this->runImport('unused.txt', ['--owner' => 'ada@example.com', '--parallel' => '1']);
@@ -84,6 +101,17 @@ final class ImportUrlListCommandTest extends WebTestCase
         self::assertStringContainsString('--parallel', $this->tester->getErrorOutput());
         self::assertStringNotContainsString('Importing:', $this->tester->getDisplay());
         self::assertStringNotContainsString('Importing:', $this->tester->getErrorOutput());
+    }
+
+    /**
+     * Reads the fake fetcher from the test container.
+     */
+    private function fetcher(): FakeArticleFetcher
+    {
+        $fetcher = static::getContainer()->get(FakeArticleFetcher::class);
+        self::assertInstanceOf(FakeArticleFetcher::class, $fetcher);
+
+        return $fetcher;
     }
 
     /**

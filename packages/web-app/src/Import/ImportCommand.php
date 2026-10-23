@@ -24,17 +24,43 @@ use Symfony\Component\Console\Output\OutputInterface;
 final class ImportCommand extends Command
 {
     /**
-     * Rejects an empty owner or a path that is not a file, then returns 1.
+     * Creates the command from the stream factory and the summary formatter.
+     */
+    public function __construct(
+        /** Opens the import file as candidates. The command does not name a line reader. */
+        private readonly CandidateStreamFactory $streams,
+        /** Builds the heading and the totals. */
+        private readonly ImportSummaryFormatter $summary,
+    ) {
+        parent::__construct();
+    }
+
+    /**
+     * Rejects an empty owner or an unreadable path. A readable file prints the heading and the totals.
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         try {
-            $this->guard($input);
+            $this->requireOwner($input);
+            $file = $this->fileArgument($input);
+            $stream = $this->streams->open($file);
         } catch (\RuntimeException $failure) {
             $this->errorOutput($output)->writeln($failure->getMessage());
 
             return Command::FAILURE;
         }
+
+        $output->write($this->summary->heading($file));
+        $tally = new ImportTally();
+        foreach ($stream->candidates() as $candidate) {
+            if ($candidate === null) {
+                $tally->skip();
+            }
+        }
+        if ($tally->failed() === 0 && is_file('error.log')) {
+            unlink('error.log');
+        }
+        $output->write($this->summary->footer($tally, null));
 
         return Command::SUCCESS;
     }
@@ -46,21 +72,27 @@ final class ImportCommand extends Command
     }
 
     /**
-     * Rejects an empty owner or a path that is not a file.
-     *
-     * @throws \RuntimeException When the owner email is empty or the path is not a file
+     * @throws \RuntimeException When the owner email is empty
      */
-    private function guard(InputInterface $input): void
+    private function requireOwner(InputInterface $input): void
     {
         $owner = $input->getOption('owner');
         if (!\is_string($owner) || $owner === '') {
             throw new \RuntimeException('The owner email is empty.');
         }
+    }
 
+    /**
+     * @throws \RuntimeException When the file argument is missing
+     */
+    private function fileArgument(InputInterface $input): string
+    {
         $file = $input->getArgument('file');
-        if (!\is_string($file) || !is_file($file)) {
+        if (!\is_string($file)) {
             throw new \RuntimeException('The import file could not be read.');
         }
+
+        return $file;
     }
 
     private function errorOutput(OutputInterface $output): OutputInterface
