@@ -266,7 +266,7 @@ final class ImportUrlListCommandTest extends WebTestCase
         $locked = sys_get_temp_dir() . '/eleanor-import-locked-' . bin2hex(random_bytes(4));
         mkdir($locked);
         mkdir($locked . '/error.log');
-        chmod($locked, 0555);
+        chmod($locked, 0o555);
         $restore = getcwd();
         chdir($locked);
         try {
@@ -277,7 +277,7 @@ final class ImportUrlListCommandTest extends WebTestCase
             if (\is_string($restore)) {
                 chdir($restore);
             }
-            chmod($locked, 0755);
+            chmod($locked, 0o755);
         }
 
         self::assertSame(1, $exit);
