@@ -1,6 +1,6 @@
 # Remaining sessions
 
-The research queue is closed. A new session starts from [feature.md](../feature.md). That file is the goal, the backlog, and the slice in progress.
+The research queue is closed. [feature.md](../feature.md) is closed. Deferred work is the package [backlog](../../../backlog/).
 
 The table below is the record of the design sessions. A note is a direction until a slice spec adopts it. Do not append a new outcome to [Investigations.md](Investigations.md). That file is an early list of generic ideas, not this queue and not a mandatory order.
 

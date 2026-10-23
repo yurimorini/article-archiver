@@ -85,4 +85,4 @@ A change to the library. A second production fetch adapter. Deleting the fetch s
 
 ## Further Notes
 
-The module spec and the ADR already record the decision. This contract is the behavior an implementer follows. The code still returns library types from the fetch seam until that work lands.
+The module spec and the ADR already record the decision. This contract is the behavior that shipped on 2026-10-22. `ArticleFetcher::fetch` returns an `Article`.

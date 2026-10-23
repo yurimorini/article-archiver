@@ -13,4 +13,4 @@ Already recorded elsewhere, and left as they are:
 
 The development image ships SQLite 3.40.1 (Debian bookworm). The WAL-reset bug in [Sqlite.md](../features/0002-server/research/Sqlite.md) is fixed in 3.51.3, with backports in 3.44.6 and 3.50.7. The clean image should carry a SQLite that has the fix. The owner database is WAL ([adr/0003](../adr/0003-owner-database-is-wal.md)), so this matters for the runtime.
 
-This item is the distributable image. It does not choose the process manager or the reverse proxy. Eleanor's runtime slice still owns PHP-FPM behind a Docker reverse proxy when that slice starts. The Symfony CLI local server is not this item: that server is a development tool, and the Symfony docs say it is not for production.
+This item is the distributable image. It does not choose the process manager or the reverse proxy. [Runtime](runtime.md) owns PHP-FPM behind a Docker reverse proxy. The Symfony CLI local server is not this item: that server is a development tool, and the Symfony docs say it is not for production.

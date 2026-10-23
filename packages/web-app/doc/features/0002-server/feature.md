@@ -1,12 +1,14 @@
 # Feature: Eleanor HTTP server
 
+**Status:** Closed (2026-10-23). Slices 1–8 are Done. [Runtime](../../backlog/runtime.md) is backlog.
+
 ## Goal
 
 Eleanor is a Symfony application. It exposes a local HTTP API. The finished command is `POST /api/archives`. The body carries a URL. The HTTP layer calls one archive service. That service runs the ArticleReader orchestrator and stores the archive for the owner. The route returns the outcome of that command.
 
 One owner is configured for this feature. The email identifies the owner and is a Symfony parameter from the archive-command slice. A bearer token in configuration authenticates calls as that owner. The firewall and the token come after that slice. Until the firewall slice, the route answers without a token. Human login is backlog.
 
-The server is not open to the public internet. The runtime slice serves it with PHP-FPM behind a Docker reverse proxy. Earlier slices use a temporary server.
+The server is not open to the public internet. PHP-FPM behind a Docker reverse proxy is [Runtime](../../backlog/runtime.md), deferred when this feature closed. The slices of this feature use a temporary server.
 
 A URL pointer and the archive stay distinct. Clients (browser, script, phone) are interchangeable against the JSON API.
 
@@ -16,18 +18,11 @@ Terms live in the package [GLOSSARY.md](../../GLOSSARY.md). **Owner** is the per
 
 ## How to continue
 
-This file is the record a new session reads first. The research queue is closed. `research/Open.md` points here.
+This feature is closed. A new session does not open a slice from this file. The research queue is closed. `research/Open.md` points at the package backlog.
 
-Work the slices in table order. The category is a label. It is not a build order.
+Slices 1–8 were built one at a time: spec, plan, tests, then `Done` when `./bin/quality` passed for `web-app`. That procedure is finished.
 
-One slice at a time:
-
-1. Set that row to `In progress` before changing application code.
-2. Write its spec in `specs/` and its plan in `plans/YYYY-MM-DD-<name>.md`. The spec adopts the research that slice needs, or writes the replacement in the spec. Proposed ADRs stay proposed until the spec adopts them.
-3. Implement that slice. The plan names the unit tests, the end-to-end check, and any debug or validation aid the slice needs.
-4. Set the row to `Done`, and link the spec and the plan, when those tests pass and `./bin/quality` passes for `web-app`.
-
-A slice may be added, split, or merged. Record the change in this file before the next slice starts. A sub-feature directory is added when one slice grows its own research and two sessions would write the same `specs/` folder. Pull a backlog item into a slice only by recording that change here. Otherwise it stays deferred and can be reprioritized later.
+Deferred work stays in [Backlog](#backlog) until a later feature adopts an item by recording that change in its own `feature.md`.
 
 The HTTP layer sees one archive service. The orchestrator and storage are inside that service. The service is `ArchiveService`. The storage boundary is `ArchiveStore`. The factory is `ArchiveServiceFactory`.
 
@@ -44,9 +39,8 @@ The HTTP layer sees one archive service. The orchestrator and storage are inside
 | 6     | [Error response](specs/error-response.md)                          | Archive route     | Every failure under `/api` answers `application/json` with `code` and `message` (400, 404, 405, 415, 422, 502, 500). Eleanor's serializer writes the success and the error JSON. OpenAPI was removed on 2026-10-18                                  | Done ([plan](plans/2026-10-18-error-response.md))                             |
 | 7     | [SQLite store](specs/sqlite-store.md)                              | Archive execution | The in-memory store is replaced by the owner's SQLite file. A second POST in a new process returns the stored row. Two overlapping POSTs of one URL take turns through an archive lock: one 201, one 200, one fetch                                        | Done ([plan](plans/2026-10-18-sqlite-store.md), [spec](design/SqliteStore.md)) |
 | 8     | [Bearer](specs/bearer.md)                                          | Archive route     | A matched `/api` route requires `Authorization: Bearer` with `ELEANOR_BEARER_TOKEN`. Without a valid secret the answer is 401 `unauthenticated`. A missing or empty variable is 500 `unexpected`. The matching secret authenticates the Owner of the configured email | Done ([plan](plans/2026-10-22-bearer.md), [spec](design/Bearer.md))            |
-| 9     | Runtime                                                      | Runtime           | PHP-FPM behind the Docker reverse proxy serves the app                                                                                                                                                                                                     | Not started                                                                   |
 
-Slices 1–7 answer without a token. Slice 8 is the firewall and the configured bearer together: it refuses an anonymous call and accepts the secret. The old token row is absorbed here. The owner email parameter arrives in slice 5. The runtime row moves from 10 to 9.
+Slices 1–7 answer without a token. Slice 8 is the firewall and the configured bearer together: it refuses an anonymous call and accepts the secret. The old token row is absorbed here. The owner email parameter arrives in slice 5. The runtime row moved from 10 to 9, then left this feature on 2026-10-23 for [Runtime](../../backlog/runtime.md).
 
 ## Slice merge (2026-10-17)
 
@@ -107,7 +101,7 @@ Not a new slice. `SqliteArchiveStore` no longer builds its connection or takes a
 
 ## Bearer (2026-10-22)
 
-The firewall row and the token row are one slice, now row 8. The runtime row is 9. The contract is [bearer.md](specs/bearer.md). The module design is [Bearer](design/Bearer.md). Plan: [bearer](plans/2026-10-22-bearer.md). A matched route under `/api` requires the configured bearer. The secret is `ELEANOR_BEARER_TOKEN`. The email parameter stays the Owner. No ADR is added. The execution plan adds the README section that tells the Owner where the secret goes and what the 401 and the 500 look like. 403 stays out of this slice.
+The firewall row and the token row are one slice, now row 8. The runtime row was 9 until 2026-10-23, when it left this feature for [Runtime](../../backlog/runtime.md). The contract is [bearer.md](specs/bearer.md). The module design is [Bearer](design/Bearer.md). Plan: [bearer](plans/2026-10-22-bearer.md). A matched route under `/api` requires the configured bearer. The secret is `ELEANOR_BEARER_TOKEN`. The email parameter stays the Owner. No ADR is added. The execution plan adds the README section that tells the Owner where the secret goes and what the 401 and the 500 look like. 403 stays out of this slice.
 
 ## Archive log outcomes (2026-10-23)
 
@@ -132,6 +126,7 @@ Deferred. No slice owns these until this file says one does. When a need shows u
 - [Refresh a changed page](../../backlog/refresh-changed-page.md)
 - [Image bytes and later assets](../../backlog/image-bytes-and-later-assets.md)
 - [Clean distribution image](../../backlog/clean-distribution-image.md)
+- [Runtime](../../backlog/runtime.md)
 
 ## Research coverage
 
@@ -149,7 +144,7 @@ A file in `research/` is a direction until a slice spec adopts it. `research/Inv
 | Domain storage      | [research/Storage.md](research/Storage.md)                       | What one accepted archive writes, which owner it belongs to, and how two posts of one URL meet.        |
 | SQLite              | [research/Sqlite.md](research/Sqlite.md)                         | What SQLite's own docs say about one file per owner, and about a later asset.                          |
 | Symfony controllers | [research/Symfony-controller.md](research/Symfony-controller.md) | A reading of the Symfony controller docs. Not a decision.                                              |
-| Research queue      | [research/Open.md](research/Open.md)                             | The closed session list. Implementation starts from this file.                                         |
+| Research queue      | [research/Open.md](research/Open.md)                             | The closed session list. This feature is closed. Deferred work is the package backlog.                 |
 | Early ideas         | [research/Investigations.md](research/Investigations.md)         | Ideas that are not a mandatory sequence.                                                               |
 | HTTP tests          | [research/Testing.md](research/Testing.md)                       | What a WebTestCase, a real HTTP call, a manual check, and an agent browser each prove. Not a decision. |
 | Owner-scoped service | [research/Owner-scoped-service.md](research/Owner-scoped-service.md) | How a controller can receive the owner-scoped service without building it. Not a decision.            |
@@ -171,9 +166,9 @@ A file in `research/` is a direction until a slice spec adopts it. `research/Inv
 | Area             | State                                                                                                                                                                                     |
 | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Discovery        | Recorded. The queue in [research/Open.md](research/Open.md) is closed.                                                                                                                    |
-| Next slice       | 9 — Runtime. Slice 8 [Bearer](specs/bearer.md) is Done. Slice 7 [SQLite store](specs/sqlite-store.md) is Done. Slice 6 [Error response](specs/error-response.md) is Done. Slice 5 [Archive command](specs/archive-command.md) is Done. |
+| Next slice       | None. Feature closed on 2026-10-23. Slices 1–8 are Done. Runtime is [backlog](../../backlog/runtime.md). |
 | Contract         | [bearer.md](specs/bearer.md) is the bearer slice. Slice 8 is Done. [sqlite-store.md](specs/sqlite-store.md), closed as the brief of [SqliteStore.md](design/SqliteStore.md). Slice 7 is Done. Slice 6 remains [error-response.md](specs/error-response.md). Slice 5 remains [archive-command.md](specs/archive-command.md). The fetch-seam revision is [fetch-seam.md](specs/fetch-seam.md), not a slice. Slice 4 remains [payload-and-mapper.md](specs/payload-and-mapper.md). Slice 3 remains [logging.md](specs/logging.md). Slice 2 remains [empty-route.md](specs/empty-route.md). Slice 1 remains [symfony-skeleton.md](specs/symfony-skeleton.md). |
-| Current ticket   | [02 — The fetch seam returns an Article](tickets/02-fetch-seam-returns-an-article.md). [01 — Boot Eleanor's kernel in the test environment](tickets/01-boot-eleanor-kernel.md) is Done. |
+| Current ticket   | None. Feature closed. [02 — The fetch seam returns an Article](tickets/02-fetch-seam-returns-an-article.md) is Done. [01 — Boot Eleanor's kernel in the test environment](tickets/01-boot-eleanor-kernel.md) is Done. |
 | Namespace        | `Yumo\Eleanor` on `src/`. `Yumo\Eleanor\Tests` on `tests/`. The boot test namespace is `Yumo\Eleanor\Tests\Integration`, per [adr/0006](../../adr/0006-kernel-tests-live-in-integration.md). |
 | Application code | `Yumo\Eleanor\Kernel` boots. `POST /api/archives` is `create_archive` in `Yumo\Eleanor\Api\Controller\CreateArchiveController`. It has no constructor and receives the owner's `ArchiveService` as an action argument, built by `Yumo\Eleanor\Api\Resolver\ArchiveServiceResolver` from `OwnerProvider` and `ArchiveServiceFactory`. It archives the body's URL, and answers 201 or 200 with `url` and `title`. The archive command lives in `src/Archive/`. The SQLite store lives in `src/Archive/Sqlite/` (`SqliteArchiveStore`, `SqliteArchiveStoreFactory`, `SqliteConnection`, `SqliteSchema`). The per-URL archive lock lives in `src/Archive/Lock/` (`FlockArchiveLock`, `FlockArchiveLockFactory`). The in-memory store is test support only, under `tests/Support/InMemory/`. `LogApiRequest` writes `http.request.start` and `http.request.finish` on `application`. Slice 6 added the error response. `Archive\ArchiveFailure` (a string enum of wire codes) and `Archive\ArchiveFailureMapper` turn library failures into `ArchiveException`. `Api\Response\{ArchiveResponse, ErrorResponse, Reply, JsonBodySerializer, ReplyResponder}` write every body. The controller returns a `Reply`. `Api\Error\{RequestFailure, ErrorTranslator}` map a throwable to a `Reply`. `EventSubscriber\WriteReply` (`kernel.view`) and `EventSubscriber\TranslateApiException` (`kernel.exception`, priority 10) hand a `Reply` to `ReplyResponder`. Tests: `tests/Archive/`, `tests/Api/Error/`, `tests/Api/Response/`, `tests/Api/Owner/`, `tests/Api/Resolver/`, `tests/EventSubscriber/`, `tests/Integration/CreateArchiveRouteTest.php`, `tests/Integration/ErrorResponseRouteTest.php`. |
 | Specs and plans  | [Kernel](design/Kernel.md). [Empty route](design/EmptyRoute.md). [Payload and mapper](design/PayloadAndMapper.md) adopts [adr/0007](../../adr/0007-archive-body-mapped-by-map-request-payload.md). [Archive command](design/ArchiveCommand.md) adopts [adr/0002](../../adr/0002-second-post-returns-stored-archive.md), [adr/0004](../../adr/0004-archive-lookup-is-per-owner.md), and [adr/0009](../../adr/0009-fetch-seam-returns-an-article.md), Plan: [archive command](plans/2026-10-18-archive-command.md). [Owner-scoped service](design/OwnerScopedService.md) (slice 5b), plan: [owner-scoped service](plans/2026-10-18-owner-scoped-service.md). [Error response](specs/error-response.md) (slice 6), plan: [error response](plans/2026-10-18-error-response.md). No module spec was written for slice 6. [SQLite store](design/SqliteStore.md) (slice 7) adopts [adr/0003](../../adr/0003-owner-database-is-wal.md) and [adr/0008](../../adr/0008-owner-database-schema-splits-body-from-metadata.md) and revises [Archive command](design/ArchiveCommand.md). Plan: [sqlite store](plans/2026-10-18-sqlite-store.md). Slice 7 is Done. [URL pointer](design/UrlPointer.md) revises the URL argument of that command. It is not a slice. Plan: [url pointer](plans/2026-10-18-url-pointer.md). [Archive log](design/ArchiveLog.md) is the first `domain` writer. It is not a slice. Plan: [archive log](plans/2026-10-19-archive-log.md). The three items the contract left open (`invalid_json` vs `invalid_body`, the OpenAPI version and location, the upstream status number) are closed in the plan's Decisions. OpenAPI itself was removed on 2026-10-18. Plans: [kernel](plans/2026-10-10-kernel.md), [empty route](plans/2026-10-12-empty-route.md), [logging](plans/2026-10-13-logging.md), [payload and mapper](plans/2026-10-13-payload-and-mapper.md). The test-run bootstrap is the Symfony recipe’s `tests/bootstrap.php`. The rest of the library PHPUnit configuration stays. |

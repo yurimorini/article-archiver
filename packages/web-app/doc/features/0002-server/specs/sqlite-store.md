@@ -95,7 +95,7 @@ The same route keeps each owner's archives in one SQLite file on the local disk.
 - Refreshing a changed page, and an `updated_at` column. `save` as an upsert is what a refresh will use later.
 - An idempotency key.
 - A negative cache for a failing URL. Concurrent retries of a slowly failing URL serialize behind the lock, each up to the wait limit.
-- A configurable lock wait limit, and `request_terminate_timeout`, which belong to the limits-and-configuration backlog item and the runtime slice.
+- A configurable lock wait limit belongs to [Limits and configuration](../../../backlog/limits-and-configuration.md). `request_terminate_timeout` belongs to [Runtime](../../../backlog/runtime.md).
 - A second owner signed in at the same time, URL normalization, and the firewall and token slices.
 - Upgrading SQLite in the image.
 - A backup or export command. The file is the export once no connection is open, or a snapshot taken with `VACUUM INTO`.
