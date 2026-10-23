@@ -114,6 +114,43 @@ final class ImportUrlListCommandTest extends WebTestCase
         self::assertFileDoesNotExist('error.log');
     }
 
+    public function test_a_line_of_spaces_is_skipped(): void
+    {
+        file_put_contents('spaces.txt', "   \n");
+
+        $exit = $this->runImport('spaces.txt', ['--owner' => 'ada@example.com']);
+
+        self::assertSame(0, $exit);
+        self::assertStringContainsString(str_pad('SKIPPED', 16) . "--\n", $this->tester->getDisplay());
+        self::assertStringContainsString("Skipped 1\n", $this->tester->getDisplay());
+        self::assertSame(0, $this->fetcher()->fetchCount());
+    }
+
+    public function test_a_rejected_url_is_skipped(): void
+    {
+        file_put_contents('bad.txt', "not-a-url\n");
+
+        $exit = $this->runImport('bad.txt', ['--owner' => 'ada@example.com']);
+
+        self::assertSame(0, $exit);
+        self::assertStringContainsString(str_pad('SKIPPED', 16) . "not-a-url\n", $this->tester->getDisplay());
+        self::assertStringContainsString("Skipped 1\n", $this->tester->getDisplay());
+        self::assertSame(0, $this->fetcher()->fetchCount());
+        self::assertFileDoesNotExist('error.log');
+    }
+
+    public function test_a_comma_stays_in_the_line(): void
+    {
+        file_put_contents('comma.txt', "not,a,url\n");
+
+        $exit = $this->runImport('comma.txt', ['--owner' => 'ada@example.com']);
+
+        self::assertSame(0, $exit);
+        $display = $this->tester->getDisplay();
+        self::assertStringContainsString(str_pad('SKIPPED', 16) . "not,a,url\n", $display);
+        self::assertSame(1, substr_count($display, 'SKIPPED'));
+    }
+
     public function test_an_unknown_option_exits_1(): void
     {
         $exit = $this->runImport('unused.txt', ['--owner' => 'ada@example.com', '--parallel' => '1']);
