@@ -10,6 +10,7 @@ use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Psr7\Response;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\NullLogger;
 use Yumo\ArtcleReader\ArticleExtractor\ArticleExtractor;
 use Yumo\ArtcleReader\ArticleExtractor\ExtractResult;
 use Yumo\ArtcleReader\ArticleExtractor\PlainText;
@@ -21,6 +22,7 @@ use Yumo\ArtcleReader\HttpFetcher\FetchPolicy;
 use Yumo\ArtcleReader\HttpFetcher\HttpFetcher;
 use Yumo\ArtcleReader\HttpFetcher\HttpFetcherError;
 use Yumo\ArtcleReader\HttpFetcher\HttpFetcherException;
+use Yumo\ArtcleReader\Orchestrator\GuardedFetch;
 use Yumo\ArtcleReader\Orchestrator\Orchestrator;
 use Yumo\ArtcleReader\Orchestrator\OrchestratorError;
 use Yumo\ArtcleReader\Orchestrator\OrchestratorException;
@@ -196,9 +198,12 @@ final class ArticleReaderAdapterTest extends TestCase
             'http_errors' => false,
         ]);
 
+        $urlGuard = new UrlGuard(new FixedSsrfUrlValidator());
+        $httpFetcher = new HttpFetcher(new FetchPolicy(), $client);
+        $logger = new NullLogger();
+
         return new Orchestrator(
-            new UrlGuard(new FixedSsrfUrlValidator()),
-            new HttpFetcher(new FetchPolicy(), $client),
+            new GuardedFetch($urlGuard, $httpFetcher, $logger),
             new EncodingNormalizer(),
             new ArticleExtractor(),
             new HtmlSanitizer(new PurifyPolicy(debug: true)),
