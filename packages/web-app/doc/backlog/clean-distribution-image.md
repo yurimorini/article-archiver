@@ -8,7 +8,7 @@ The distributable image is a second build, owned by web-app, named `eleanor`.
 
 Already recorded elsewhere, and left as they are:
 
-- [Package layout](../../../article-reader/doc/features/workspace/design/PackageLayout.md) keeps one development image from the root `Dockerfile`.
+- [Package layout](../../../article-reader/doc/features/0001-workspace/design/PackageLayout.md) keeps one development image from the root `Dockerfile`.
 - [Bootstrap](../features/0001-bootstrap/feature.md) leaves a per-package Dockerfile as a later decision. A second image was out of scope for that feature. This item is that decision.
 
 ## Build

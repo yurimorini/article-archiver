@@ -62,6 +62,26 @@ answers 400 with:
 
 The status is the family of the failure. `code` is the cause. `message` is the sentence a person reads. The `X-Request-Id` header carries the request id.
 
+## Import
+
+From the repository root, run the console inside the development image. The working directory is this package, so the file path is relative to `packages/web-app`:
+
+```bash
+./bin/docker-run packages/web-app php bin/console archive:import var/sample.csv --owner=owner@example.com
+```
+
+The file holds one URL per line. `--owner` is required. Use the same email as `eleanor.owner_email` in `config/services.yaml` when the archives should belong to the Owner of the HTTP API.
+
+The command prints `Importing:` and the path, then one line per row: `ARCHIVED`, `ALREADY STORED`, `ERROR`, or `SKIPPED`, then the URL. A blank line is `SKIPPED` and `--`. It then prints `Written`, `Already stored`, `Failed`, and `Skipped`.
+
+A URL this owner already has prints `ALREADY STORED` and is not fetched again. Each owner has one SQLite file under `var/data/`.
+
+A failed row is also written to `error.log` in the working directory, and the command exits 1. The summary names that file. A later run with no failures removes `error.log`.
+
+An empty `--owner` or a file that cannot be read fails before any archive. The cause is printed on the error output, and there are no totals.
+
+If the image is missing, build it and install dependencies as in [Tests](#tests).
+
 ## Tests
 
 From the repository root, PHPUnit for this package runs inside the development image:

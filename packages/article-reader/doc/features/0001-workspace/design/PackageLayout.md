@@ -28,11 +28,11 @@ Moved as they are:
 - `composer.json`, `composer.lock`
 - `src/`, `tests/`
 - `phpstan.neon.dist`, `phpunit.xml.dist`, `.php-cs-fixer.dist.php`
-- `doc/` → `packages/article-reader/doc/`, same internal tree (`features/foundation/design`, `plans`, `context`, and this file)
+- `doc/` → `packages/article-reader/doc/`, same internal tree (`features/0002-foundation/design`, `plans`, `context`, and this file)
 
 The Composer package name is `yumo/article-reader`. It replaced `yumo/log-read` so the Composer name matches the package directory. The PSR-4 namespace stays `Yumo\ArtcleReader\` → `src/` and `Yumo\ArtcleReader\Tests\` → `tests/`. PHPStan, php-cs-fixer, and PHPUnit configs keep paths relative to the package (`src`, `tests`). They work because the launcher sets the working directory to the package.
 
-`src/` will keep receiving pipeline feature files. Those features stay specified by `packages/article-reader/doc/features/foundation/design/`.
+`src/` will keep receiving pipeline feature files. Those features stay specified by `packages/article-reader/doc/features/0002-foundation/design/`.
 
 `bin/run` moves to `packages/article-reader/bin/run`. It is the pipeline spike, not a launcher command. Its `require` of `../vendor/autoload.php` still resolves to the library `vendor/` after the move. The spike is not rewritten here.
 
@@ -52,11 +52,11 @@ The root `.gitignore` already lists `vendor/`, `.composer/`, `.phpunit.cache/`, 
 
 - Do not create `docs/superpowers/specs/` or `docs/superpowers/plans/`.
 - Specs and plans go in the `doc/` of the package whose files the task changes.
-- Library work, including the unfinished pipeline: `packages/article-reader/doc/features/<feature>/design/` and `packages/article-reader/doc/features/<feature>/plans/`. The pipeline feature folder stays `features/foundation/`.
+- Library work, including the unfinished pipeline: `packages/article-reader/doc/features/<feature>/design/` and `packages/article-reader/doc/features/<feature>/plans/`. The pipeline feature folder stays `features/0002-foundation/`.
 - App work, once `packages/web-app` has a `doc/` tree: the same `doc/features/<feature>/design/` and `.../plans/` layout under `packages/web-app/doc/`.
 - The package is the one that owns the files being edited. A pipeline task writes under `article-reader`. An app task writes under `web-app`.
 
-This spec is workspace layout, not a pipeline stage. It lives at `doc/features/workspace/design/PackageLayout.md` and moves with `doc/`, so its path after the move is `packages/article-reader/doc/features/workspace/design/PackageLayout.md`.
+This spec is workspace layout, not a pipeline stage. It lives at `doc/features/0001-workspace/design/PackageLayout.md` and moves with `doc/`, so its path after the move is `packages/article-reader/doc/features/0001-workspace/design/PackageLayout.md`.
 
 ## Cursor rules
 

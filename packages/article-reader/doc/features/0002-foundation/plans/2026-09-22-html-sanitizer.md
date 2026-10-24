@@ -8,13 +8,13 @@
 
 **Tech Stack:** PHP `^8.5`, PHPUnit `^11`, `ezyang/htmlpurifier` `^4.19` (lockfile v4.19.1), PSR-4 `Yumo\ArtcleReader\` → `src/`.
 
-**Spec:** `doc/features/foundation/design/HtmlSanitizer.md` (also `doc/features/foundation/feature.md` Phase 5)
+**Spec:** `doc/features/0002-foundation/design/HtmlSanitizer.md` (also `doc/features/0002-foundation/feature.md` Phase 5)
 
 ## Global Constraints
 
 - PHP `^8.5`. Namespace root: `Yumo\ArtcleReader\` → `src/`; tests: `Yumo\ArtcleReader\Tests\` → `tests/`.
 - Documentation, identifiers, commit messages, and PHPDoc in **English**. Follow `.cursor/rules/php-docs.mdc`: complete sentences; do **not** describe types as “the fifth pipeline stage”.
-- **Prerequisite:** `Yumo\ArtcleReader\ArticleExtractor\PlainText` and `Yumo\ArtcleReader\ArticleExtractor\ReadableDocument` must already exist, as specified in `doc/features/foundation/plans/2026-09-22-article-extractor.md`. Do not reimplement them. If either file is missing, stop and finish that plan first.
+- **Prerequisite:** `Yumo\ArtcleReader\ArticleExtractor\PlainText` and `Yumo\ArtcleReader\ArticleExtractor\ReadableDocument` must already exist, as specified in `doc/features/0002-foundation/plans/2026-09-22-article-extractor.md`. Do not reimplement them. If either file is missing, stop and finish that plan first.
 - **Parse, don’t validate:** `purify()` returns `SafeDocument`. The safety invariant is “`$html` was purified under this policy”, not a boolean. Do not add an `EncodingOutcome`-style soft status.
 - Input is `ReadableDocument` only. Do not accept `string` or `Utf8Html` on `purify()`.
 - Only `$document->content` is passed to `HTMLPurifier::purify()`. Copy `title`, `excerpt`, and `siteName` as the same `PlainText` instances. Do not purify, strip, or escape them again.
@@ -405,7 +405,7 @@ EOF
 
 Run: `test -f src/ArticleExtractor/PlainText.php && test -f src/ArticleExtractor/ReadableDocument.php`
 
-Expected: exit 0. If either file is missing, stop. Finish `doc/features/foundation/plans/2026-09-22-article-extractor.md` through `PlainText` and `ReadableDocument` before continuing. Do not copy those classes into `HtmlSanitizer`.
+Expected: exit 0. If either file is missing, stop. Finish `doc/features/0002-foundation/plans/2026-09-22-article-extractor.md` through `PlainText` and `ReadableDocument` before continuing. Do not copy those classes into `HtmlSanitizer`.
 
 - [ ] **Step 2: Write the failing test**
 

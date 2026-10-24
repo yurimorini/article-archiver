@@ -82,9 +82,9 @@ The archiver does not store image bytes.
 
 [`HtmlSanitizerTest`](../../../../../article-reader/tests/HtmlSanitizer/HtmlSanitizerTest.php) expects an `https` image to survive as a remote URL (`src` still `https://example.com/x.png`, serialized with a space before `/>`). The same test expects `<img src="data:image/png;base64,aaa" alt="x">` to become an empty string: the element is gone, not rewritten.
 
-[`HtmlSanitizer.md`](../../../../../article-reader/doc/features/foundation/design/HtmlSanitizer.md) says `data:` and `file:` are off in HTMLPurifier's defaults, and this project restricts schemes to `http`, `https`, and `mailto`. Its test table says an `https` image is kept. [`PurifyPolicy`](../../../../../article-reader/src/HtmlSanitizer/PurifyPolicy.php) rejects any scheme outside those three, and [`HtmlSanitizer`](../../../../../article-reader/src/HtmlSanitizer/HtmlSanitizer.php) copies that list onto `URI.AllowedSchemes`.
+[`HtmlSanitizer.md`](../../../../../article-reader/doc/features/0002-foundation/design/HtmlSanitizer.md) says `data:` and `file:` are off in HTMLPurifier's defaults, and this project restricts schemes to `http`, `https`, and `mailto`. Its test table says an `https` image is kept. [`PurifyPolicy`](../../../../../article-reader/src/HtmlSanitizer/PurifyPolicy.php) rejects any scheme outside those three, and [`HtmlSanitizer`](../../../../../article-reader/src/HtmlSanitizer/HtmlSanitizer.php) copies that list onto `URI.AllowedSchemes`.
 
-[`ArticleExtractor.md`](../../../../../article-reader/doc/features/foundation/design/ArticleExtractor.md) says the vendor fills a lead image from `og:image`, `twitter:image`, or `<link rel="image_src">`. `image` and `images` are not mapped onto `ReadableDocument`. The mapped document carries title, excerpt, site name, the article HTML, and the source URL.
+[`ArticleExtractor.md`](../../../../../article-reader/doc/features/0002-foundation/design/ArticleExtractor.md) says the vendor fills a lead image from `og:image`, `twitter:image`, or `<link rel="image_src">`. `image` and `images` are not mapped onto `ReadableDocument`. The mapped document carries title, excerpt, site name, the article HTML, and the source URL.
 
 ## What this implies for Eleanor
 

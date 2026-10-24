@@ -8,7 +8,7 @@
 
 **Tech Stack:** PHP `^8.5`, PHPUnit `^11`, `fivefilters/readability.php` `^4.0` (lockfile v4.1.0), PSR-3 `Psr\Log\LoggerInterface` (already installed via `psr/log` 3.0.2), PSR-4 `Yumo\ArtcleReader\` → `src/`.
 
-**Spec:** `doc/features/foundation/design/ArticleExtractor.md` (also `doc/features/foundation/feature.md` Phase 4)
+**Spec:** `doc/features/0002-foundation/design/ArticleExtractor.md` (also `doc/features/0002-foundation/feature.md` Phase 4)
 
 ## Global Constraints
 

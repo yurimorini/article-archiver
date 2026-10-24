@@ -8,7 +8,7 @@
 
 **Tech Stack:** PHP `^8.5`, PHPUnit `^11`, Guzzle `^8.0` (already required in `composer.json`), PSR-3 (`psr/log`, already a transitive dependency), PSR-4 `Yumo\ArtcleReader\` → `src/`.
 
-**Spec:** `doc/features/foundation/design/HttpFetcher.md` (also `doc/features/foundation/feature.md` Phase 2)
+**Spec:** `doc/features/0002-foundation/design/HttpFetcher.md` (also `doc/features/0002-foundation/feature.md` Phase 2)
 
 ## Global Constraints
 

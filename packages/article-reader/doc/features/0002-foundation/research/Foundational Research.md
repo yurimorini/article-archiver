@@ -399,7 +399,7 @@ Orchestrator       → wires the pipeline; UX for Degraded / NoContent / errors
 
 
 
-## Provenance: `requestUri` / `sourceUrl` propagates on `FetchedPage` → `Utf8Html` → `ReadableDocument` → `SafeDocument`. Specs: `doc/features/foundation/design/`.
+## Provenance: `requestUri` / `sourceUrl` propagates on `FetchedPage` → `Utf8Html` → `ReadableDocument` → `SafeDocument`. Specs: `doc/features/0002-foundation/design/`.
 
 
 

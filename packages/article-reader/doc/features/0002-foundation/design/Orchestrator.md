@@ -50,13 +50,13 @@ Illegal states:
 - Returning `PipelineSuccess` with empty/whitespace-only `SafeDocument::$html`
 - Throwing on Extract `NoContent` or empty post-purify HTML (those are soft)
 - Letting stage exceptions (`UrlGuardException`, …) escape unwrapped
-- Following redirects or retrying timeouts inside Orchestrator
+- Retrying timeouts inside Orchestrator
 
 Refs:
 
 - [Parse, don’t validate](https://lexi-lambda.github.io/blog/2019/11/05/parse-don-t-validate/)
-- Stage specs under `doc/features/foundation/design/`
-- `doc/features/foundation/feature.md` Phase 6
+- Stage specs under `doc/features/0002-foundation/design/`
+- `doc/features/0002-foundation/feature.md` Phase 6
 
 ---
 
@@ -65,7 +65,7 @@ Refs:
 | Topic | Choice |
 |-------|--------|
 | Retry on timeout | **None** — `HttpFetcher` fails closed on `Transport`; Orchestrator does not retry |
-| Redirects | Unchanged stage policy — fail closed on `3xx` |
+| Redirects | `GuardedFetch` owns the hop loop; ticket 01 of [0003-redirects](../../0003-redirects/design/RedirectHops.md) does not follow; `HttpFetcher` stays one pinned GET |
 | Encoding `Degraded` | **Continue**; append `PipelineWarning`; log warning |
 | Extract `NoContent` | **`PipelineNoContent`** (`ExtractNoContent`); skip sanitizer. Includes empty/whitespace HTML mapped soft inside ArticleExtractor |
 | Empty HTML after Purifier | **`PipelineNoContent`** (`SanitizedEmpty`); not an exception |

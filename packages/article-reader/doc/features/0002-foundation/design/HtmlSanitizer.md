@@ -58,7 +58,7 @@ Illegal states:
 Refs:
 
 - [Parse, don’t validate](https://lexi-lambda.github.io/blog/2019/11/05/parse-don-t-validate/)
-- `doc/features/foundation/research/Foundational Research.md` §6
+- `doc/features/0002-foundation/research/Foundational Research.md` §6
 - HTMLPurifier docs / config schema (`Core.Encoding`, `URI.AllowedSchemes`, `Core.CollectErrors`, `Cache.DefinitionImpl`)
 
 ---
