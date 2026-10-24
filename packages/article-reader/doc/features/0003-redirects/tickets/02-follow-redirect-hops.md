@@ -8,21 +8,23 @@
 
 **Blocked by:** [01 — Report the entry URL, the final URL, and the hop count](01-report-entry-and-final-url.md)
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Type:** enhancement
 
-- [ ] A cap from 1 to 5 follows a chain that lands on a 2xx within the cap. The hop history lists the URLs left behind and does not include the landing page. The hop count is the length of that list. A 2xx on the last allowed hop yields an article whose history has that length.
-- [ ] A relative Location is resolved against the URL of the current hop before the next check. Another host, scheme, or port is fetched when the guard accepts it, with a new DNS pin for that hop.
-- [ ] A single request does not follow a redirect by itself. The body of a redirect response is not extracted. Content type and size apply only to the last 2xx.
-- [ ] A further redirect hop after the cap is spent fails with a failure distinct from today's redirect failure. No next page is fetched.
-- [ ] A 300, a 304, or a 301, 302, 303, 307, or 308 with no Location, including an empty Location, fails with today's redirect failure. That stays true when the cap is already spent.
-- [ ] A Location the guard rejects fails as the same URL rejection as a rejected entry URL.
-- [ ] A later hop that answers 404 or 500, fails in transport, has a disallowed content type, or exceeds the size limit fails with that existing failure. No earlier page is returned.
-- [ ] An empty result after one or more hops does not carry the entry URL or the hop history. A landed page is returned with no check that it is the same article. A redirect loop stops at the cap. No cookies are sent.
-- [ ] The sentences are English.
-- [ ] Quality checks pass.
+- [x] A cap from 1 to 5 follows a chain that lands on a 2xx within the cap. The hop history lists the URLs left behind and does not include the landing page. The hop count is the length of that list. A 2xx on the last allowed hop yields an article whose history has that length.
+- [x] A relative Location is resolved against the URL of the current hop before the next check. Another host, scheme, or port is fetched when the guard accepts it, with a new DNS pin for that hop.
+- [x] A single request does not follow a redirect by itself. The body of a redirect response is not extracted. Content type and size apply only to the last 2xx.
+- [x] A further redirect hop after the cap is spent fails with a failure distinct from today's redirect failure. No next page is fetched.
+- [x] A 300, a 304, or a 301, 302, 303, 307, or 308 with no Location, including an empty Location, fails with today's redirect failure. That stays true when the cap is already spent.
+- [x] A Location the guard rejects fails as the same URL rejection as a rejected entry URL.
+- [x] A later hop that answers 404 or 500, fails in transport, has a disallowed content type, or exceeds the size limit fails with that existing failure. No earlier page is returned.
+- [x] An empty result after one or more hops does not carry the entry URL or the hop history. A landed page is returned with no check that it is the same article. A redirect loop stops at the cap. No cookies are sent.
+- [x] The sentences are English.
+- [x] Quality checks pass.
 
 ## Comments
 
-Ticket 01 left the hop cap on `FetchPolicy` and an empty `hopHistory` on the article result. `GuardedFetch::fetch` still performs one guarded GET and throws on a redirect. It does not read `maxRedirectHops`. This ticket fills that method with the hop loop. The article-result fields stay where they are.
+Landed on `import-command` at `c3ddef3`. `HttpFetcher::fetch` returns a `RedirectResponse` for a 3xx and does not follow it. `GuardedFetch` follows a cap from 1 to 5. Each next URL is resolved, guarded, and DNS-pinned before the GET. Cap 0 stays `HttpFetcherError::Redirect`. A followable hop past that cap is `HttpFetcherError::RedirectLimit`. The article result still carries the entry URL, `document.sourceUrl`, and `hopHistory`. An empty result and a thrown failure do not.
+
+`./bin/run test` passed for `article-reader` (289 tests, 1 skipped) and `web-app` (255 tests) on that commit.

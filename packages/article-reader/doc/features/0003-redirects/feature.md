@@ -1,6 +1,6 @@
 # Feature: Redirect hops
 
-**Status:** Open
+**Status:** Closed (2026-10-24). Slice 1 is Done.
 
 ## Goal
 
@@ -12,15 +12,15 @@ Terms live in the package [GLOSSARY.md](../../GLOSSARY.md). **Entry URL** is the
 
 | Order | Slice | Category | Done when | Status |
 | --- | --- | --- | --- | --- |
-| 1 | [Redirect hops](specs/redirect-hops.md) | Fetch | A fetch follows redirect hops up to the caller cap, re-checks and re-pins each hop, and an article result reports the entry URL, the final URL, and the hop history | Tickets |
+| 1 | [Redirect hops](specs/redirect-hops.md) | Fetch | A fetch follows redirect hops up to the caller cap, re-checks and re-pins each hop, and an article result reports the entry URL, the final URL, and the hop history | Done |
 
 ## Tickets
 
 | | Ticket | Blocked by | Status |
 | --- | --- | --- | --- |
 | 01 | [Report the entry URL, the final URL, and the hop count](tickets/01-report-entry-and-final-url.md) | None | Done |
-| 02 | [Follow redirect hops up to the cap](tickets/02-follow-redirect-hops.md) | 01 | ready-for-agent |
+| 02 | [Follow redirect hops up to the cap](tickets/02-follow-redirect-hops.md) | 01 | Done |
 
 ## Current
 
-Slice 1, ticket [02 — Follow redirect hops up to the cap](tickets/02-follow-redirect-hops.md). Ticket 01 is done at `e8ec443` on `import-command`. The ticket 02 design is [FollowRedirectHops.md](design/FollowRedirectHops.md). The ticket 02 plan is [2026-10-24-follow-redirect-hops.md](plans/2026-10-24-follow-redirect-hops.md). Ticket 01 stays [RedirectHops.md](design/RedirectHops.md) and [2026-10-24-redirect-hops.md](plans/2026-10-24-redirect-hops.md).
+This feature is closed. Ticket 02 landed at `c3ddef3` on `import-command`. The design is [FollowRedirectHops.md](design/FollowRedirectHops.md). The plan is [2026-10-24-follow-redirect-hops.md](plans/2026-10-24-follow-redirect-hops.md). Ticket 01 landed at `e8ec443`.
