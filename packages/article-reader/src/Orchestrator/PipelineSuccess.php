@@ -16,8 +16,9 @@ use Yumo\ArtcleReader\HtmlSanitizer\SafeDocument;
 final readonly class PipelineSuccess
 {
     /**
-     * This constructor stores the purified article and any soft warnings.
+     * This constructor stores the purified article, fetch metadata, and any soft warnings.
      *
+     * @param list<string>          $hopHistory
      * @param list<PipelineWarning> $warnings
      *
      * @throws \InvalidArgumentException When `$document->html` is empty or whitespace
@@ -25,6 +26,10 @@ final readonly class PipelineSuccess
     public function __construct(
         /** This value holds the purified article. Its HTML is not empty. */
         public SafeDocument $document,
+        /** This value holds the URL string passed into the fetch, stored unchanged. */
+        public string $originalUrl,
+        /** This value holds redirect hop URLs recorded during fetch, in order. */
+        public array $hopHistory,
         /** This value holds soft problems that did not remove the article, such as a lossy encoding conversion. */
         public array $warnings = [],
     ) {

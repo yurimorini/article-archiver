@@ -78,7 +78,7 @@ final class Orchestrator
             return PipelineNoContent::fromSanitizedEmpty($safe, $warnings);
         }
 
-        return new PipelineSuccess($safe, $warnings);
+        return new PipelineSuccess($safe, $url, [], $warnings);
     }
 
     /**
