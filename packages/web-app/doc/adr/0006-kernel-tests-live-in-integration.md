@@ -6,7 +6,7 @@ A PHPUnit test in Eleanor that boots the kernel lives in `tests/Integration/`, a
 
 Symfony's testing page calls a `WebTestCase` an application test and typically places it in `tests/Controller/`. It reserves "integration test" for a `KernelTestCase` that does not cover the whole application. Eleanor uses one folder for every test that boots the kernel. The split that matters is whether the kernel starts.
 
-A PHPUnit test that does not boot the kernel mirrors `src/` under `tests/`. There is no `tests/Unit/` directory. `tests/bootstrap.php` stays at `tests/bootstrap.php`. Shell tests under `bin/tests/` stay there. They do not boot the kernel. The article-reader package is unchanged.
+A PHPUnit test that does not boot the kernel mirrors `src/` under `tests/`. There is no `tests/Unit/` directory. `tests/bootstrap.php` stays at `tests/bootstrap.php`. The article-reader package is unchanged.
 
 ## Considered options
 

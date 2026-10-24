@@ -95,6 +95,8 @@ One direct test of `GuardedFetch` shows one guard, one fetch, an empty history, 
 
 ## Ticket 02, not built here
 
+Ticket 02 is designed in [FollowRedirectHops.md](FollowRedirectHops.md). The notes below are the ticket 01 sketch and are not the ticket 02 contract.
+
 The helper grows the loop. Each hop resolves `Location` against the current canonical URL, guards it, pins it, and performs one GET. A followed hop appends that hop's canonical request URL to `hopHistory` before the next request. The landing page is not appended. The article result's fields do not move. An empty result still does not receive them.
 
 The new failure for a hop past the cap, and the rule that a `300`, a `304`, or a missing `Location` stay today's redirect failure, are ticket 02.

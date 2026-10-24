@@ -48,7 +48,7 @@ HEAD on `/api/archives` asserts 405. A POST on `/archives` does not match `creat
 
 The kernel boot test moves into the same directory and namespace. Its assertion stays: the environment is `test`. The dev dependency added for the client is `symfony/browser-kit` on `8.1.*`. `symfony/dom-crawler` arrives because browser-kit requires it. The test pack and `symfony/css-selector` are not added.
 
-`packages/web-app/bin/serve` has a launcher test in `bin/tests/`, on the same pattern as `docker-run`. The test records the `docker run` arguments and checks the publish `127.0.0.1:8000:8000` and `php -S 0.0.0.0:8000`. It does not start the server and does not curl. The curl in the README is a manual check. An agent-driven browser is not a seam.
+The curl in the README is a manual check. An agent-driven browser is not a seam.
 
 The package quality command exiting 0 is an acceptance check. It is not a second test.
 

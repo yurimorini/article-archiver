@@ -23,4 +23,4 @@ Terms live in the package [GLOSSARY.md](../../GLOSSARY.md). **Entry URL** is the
 
 ## Current
 
-Slice 1, ticket [02 — Follow redirect hops up to the cap](tickets/02-follow-redirect-hops.md). Ticket 01 is done at `e8ec443` on `import-command`. The design is [RedirectHops.md](design/RedirectHops.md). The plan is [2026-10-24-redirect-hops.md](plans/2026-10-24-redirect-hops.md).
+Slice 1, ticket [02 — Follow redirect hops up to the cap](tickets/02-follow-redirect-hops.md). Ticket 01 is done at `e8ec443` on `import-command`. The ticket 02 design is [FollowRedirectHops.md](design/FollowRedirectHops.md). The ticket 02 plan is [2026-10-24-follow-redirect-hops.md](plans/2026-10-24-follow-redirect-hops.md). Ticket 01 stays [RedirectHops.md](design/RedirectHops.md) and [2026-10-24-redirect-hops.md](plans/2026-10-24-redirect-hops.md).
