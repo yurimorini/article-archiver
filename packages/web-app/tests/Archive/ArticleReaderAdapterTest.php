@@ -94,6 +94,15 @@ final class ArticleReaderAdapterTest extends TestCase
             ArchiveFailure::Redirect,
             null,
         ];
+        yield 'fetch redirect limit' => [
+            self::fetchFailure(new HttpFetcherException(
+                HttpFetcherError::RedirectLimit,
+                'HTTP redirect hop cap is exhausted (status 302)',
+                statusCode: 302,
+            )),
+            ArchiveFailure::Unexpected,
+            null,
+        ];
         yield 'fetch content type' => [
             self::fetchFailure(new HttpFetcherException(HttpFetcherError::ContentType)),
             ArchiveFailure::ContentType,
