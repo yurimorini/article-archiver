@@ -17,12 +17,13 @@ use Psr\Log\NullLogger;
 use Yumo\ArtcleReader\UrlGuard\SafeFetchTarget;
 
 /**
- * Downloads one already-guarded URL with hard limits and returns a bounded byte payload, or throws.
+ * Downloads one already-guarded URL and returns a bounded byte payload or a redirect fact.
  *
  * Performs a single pinned HTTP GET: the TCP connection is forced to the public IP addresses
- * that `UrlGuard` already checked (DNS pinning, via cURL's `CURLOPT_RESOLVE`), redirects are
- * refused rather than followed, and both the declared and the streamed body size are capped.
- * This class does not decode character encoding; `FetchedPage::$body` is opaque bytes.
+ * that `UrlGuard` already checked (DNS pinning, via cURL's `CURLOPT_RESOLVE`). A 3xx response
+ * is returned without following the redirect, checking page limits, or reading the body.
+ * Successful page bodies are capped by declared and streamed size. This class does not decode
+ * character encoding; `FetchedPage::$body` is opaque bytes.
  *
  * `$page = (new HttpFetcher())->fetch($guardResult->safe);`
  *
@@ -68,9 +69,11 @@ final class HttpFetcher
     }
 
     /**
+     * Performs one pinned GET and returns either the page or the redirect response.
+     *
      * @throws HttpFetcherException
      */
-    public function fetch(SafeFetchTarget $target): FetchedPage
+    public function fetch(SafeFetchTarget $target): FetchedPage|RedirectResponse
     {
         if (!$this->clientIsInternal) {
             $this->logger->warning(
@@ -94,6 +97,10 @@ final class HttpFetcher
         }
 
         $statusCode = $response->getStatusCode();
+        if ($statusCode >= 300 && $statusCode < 400) {
+            return new RedirectResponse($statusCode, $response->getHeader('Location')[0] ?? '');
+        }
+
         $contentType = $response->getHeaderLine('Content-Type');
 
         $this->assertSuccessfulStatus($statusCode);
@@ -106,18 +113,10 @@ final class HttpFetcher
     }
 
     /**
-     * Rejects 3xx as Redirect and any other non-2xx as HttpStatus.
+     * Rejects any status that cannot contain a successful page.
      */
     private function assertSuccessfulStatus(int $statusCode): void
     {
-        if ($statusCode >= 300 && $statusCode < 400) {
-            throw new HttpFetcherException(
-                HttpFetcherError::Redirect,
-                sprintf('HTTP redirect (status %d) is not followed', $statusCode),
-                statusCode: $statusCode,
-            );
-        }
-
         if ($statusCode < 200 || $statusCode >= 300) {
             throw new HttpFetcherException(
                 HttpFetcherError::HttpStatus,

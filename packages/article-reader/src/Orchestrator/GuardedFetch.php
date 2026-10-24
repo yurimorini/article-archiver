@@ -7,14 +7,17 @@ namespace Yumo\ArtcleReader\Orchestrator;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use Yumo\ArtcleReader\HttpFetcher\HttpFetcher;
+use Yumo\ArtcleReader\HttpFetcher\HttpFetcherError;
 use Yumo\ArtcleReader\HttpFetcher\HttpFetcherException;
+use Yumo\ArtcleReader\HttpFetcher\RedirectResponse;
 use Yumo\ArtcleReader\UrlGuard\UrlGuard;
 use Yumo\ArtcleReader\UrlGuard\UrlGuardException;
 
 /**
  * This class checks one caller URL and downloads that page once.
  *
- * The caller string is stored unchanged. A redirect response is not followed.
+ * The caller string is stored unchanged. A redirect fact is refused until this class
+ * runs a redirect-hop loop.
  *
  * `$guarded = (new GuardedFetch($urlGuard, $httpFetcher))->fetch($entryUrl);`
  */
@@ -38,7 +41,9 @@ final class GuardedFetch
     /**
      * This method checks `$entryUrl` and downloads that page once.
      *
-     * The returned page keeps `$entryUrl` unchanged and an empty hop list. A rejected URL and a failed download are thrown as they are.
+     * The returned page keeps `$entryUrl` unchanged and an empty hop list. A redirect fact
+     * is refused until redirect-hop handling is available. A rejected URL and a failed
+     * download are thrown as they are.
      *
      * @throws UrlGuardException When the string cannot be parsed, local rules reject it, or the address check refuses it
      * @throws HttpFetcherException When the download fails, including when the response is a redirect
@@ -49,6 +54,14 @@ final class GuardedFetch
         $this->logger->info('URL accepted', ['url' => $entryUrl]);
 
         $page = $this->httpFetcher->fetch($result->safe);
+        if ($page instanceof RedirectResponse) {
+            throw new HttpFetcherException(
+                HttpFetcherError::Redirect,
+                sprintf('HTTP redirect (status %d) is not followed', $page->statusCode),
+                statusCode: $page->statusCode,
+            );
+        }
+
         $this->logger->info('Page fetched', ['requestUri' => $page->requestUri]);
 
         return new GuardedPage($page, $entryUrl, []);
