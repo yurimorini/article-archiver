@@ -20,6 +20,13 @@ final class FetchPolicyTest extends TestCase
         self::assertSame('LogRead/0.1', $policy->userAgent);
         self::assertSame('text/html,application/xhtml+xml;q=0.9,*/*;q=0.8', $policy->accept);
         self::assertFalse($policy->debug);
+        self::assertSame(0, $policy->maxRedirectHops);
+    }
+
+    public function test_accepts_boundary_hop_caps(): void
+    {
+        self::assertSame(0, new FetchPolicy(maxRedirectHops: 0)->maxRedirectHops);
+        self::assertSame(5, new FetchPolicy(maxRedirectHops: 5)->maxRedirectHops);
     }
 
     #[DataProvider('invalidConstructorArgs')]
@@ -71,6 +78,14 @@ final class FetchPolicyTest extends TestCase
             'empty accept' => [
                 static fn (): FetchPolicy => new FetchPolicy(accept: ''),
                 'accept must not be empty',
+            ],
+            'negative hop cap' => [
+                static fn (): FetchPolicy => new FetchPolicy(maxRedirectHops: -1),
+                'maxRedirectHops must be from 0 through 5',
+            ],
+            'hop cap above five' => [
+                static fn (): FetchPolicy => new FetchPolicy(maxRedirectHops: 6),
+                'maxRedirectHops must be from 0 through 5',
             ],
         ];
     }
