@@ -8,40 +8,44 @@ globs: packages/**/*.php,tests/**/*.php
 
 After finishing any implementation that adds or changes PHP code, **do not claim completion** until both tools pass with fresh evidence.
 
-All PHP tooling runs **inside Docker** (not on the host PHP). Prefer the `bin/` wrappers.
+All PHP tooling runs **inside Docker** (not on the host PHP). Each package launches Composer from its own `bin/run`. The shared image is built from the repository root.
 
 ## Required commands
 
+From the package that changed (`packages/article-reader` or `packages/web-app`):
+
 ```bash
-./bin/quality
+./bin/run quality
 ```
 
 Or separately:
 
 ```bash
-./bin/cs-check
-./bin/phpstan
+./bin/run cs-check
+./bin/run phpstan
 ```
 
 Optional auto-fix before re-check:
 
 ```bash
-./bin/cs-fix
-./bin/quality
+./bin/run cs-fix
+./bin/run quality
 ```
 
-If the image is missing, build then install deps first:
+If both packages changed, run the same command in each package.
+
+If the image is missing, build it from the repository root, then install dependencies from the package:
 
 ```bash
 ./bin/docker-build
-./bin/composer-install
+./bin/run install
 ```
 
 ## Gate rules
 
 1. Run quality checks on the final code via Docker (fresh run, not assumed).
 2. Exit code must be **0**; read the full output.
-3. If either check fails: fix, then re-run `./bin/quality`.
+3. If either check fails: fix, then re-run `./bin/run quality` in that package.
 4. Only then may you report the implementation as done.
 5. Do not skip these gates for "small" changes, fixtures, or tests.
 6. Do not use host `php` / host `composer` for project verification.

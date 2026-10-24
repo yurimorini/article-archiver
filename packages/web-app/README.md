@@ -2,10 +2,10 @@
 
 ## Temporary server
 
-Start PHP's built-in server in the development image:
+Start PHP's built-in server in the development image, from the repository root:
 
 ```bash
-./bin/docker-serve web-app
+packages/web-app/bin/serve
 ```
 
 The server listens on `http://127.0.0.1:8000`.
@@ -67,18 +67,18 @@ The status is the family of the failure. `code` is the cause. `message` is the s
 From the repository root, PHPUnit for this package runs inside the development image:
 
 ```bash
-./bin/test web-app
+packages/web-app/bin/run test
 ```
 
 Pass PHPUnit arguments after `--`:
 
 ```bash
-./bin/test web-app -- --filter CreateArchiveRouteTest
+packages/web-app/bin/run test -- --filter CreateArchiveRouteTest
 ```
 
-If the image is missing, build it and install dependencies first:
+If the image is missing, build it from the repository root and install dependencies from this package:
 
 ```bash
 ./bin/docker-build
-./bin/composer-install web-app
+packages/web-app/bin/run install
 ```

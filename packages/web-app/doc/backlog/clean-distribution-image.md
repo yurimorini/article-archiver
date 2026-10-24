@@ -1,6 +1,6 @@
 # Clean distribution image
 
-The root `Dockerfile` builds `log-read-php`. That image is PHP 8.5 CLI plus Xdebug, git, unzip, and Composer. `./bin/docker-build` builds it. `./bin/docker-run` uses it for package tooling. `./bin/docker-serve` runs `php -S` from that image for local use. The development image bind-mounts the repository at `/workspace` and does not copy the application.
+The root `Dockerfile` builds `log-read-php`. That image is PHP 8.5 CLI plus Xdebug, git, unzip, and Composer. `./bin/docker-build` builds it. `./bin/docker-run` uses it for package tooling. `packages/web-app/bin/serve` runs `php -S` from that image for local use. The development image bind-mounts the repository at `/workspace` and does not copy the application.
 
 This image stays the development toolbox. It keeps the name `log-read-php` and the root `Dockerfile`. `article-reader` has no image of its own. It is a library, and the web-app build copies it in.
 

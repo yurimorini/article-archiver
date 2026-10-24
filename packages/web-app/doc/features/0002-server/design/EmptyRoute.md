@@ -32,15 +32,15 @@ A wrong content type is not 415. An unreadable body is not 400. [PayloadAndMappe
 
 ## Temporary server
 
-`./bin/docker-serve web-app` starts PHP's built-in server in the foreground, inside the existing development image. The launcher reuses the image, mount, working directory, and user of `bin/docker-run`. It publishes `127.0.0.1:8000:8000`. Inside the container the process listens on `0.0.0.0:8000`, with document root `public`. A router script forwards each path that is not a file to the front controller `public/index.php`.
+`packages/web-app/bin/serve` starts PHP's built-in server in the foreground, inside the existing development image. The launcher reuses the image, mount, working directory, and user of `bin/docker-run`. It publishes `127.0.0.1:8000:8000`. Inside the container the process listens on `0.0.0.0:8000`, with document root `public`. A router script forwards each path that is not a file to the front controller `public/index.php`.
 
-The host bind is `127.0.0.1`, so the port is not reachable from the LAN. A package other than `web-app` fails. The port stays 8000. The development image is unchanged. The Symfony CLI is not installed.
+The host bind is `127.0.0.1`, so the port is not reachable from the LAN. The port stays 8000. The development image is unchanged. The Symfony CLI is not installed.
 
 `packages/web-app/README.md` documents how to contact the server: the command and the base URL `http://127.0.0.1:8000`. An examples section lists callable paths. This slice adds one example, `POST /api/archives`, and the expected body `{"ok":true}`.
 
 ## Test
 
-One HTTP test, in the web-app suite, is the automated seam. It is a `WebTestCase` in `Yumo\Eleanor\Tests\Integration`, a flat file under `tests/Integration/`. The client sends the request through the kernel in the test environment. It reads the status, the content type, the body, and the matched route name. It does not call the action as a function, open a socket, start `docker-serve`, or read the text of the route attribute.
+One HTTP test, in the web-app suite, is the automated seam. It is a `WebTestCase` in `Yumo\Eleanor\Tests\Integration`, a flat file under `tests/Integration/`. The client sends the request through the kernel in the test environment. It reads the status, the content type, the body, and the matched route name. It does not call the action as a function, open a socket, start `bin/serve`, or read the text of the route attribute.
 
 The successful cases are a POST with no body, a POST with a non-JSON body, a POST with a JSON URL pointer, and a POST whose `url` is not a string. Each asserts route `create_archive`, status 200, content type `application/json`, and body `{"ok":true}`.
 
@@ -48,7 +48,7 @@ HEAD on `/api/archives` asserts 405. A POST on `/archives` does not match `creat
 
 The kernel boot test moves into the same directory and namespace. Its assertion stays: the environment is `test`. The dev dependency added for the client is `symfony/browser-kit` on `8.1.*`. `symfony/dom-crawler` arrives because browser-kit requires it. The test pack and `symfony/css-selector` are not added.
 
-`bin/docker-serve` has a launcher test in `bin/tests/`, on the same pattern as `docker-run`. The test records the `docker run` arguments and checks the publish `127.0.0.1:8000:8000` and `php -S 0.0.0.0:8000`. It does not start the server and does not curl. The curl in the README is a manual check. An agent-driven browser is not a seam.
+`packages/web-app/bin/serve` has a launcher test in `bin/tests/`, on the same pattern as `docker-run`. The test records the `docker run` arguments and checks the publish `127.0.0.1:8000:8000` and `php -S 0.0.0.0:8000`. It does not start the server and does not curl. The curl in the README is a manual check. An agent-driven browser is not a seam.
 
 The package quality command exiting 0 is an acceptance check. It is not a second test.
 

@@ -2,6 +2,16 @@
 # Shared docker run flags for one package. Writes the global array run_args.
 # Does not add the image name, the command, or a publish port.
 
+# Exit 1 when the development image is missing. The message names ./bin/docker-build.
+container_require_image() {
+  local image_name="$1"
+
+  if ! docker image inspect "${image_name}" >/dev/null 2>&1; then
+    printf "Docker image '%s' not found. Build it with: ./bin/docker-build\n" "${image_name}" >&2
+    return 1
+  fi
+}
+
 container_fill_run_args() {
   local root_dir="$1"
   local package_rel="$2"
