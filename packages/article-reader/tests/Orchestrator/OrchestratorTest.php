@@ -52,6 +52,8 @@ final class OrchestratorTest extends TestCase
         self::assertSame('A short excerpt', $result->document->excerpt->raw());
         self::assertNotNull($result->document->siteName);
         self::assertSame('Example News', $result->document->siteName->raw());
+        self::assertSame(self::URL, $result->originalUrl);
+        self::assertSame([], $result->hopHistory);
         self::assertSame(self::URL, $result->document->sourceUrl);
         self::assertSame(
             ['URL accepted', 'Page fetched', 'Character encoding normalized', 'Article extracted', 'Article HTML sanitized'],
@@ -76,6 +78,8 @@ final class OrchestratorTest extends TestCase
         self::assertCount(1, $result->warnings);
         self::assertSame(PipelineWarningCode::EncodingDegraded, $result->warnings[0]->code);
         self::assertSame(EncodingError::Conversion->defaultMessage(), $result->warnings[0]->message);
+        self::assertSame(self::URL, $result->originalUrl);
+        self::assertSame([], $result->hopHistory);
         self::assertStringContainsString('The quick brown fox jumps over the lazy dog.', $result->document->html);
         self::assertSame(
             [EncodingError::Conversion->defaultMessage()],
@@ -96,6 +100,8 @@ final class OrchestratorTest extends TestCase
         self::assertInstanceOf(PipelineNoContent::class, $result);
         self::assertSame(PipelineEmptyReason::ExtractNoContent, $result->reason);
         self::assertSame(self::URL, $result->sourceUrl);
+        self::assertFalse(property_exists($result, 'originalUrl')); // @phpstan-ignore function.impossibleType
+        self::assertFalse(property_exists($result, 'hopHistory')); // @phpstan-ignore function.impossibleType
         self::assertSame('', $result->title->raw());
         self::assertNull($result->excerpt);
         self::assertNull($result->siteName);
@@ -169,6 +175,7 @@ final class OrchestratorTest extends TestCase
         $logger = new RecordingLogger();
         $orchestrator = PipelineHarness::make([
             new Response(302, ['Location' => 'https://example.com/other', 'Content-Type' => 'text/html'], ''),
+            PipelineHarness::htmlResponse(PipelineHarness::articleHtml()),
         ], logger: $logger);
 
         try {
@@ -180,6 +187,9 @@ final class OrchestratorTest extends TestCase
             $previous = $exception->getPrevious();
             self::assertInstanceOf(HttpFetcherException::class, $previous);
             self::assertSame(HttpFetcherError::Redirect, $previous->error);
+            self::assertSame(['URL accepted'], $this->messagesAt($logger, 'info'));
+            self::assertFalse(property_exists($exception, 'originalUrl')); // @phpstan-ignore function.impossibleType
+            self::assertFalse(property_exists($exception, 'hopHistory')); // @phpstan-ignore function.impossibleType
             self::assertSame(['HTTP fetch failed'], $this->messagesAt($logger, 'error'));
         }
     }

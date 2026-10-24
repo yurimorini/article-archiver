@@ -18,18 +18,15 @@ use Yumo\ArtcleReader\HtmlSanitizer\HtmlSanitizer;
 use Yumo\ArtcleReader\HtmlSanitizer\HtmlSanitizerException;
 use Yumo\ArtcleReader\HtmlSanitizer\SafeDocument;
 use Yumo\ArtcleReader\HttpFetcher\FetchedPage;
-use Yumo\ArtcleReader\HttpFetcher\HttpFetcher;
 use Yumo\ArtcleReader\HttpFetcher\HttpFetcherException;
-use Yumo\ArtcleReader\UrlGuard\SafeFetchTarget;
-use Yumo\ArtcleReader\UrlGuard\UrlGuard;
 use Yumo\ArtcleReader\UrlGuard\UrlGuardException;
 
 /**
  * This class fetches one URL and returns either a purified article or a typed empty outcome.
  *
- * It runs the URL check, the HTTP download, character-encoding conversion, article extraction, and HTML purification, in that order.
+ * It checks and downloads the URL through a guarded fetch, then runs character-encoding conversion, article extraction, and HTML purification, in that order.
  * A lossy encoding conversion continues and is reported as a warning. A page with no article, and a page whose HTML is empty after purification, are empty outcomes rather than exceptions.
- * Anything else is thrown as `OrchestratorException`. Redirects are not followed and a failed download is not retried.
+ * Anything else is thrown as `OrchestratorException`. This class does not follow redirects, and a failed download is not retried.
  *
  * `$result = $orchestrator->fetchArticle($url);`
  *
@@ -41,10 +38,8 @@ final class Orchestrator
      * This constructor stores the collaborators. When `$logger` is omitted, log records are discarded.
      */
     public function __construct(
-        /** This value checks the URL before any request is made. */
-        private UrlGuard $urlGuard,
-        /** This value downloads the guarded URL once. */
-        private HttpFetcher $httpFetcher,
+        /** This value checks the caller URL and downloads that page once. */
+        private GuardedFetch $guardedFetch,
         /** This value turns the response bytes into UTF-8 HTML. */
         private EncodingNormalizer $encodingNormalizer,
         /** This value extracts the article from the UTF-8 page. */
@@ -63,9 +58,19 @@ final class Orchestrator
      */
     public function fetchArticle(string $url): PipelineSuccess|PipelineNoContent
     {
-        $target = $this->guardUrl($url);
-        $page = $this->fetchPage($target);
-        [$html, $warnings] = $this->normalizeEncoding($page);
+        try {
+            $page = $this->guardedFetch->fetch($url);
+        } catch (UrlGuardException $exception) {
+            throw $this->failure(OrchestratorError::UrlGuard, $exception);
+        } catch (HttpFetcherException $exception) {
+            throw $this->failure(OrchestratorError::Fetch, $exception);
+        } catch (\Throwable $exception) {
+            throw $this->failure(OrchestratorError::Unexpected, $exception);
+        }
+
+        $originalUrl = $page->originalUrl;
+        $hopHistory = $page->hopHistory;
+        [$html, $warnings] = $this->normalizeEncoding($page->page);
 
         $extract = $this->extractArticle($html);
         if ($extract->isNoContent()) {
@@ -78,45 +83,7 @@ final class Orchestrator
             return PipelineNoContent::fromSanitizedEmpty($safe, $warnings);
         }
 
-        return new PipelineSuccess($safe, $url, [], $warnings);
-    }
-
-    /**
-     * This method checks `$url` and returns the fetch target, or throws a pipeline exception.
-     *
-     * @throws OrchestratorException
-     */
-    private function guardUrl(string $url): SafeFetchTarget
-    {
-        try {
-            $result = $this->urlGuard->guard($url);
-            $this->logger->info('URL accepted', ['url' => $url]);
-
-            return $result->safe;
-        } catch (UrlGuardException $exception) {
-            throw $this->failure(OrchestratorError::UrlGuard, $exception);
-        } catch (\Throwable $exception) {
-            throw $this->failure(OrchestratorError::Unexpected, $exception);
-        }
-    }
-
-    /**
-     * This method downloads `$target` once. A redirect or a transport error becomes a pipeline exception.
-     *
-     * @throws OrchestratorException
-     */
-    private function fetchPage(SafeFetchTarget $target): FetchedPage
-    {
-        try {
-            $page = $this->httpFetcher->fetch($target);
-            $this->logger->info('Page fetched', ['requestUri' => $target->requestUri]);
-
-            return $page;
-        } catch (HttpFetcherException $exception) {
-            throw $this->failure(OrchestratorError::Fetch, $exception);
-        } catch (\Throwable $exception) {
-            throw $this->failure(OrchestratorError::Unexpected, $exception);
-        }
+        return new PipelineSuccess($safe, $originalUrl, $hopHistory, $warnings);
     }
 
     /**

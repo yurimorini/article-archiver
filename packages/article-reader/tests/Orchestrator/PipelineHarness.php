@@ -17,6 +17,7 @@ use Yumo\ArtcleReader\HtmlSanitizer\HtmlSanitizer;
 use Yumo\ArtcleReader\HtmlSanitizer\PurifyPolicy;
 use Yumo\ArtcleReader\HttpFetcher\FetchPolicy;
 use Yumo\ArtcleReader\HttpFetcher\HttpFetcher;
+use Yumo\ArtcleReader\Orchestrator\GuardedFetch;
 use Yumo\ArtcleReader\Orchestrator\Orchestrator;
 use Yumo\ArtcleReader\Tests\UrlGuard\FakeSsrfUrlValidator;
 use Yumo\ArtcleReader\UrlGuard\SsrfUrlValidator;
@@ -44,10 +45,11 @@ final class PipelineHarness
     ): Orchestrator {
         $logger ??= new NullLogger();
         $extractPolicy ??= new ExtractPolicy();
+        $urlGuard = new UrlGuard($validator ?? new FakeSsrfUrlValidator());
+        $httpFetcher = new HttpFetcher(new FetchPolicy(), self::client($responses), $logger);
 
         return new Orchestrator(
-            new UrlGuard($validator ?? new FakeSsrfUrlValidator()),
-            new HttpFetcher(new FetchPolicy(), self::client($responses), $logger),
+            new GuardedFetch($urlGuard, $httpFetcher, $logger),
             $encodingNormalizer ?? new EncodingNormalizer(),
             new ArticleExtractor($extractPolicy, $extractPolicy->debug ? $logger : null),
             $htmlSanitizer ?? new HtmlSanitizer(new PurifyPolicy(debug: true)),
