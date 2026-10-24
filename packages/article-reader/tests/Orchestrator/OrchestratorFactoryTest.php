@@ -32,6 +32,7 @@ final class OrchestratorFactoryTest extends TestCase
         $fetcher = $this->property($guardedFetch, 'httpFetcher');
         self::assertInstanceOf(HttpFetcher::class, $fetcher);
         self::assertSame($logger, $this->property($fetcher, 'logger'));
+        self::assertSame(0, $this->property($guardedFetch, 'maxRedirectHops'));
         self::assertInstanceOf(UrlGuard::class, $this->property($guardedFetch, 'urlGuard'));
         $extractor = $this->property($orchestrator, 'articleExtractor');
         self::assertInstanceOf(ArticleExtractor::class, $extractor);
@@ -48,7 +49,7 @@ final class OrchestratorFactoryTest extends TestCase
     public function test_create_shares_one_logger_and_passes_it_to_the_extractor_only_when_debug_is_on(): void
     {
         $logger = new RecordingLogger();
-        $fetchPolicy = new FetchPolicy(timeoutSeconds: 12);
+        $fetchPolicy = new FetchPolicy(timeoutSeconds: 12, maxRedirectHops: 3);
         $extractPolicy = new ExtractPolicy(debug: true, charThreshold: 20);
         $purifyPolicy = new PurifyPolicy(debug: true);
         $cachePath = sys_get_temp_dir() . '/log-read-htmlpurifier-custom';
@@ -69,6 +70,7 @@ final class OrchestratorFactoryTest extends TestCase
         self::assertInstanceOf(HttpFetcher::class, $fetcher);
         self::assertSame($logger, $this->property($fetcher, 'logger'));
         self::assertSame($fetchPolicy, $this->property($fetcher, 'policy'));
+        self::assertSame(3, $this->property($guardedFetch, 'maxRedirectHops'));
         self::assertInstanceOf(UrlGuard::class, $this->property($guardedFetch, 'urlGuard'));
         $extractor = $this->property($orchestrator, 'articleExtractor');
         self::assertInstanceOf(ArticleExtractor::class, $extractor);

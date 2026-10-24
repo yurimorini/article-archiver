@@ -42,6 +42,7 @@ final class OrchestratorFactory
                 new UrlGuard(),
                 new HttpFetcher($fetchPolicy, null, $logger),
                 $logger,
+                $fetchPolicy->maxRedirectHops,
             ),
             new EncodingNormalizer(),
             new ArticleExtractor(

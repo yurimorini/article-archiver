@@ -26,7 +26,7 @@ use Yumo\ArtcleReader\UrlGuard\UrlGuardException;
  *
  * It checks and downloads the URL through a guarded fetch, then runs character-encoding conversion, article extraction, and HTML purification, in that order.
  * A lossy encoding conversion continues and is reported as a warning. A page with no article, and a page whose HTML is empty after purification, are empty outcomes rather than exceptions.
- * Anything else is thrown as `OrchestratorException`. This class does not follow redirects, and a failed download is not retried.
+ * Anything else is thrown as `OrchestratorException`. The guarded fetch follows redirect hops up to the cap in the fetch policy, and the result reports the landed page. A failed download is not retried.
  *
  * `$result = $orchestrator->fetchArticle($url);`
  *

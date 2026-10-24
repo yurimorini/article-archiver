@@ -42,14 +42,16 @@ final class PipelineHarness
         ?EncodingNormalizer $encodingNormalizer = null,
         ?LoggerInterface $logger = null,
         ?SsrfUrlValidator $validator = null,
+        ?FetchPolicy $fetchPolicy = null,
     ): Orchestrator {
         $logger ??= new NullLogger();
         $extractPolicy ??= new ExtractPolicy();
+        $fetchPolicy ??= new FetchPolicy();
         $urlGuard = new UrlGuard($validator ?? new FakeSsrfUrlValidator());
-        $httpFetcher = new HttpFetcher(new FetchPolicy(), self::client($responses), $logger);
+        $httpFetcher = new HttpFetcher($fetchPolicy, self::client($responses), $logger);
 
         return new Orchestrator(
-            new GuardedFetch($urlGuard, $httpFetcher, $logger),
+            new GuardedFetch($urlGuard, $httpFetcher, $logger, $fetchPolicy->maxRedirectHops),
             $encodingNormalizer ?? new EncodingNormalizer(),
             new ArticleExtractor($extractPolicy, $extractPolicy->debug ? $logger : null),
             $htmlSanitizer ?? new HtmlSanitizer(new PurifyPolicy(debug: true)),

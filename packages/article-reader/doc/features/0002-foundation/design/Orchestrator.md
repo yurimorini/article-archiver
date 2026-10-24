@@ -65,7 +65,7 @@ Refs:
 | Topic | Choice |
 |-------|--------|
 | Retry on timeout | **None** — `HttpFetcher` fails closed on `Transport`; Orchestrator does not retry |
-| Redirects | `GuardedFetch` owns the hop loop; ticket 01 of [0003-redirects](../../0003-redirects/design/RedirectHops.md) does not follow; `HttpFetcher` stays one pinned GET |
+| Redirects | `GuardedFetch` follows redirect hops up to the caller cap; `HttpFetcher` stays one pinned GET and returns a redirect fact instead of following |
 | Encoding `Degraded` | **Continue**; append `PipelineWarning`; log warning |
 | Extract `NoContent` | **`PipelineNoContent`** (`ExtractNoContent`); skip sanitizer. Includes empty/whitespace HTML mapped soft inside ArticleExtractor |
 | Empty HTML after Purifier | **`PipelineNoContent`** (`SanitizedEmpty`); not an exception |

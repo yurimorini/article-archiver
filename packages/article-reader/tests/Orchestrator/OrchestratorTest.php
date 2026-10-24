@@ -15,6 +15,7 @@ use Yumo\ArtcleReader\EncodingNormalizer\EncodingNormalizerException;
 use Yumo\ArtcleReader\HtmlSanitizer\HtmlSanitizer;
 use Yumo\ArtcleReader\HtmlSanitizer\HtmlSanitizerException;
 use Yumo\ArtcleReader\HtmlSanitizer\PurifyPolicy;
+use Yumo\ArtcleReader\HttpFetcher\FetchPolicy;
 use Yumo\ArtcleReader\HttpFetcher\HttpFetcherError;
 use Yumo\ArtcleReader\HttpFetcher\HttpFetcherException;
 use Yumo\ArtcleReader\Orchestrator\OrchestratorError;
@@ -30,6 +31,7 @@ use Yumo\ArtcleReader\UrlGuard\UrlGuardException;
 final class OrchestratorTest extends TestCase
 {
     private const URL = 'https://example.com/article';
+    private const LANDED_URL = 'https://example.com/landed';
 
     public function test_happy_path_returns_non_empty_article_html(): void
     {
@@ -211,6 +213,87 @@ final class OrchestratorTest extends TestCase
         }
     }
 
+    public function test_a_followed_hop_returns_the_landed_article(): void
+    {
+        $orchestrator = PipelineHarness::make(
+            [
+                $this->redirectTo('/landed'),
+                PipelineHarness::htmlResponse(PipelineHarness::articleHtml()),
+            ],
+            fetchPolicy: new FetchPolicy(maxRedirectHops: 1),
+        );
+
+        $result = $orchestrator->fetchArticle(self::URL);
+
+        self::assertInstanceOf(PipelineSuccess::class, $result);
+        self::assertSame(self::URL, $result->originalUrl);
+        self::assertSame([self::URL], $result->hopHistory);
+        self::assertSame(self::LANDED_URL, $result->document->sourceUrl);
+        self::assertNotSame('', trim($result->document->html));
+        self::assertStringContainsString('The quick brown fox jumps over the lazy dog.', $result->document->html);
+    }
+
+    public function test_an_empty_result_after_a_hop_has_no_entry_url(): void
+    {
+        $orchestrator = PipelineHarness::make(
+            [
+                $this->redirectTo('/landed'),
+                PipelineHarness::htmlResponse(" \n\t"),
+            ],
+            fetchPolicy: new FetchPolicy(maxRedirectHops: 1),
+        );
+
+        $result = $orchestrator->fetchArticle(self::URL);
+
+        self::assertInstanceOf(PipelineNoContent::class, $result);
+        self::assertSame(self::LANDED_URL, $result->sourceUrl);
+        self::assertFalse(property_exists($result, 'originalUrl')); // @phpstan-ignore function.impossibleType
+        self::assertFalse(property_exists($result, 'hopHistory')); // @phpstan-ignore function.impossibleType
+    }
+
+    public function test_a_later_404_does_not_return_the_earlier_page(): void
+    {
+        $orchestrator = PipelineHarness::make(
+            [
+                $this->redirectTo('/next'),
+                new Response(404, ['Content-Type' => 'text/html'], PipelineHarness::articleHtml()),
+            ],
+            fetchPolicy: new FetchPolicy(maxRedirectHops: 1),
+        );
+
+        try {
+            $orchestrator->fetchArticle(self::URL);
+            self::fail('Expected OrchestratorException');
+        } catch (OrchestratorException $exception) {
+            self::assertSame(OrchestratorError::Fetch, $exception->error);
+            $previous = $exception->getPrevious();
+            self::assertInstanceOf(HttpFetcherException::class, $previous);
+            self::assertSame(HttpFetcherError::HttpStatus, $previous->error);
+            self::assertFalse(property_exists($exception, 'originalUrl')); // @phpstan-ignore function.impossibleType
+            self::assertFalse(property_exists($exception, 'hopHistory')); // @phpstan-ignore function.impossibleType
+        }
+    }
+
+    public function test_a_lossy_landing_page_keeps_the_warning(): void
+    {
+        $orchestrator = PipelineHarness::make(
+            [
+                $this->redirectTo('/landed'),
+                PipelineHarness::htmlResponse(PipelineHarness::articleHtmlWithInvalidUtf8()),
+            ],
+            fetchPolicy: new FetchPolicy(maxRedirectHops: 1),
+        );
+
+        $result = $orchestrator->fetchArticle(self::URL);
+
+        self::assertInstanceOf(PipelineSuccess::class, $result);
+        self::assertTrue($result->isDegraded());
+        self::assertSame(PipelineWarningCode::EncodingDegraded, $result->warnings[0]->code);
+        self::assertSame(self::URL, $result->originalUrl);
+        self::assertSame([self::URL], $result->hopHistory);
+        self::assertSame(self::LANDED_URL, $result->document->sourceUrl);
+    }
+
     public function test_encoding_failure_is_wrapped(): void
     {
         $normalizer = new EncodingNormalizer(new FakeUtf8Converter(
@@ -322,6 +405,14 @@ final class OrchestratorTest extends TestCase
             self::assertInstanceOf(\RuntimeException::class, $exception->getPrevious());
             self::assertSame('log failed', $exception->getPrevious()->getMessage());
         }
+    }
+
+    /**
+     * This method returns a 302 response whose `Location` header is `$location`.
+     */
+    private function redirectTo(string $location): Response
+    {
+        return new Response(302, ['Location' => $location, 'Content-Type' => 'text/html'], '');
     }
 
     /**
