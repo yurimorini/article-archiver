@@ -27,11 +27,11 @@ Revised 2026-10-24: the command and a console writer move to `Yumo\Eleanor\Comma
 
 | | Ticket | Blocked by | Status |
 | --- | --- | --- | --- |
-| 01 | [Import a URL list](tickets/01-import-a-url-list.md) | None | ready-for-agent |
+| 01 | [Import a URL list](tickets/01-import-a-url-list.md) | None | Done |
 | 02 | [Read a comma-separated URL column](tickets/02-read-a-comma-separated-url-column.md) | 01 | ready-for-agent |
 | 03 | [Refuse a binary file](tickets/03-refuse-a-binary-file.md) | 01 | ready-for-agent |
 | 04 | [Cap in-flight downloads](tickets/04-cap-in-flight-downloads.md) | 01 | ready-for-agent |
 
 ## Current
 
-Slice 1, ticket [01 — Import a URL list](tickets/01-import-a-url-list.md). The module design is [UrlListImport.md](design/UrlListImport.md). The plan is [2026-10-24-url-list-import.md](plans/2026-10-24-url-list-import.md). The console-edge revision is [2026-10-24-import-console-edge.md](plans/2026-10-24-import-console-edge.md). Tickets 02, 03, and 04 wait on it.
+Slice 1, ticket [02 — Read a comma-separated URL column](tickets/02-read-a-comma-separated-url-column.md). Ticket 01 is done at `1fa4f39`. The module design is [UrlListImport.md](design/UrlListImport.md). The plan is [2026-10-24-url-list-import.md](plans/2026-10-24-url-list-import.md). Tickets 03 and 04 are unblocked too.

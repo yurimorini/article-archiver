@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Run a command in this package, inside the shared development image.
+set -euo pipefail
+
+PACKAGE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT_DIR="$(cd "${PACKAGE_DIR}/../.." && pwd)"
+root_real="$(cd "${ROOT_DIR}" && pwd -P)"
+package_real="$(cd "${PACKAGE_DIR}" && pwd -P)"
+package_rel="${package_real#"${root_real}/"}"
+
+if [[ $# -lt 1 ]]; then
+  printf 'Usage: ./bin/docker-run <command> [args...]\n' >&2
+  exit 1
+fi
+
+exec "${ROOT_DIR}/bin/docker-run" "${package_rel}" "$@"

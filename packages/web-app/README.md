@@ -41,9 +41,9 @@ curl -X POST http://127.0.0.1:8000/api/archives \
   -d '{"url":"https://example.com/a"}'
 ```
 
-A new archive answers 201 with `{"url":"https://example.com/a","title":"..."}`. A second POST of the same URL answers 200 with the same body and does not fetch the page again, but only inside one PHP process.
+A new archive answers 201 with `{"url":"https://example.com/a","title":"..."}`. A second POST of the same URL answers 200 with the same body and does not fetch the page again.
 
-The archive belongs to the owner whose email is the `eleanor.owner_email` parameter in `config/services.yaml`. Change it there. Until the SQLite slice, archives live in memory and each request of the temporary server starts empty, so the curl above answers 201 every time. Kernel tests prove the 200.
+The archive belongs to the owner whose email is the `eleanor.owner_email` parameter in `config/services.yaml`. Change it there. That owner has one SQLite file under `var/data/`. The file keeps the archive across requests.
 
 A failure answers `application/json` with `code` and `message`. A body whose URL is not valid:
 
@@ -64,13 +64,13 @@ The status is the family of the failure. `code` is the cause. `message` is the s
 
 ## Import
 
-From the repository root, run the console inside the development image. The working directory is this package, so the file path is relative to `packages/web-app`:
+From `packages/web-app`, run the console inside the development image. The working directory is this package. Write the list yourself, one URL per line, and pass that path:
 
 ```bash
-./bin/docker-run packages/web-app php bin/console archive:import var/sample.csv --owner=owner@example.com
+./bin/docker-run php bin/console archive:import notes/urls.txt --owner=owner@example.com
 ```
 
-The file holds one URL per line. `--owner` is required. Use the same email as `eleanor.owner_email` in `config/services.yaml` when the archives should belong to the Owner of the HTTP API.
+`--owner` is required. Use the same email as `eleanor.owner_email` in `config/services.yaml` when the archives should belong to the Owner of the HTTP API.
 
 The command prints `Importing:` and the path, then one line per row: `ARCHIVED`, `ALREADY STORED`, `ERROR`, or `SKIPPED`, then the URL. A blank line is `SKIPPED` and `--`. It then prints `Written`, `Already stored`, `Failed`, and `Skipped`.
 
@@ -84,21 +84,23 @@ If the image is missing, build it and install dependencies as in [Tests](#tests)
 
 ## Tests
 
-From the repository root, PHPUnit for this package runs inside the development image:
+From `packages/web-app`, Composer scripts run inside the development image:
 
 ```bash
-packages/web-app/bin/run test
+./bin/run test
+./bin/run quality
 ```
 
 Pass PHPUnit arguments after `--`:
 
 ```bash
-packages/web-app/bin/run test -- --filter CreateArchiveRouteTest
+./bin/run test -- --filter CreateArchiveRouteTest
 ```
 
-If the image is missing, build it from the repository root and install dependencies from this package:
+`./bin/run` always runs Composer. `./bin/docker-run` runs any other command in that image.
+
+If the image is missing, build it from the repository root with `./bin/docker-build`, then install dependencies from this package:
 
 ```bash
-./bin/docker-build
-packages/web-app/bin/run install
+./bin/run install
 ```

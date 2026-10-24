@@ -28,7 +28,7 @@ final readonly class FetchPolicy
         public string $userAgent = 'LogRead/0.1',
         public string $accept = 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.8',
         public bool $debug = false,
-        public int $maxRedirectHops = 0,
+        public int $maxRedirectHops = 5,
     ) {
         if ($timeoutSeconds <= 0) {
             throw new \InvalidArgumentException('timeoutSeconds must be positive');

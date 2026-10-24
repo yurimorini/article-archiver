@@ -45,7 +45,7 @@ final class GuardedFetch
         /** This value receives an info record after each URL is accepted and after the page is downloaded. */
         private LoggerInterface $logger = new NullLogger(),
         /** This value is the largest number of redirect hops that may be followed. */
-        private int $maxRedirectHops = 0,
+        private int $maxRedirectHops = 5
     ) {
     }
 
