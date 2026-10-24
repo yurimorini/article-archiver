@@ -127,6 +127,7 @@ Deferred. No slice owns these until this file says one does. When a need shows u
 - [Image bytes and later assets](../../backlog/image-bytes-and-later-assets.md)
 - [Clean distribution image](../../backlog/clean-distribution-image.md)
 - [Runtime](../../backlog/runtime.md)
+- [Bookmark](../../backlog/bookmark.md)
 
 ## Research coverage
 
