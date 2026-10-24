@@ -326,19 +326,26 @@ final class ImportUrlListCommandTest extends WebTestCase
         file_put_contents($locked . '/error.log', 'old');
         chmod($locked, 0o555);
 
-        $nobody = posix_getpwnam('nobody');
-        self::assertIsArray($nobody);
+        // Root ignores mode 0555, so that run drops to nobody. A non-root runner cannot change uid, and the mode alone blocks unlink.
+        $nobody = null;
+        if (posix_geteuid() === 0) {
+            $nobody = posix_getpwnam('nobody');
+            self::assertIsArray($nobody);
+        }
         static::bootKernel();
         $restore = getcwd();
         chdir($locked);
-        $dropped = posix_seteuid($nobody['uid']);
+        if (\is_array($nobody)) {
+            self::assertTrue(posix_seteuid($nobody['uid']));
+        }
         try {
-            self::assertTrue($dropped);
             $exit = $this->runImport($file, ['--owner' => 'ada@example.com']);
             $display = $this->tester->getDisplay();
             $errorOutput = $this->tester->getErrorOutput();
         } finally {
-            posix_seteuid(0);
+            if (\is_array($nobody)) {
+                posix_seteuid(0);
+            }
             if (\is_string($restore)) {
                 chdir($restore);
             }
