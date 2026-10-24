@@ -21,6 +21,8 @@ Slice 2 belongs to this feature. It is not a package backlog note.
 
 Revised 2026-10-24: slice 1 prints `Importing: ` and the path, then one aligned result line per data row. The label column is 16 characters. A blank value is `--`. The totals are `Written`, `Already stored`, `Failed`, and `Skipped`. When `error.log` was written, the summary gives its absolute path. The line that updates while a download runs stays in slice 2.
 
+Revised 2026-10-24: the command and a console writer move to `Yumo\Eleanor\Commands\Import`. The stream, the processor, the formatters, and the tally stay in `Yumo\Eleanor\Import`. The writer is the only type that calls Symfony `write` or `writeln`. The observable run is unchanged.
+
 ## Tickets
 
 | | Ticket | Blocked by | Status |
@@ -32,4 +34,4 @@ Revised 2026-10-24: slice 1 prints `Importing: ` and the path, then one aligned 
 
 ## Current
 
-Slice 1, ticket [01 — Import a URL list](tickets/01-import-a-url-list.md). The module design is [UrlListImport.md](design/UrlListImport.md). The plan is [2026-10-24-url-list-import.md](plans/2026-10-24-url-list-import.md). Tickets 02, 03, and 04 wait on it.
+Slice 1, ticket [01 — Import a URL list](tickets/01-import-a-url-list.md). The module design is [UrlListImport.md](design/UrlListImport.md). The plan is [2026-10-24-url-list-import.md](plans/2026-10-24-url-list-import.md). The console-edge revision is [2026-10-24-import-console-edge.md](plans/2026-10-24-import-console-edge.md). Tickets 02, 03, and 04 wait on it.

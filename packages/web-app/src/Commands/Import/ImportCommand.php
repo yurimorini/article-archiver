@@ -2,18 +2,23 @@
 
 declare(strict_types=1);
 
-namespace Yumo\Eleanor\Import;
+namespace Yumo\Eleanor\Commands\Import;
 
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
-use Symfony\Component\Console\Output\ConsoleOutputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Yumo\ArtcleReader\UrlGuard\UrlGuard;
 use Yumo\Eleanor\Archive\ArchiveServiceFactory;
 use Yumo\Eleanor\Archive\Owner;
+use Yumo\Eleanor\Import\CandidateStream;
+use Yumo\Eleanor\Import\CandidateStreamFactory;
+use Yumo\Eleanor\Import\ImportSummaryFormatter;
+use Yumo\Eleanor\Import\ImportTally;
+use Yumo\Eleanor\Import\ResultLineFormatter;
+use Yumo\Eleanor\Import\UrlProcessor;
 
 /**
  * Archives each URL in a file for one owner.
@@ -49,55 +54,75 @@ final class ImportCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        $console = new ImportConsole($output, $this->summary, $this->lines);
         try {
             $email = $this->requireOwner($input);
             $file = $this->fileArgument($input);
             $stream = $this->streams->open($file);
         } catch (\RuntimeException $failure) {
-            $this->errorOutput($output)->writeln($failure->getMessage());
+            $console->cause($failure->getMessage());
 
             return Command::FAILURE;
         }
 
-        $processor = new UrlProcessor($this->guard, $this->archiveServices->create(new Owner($email)));
-        $output->write($this->summary->heading($file), false, OutputInterface::OUTPUT_RAW);
-        $tally = new ImportTally();
-        $sawRow = false;
-        foreach ($stream->candidates() as $candidate) {
-            $sawRow = true;
-            if ($candidate === null) {
-                $output->writeln($this->lines->blank(), OutputInterface::OUTPUT_RAW);
-                $tally->skip();
-                continue;
-            }
-            $result = $processor->process($candidate);
-            $output->writeln($this->lines->line($result), OutputInterface::OUTPUT_RAW);
-            $tally->record($result);
-        }
-        if ($sawRow) {
-            $output->writeln('', OutputInterface::OUTPUT_RAW);
-        }
-        $errorLogPath = null;
-        $exit = Command::SUCCESS;
-        if ($tally->errors() !== []) {
-            $errorLogPath = $this->writeErrorLog($tally);
-            $exit = Command::FAILURE;
-            if ($errorLogPath === null) {
-                $this->errorOutput($output)->writeln('The error log could not be written.');
-            }
-        } elseif (!$this->deleteErrorLog()) {
-            $this->errorOutput($output)->writeln('The error log could not be removed.');
-            $exit = Command::FAILURE;
-        }
-        $output->write($this->summary->footer($tally, $errorLogPath), false, OutputInterface::OUTPUT_RAW);
+        $tally = $this->walk($file, $stream, $email, $console);
 
-        return $exit;
+        return $this->finish($tally, $console);
     }
 
     protected function configure(): void
     {
         $this->addArgument('file', InputArgument::REQUIRED, 'The file of URLs to import.');
         $this->addOption('owner', null, InputOption::VALUE_REQUIRED, 'The owner email.');
+    }
+
+    /**
+     * Prints the heading and one row per candidate.
+     */
+    private function walk(string $file, CandidateStream $stream, string $email, ImportConsole $console): ImportTally
+    {
+        $processor = new UrlProcessor($this->guard, $this->archiveServices->create(new Owner($email)));
+        $console->heading($file);
+        $tally = new ImportTally();
+        $sawRow = false;
+        foreach ($stream->candidates() as $candidate) {
+            $sawRow = true;
+            if ($candidate === null) {
+                $console->blank();
+                $tally->skip();
+                continue;
+            }
+            $result = $processor->process($candidate);
+            $console->row($result);
+            $tally->record($result);
+        }
+        if ($sawRow) {
+            $console->gap();
+        }
+
+        return $tally;
+    }
+
+    /**
+     * Writes or deletes `error.log`, prints the totals, and returns the exit status.
+     */
+    private function finish(ImportTally $tally, ImportConsole $console): int
+    {
+        $errorLogPath = null;
+        $exit = Command::SUCCESS;
+        if ($tally->errors() !== []) {
+            $errorLogPath = $this->writeErrorLog($tally);
+            $exit = Command::FAILURE;
+            if ($errorLogPath === null) {
+                $console->cause('The error log could not be written.');
+            }
+        } elseif (!$this->deleteErrorLog()) {
+            $console->cause('The error log could not be removed.');
+            $exit = Command::FAILURE;
+        }
+        $console->footer($tally, $errorLogPath);
+
+        return $exit;
     }
 
     /**
@@ -126,15 +151,6 @@ final class ImportCommand extends Command
         }
 
         return $file;
-    }
-
-    private function errorOutput(OutputInterface $output): OutputInterface
-    {
-        if ($output instanceof ConsoleOutputInterface) {
-            return $output->getErrorOutput();
-        }
-
-        return $output;
     }
 
     /**

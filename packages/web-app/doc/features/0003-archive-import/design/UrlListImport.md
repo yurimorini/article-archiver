@@ -39,7 +39,7 @@ An operator points `archive:import` at a text file of one URL per line and names
 - The test seam is one run of the command. It reads the exit status, standard output, the error output's presence, `error.log`, and the archives stored for that owner. An `ArticleFetcher` double replaces the network. The URL guard that rejects a cell is the library `UrlGuard`, not that double.
 - The owner email is folded the way `Owner` already folds it. An empty email fails before the file is opened.
 - Sentences and the four prefixes are English.
-- The types live in one folder with the command. They are not spread across the archive namespace.
+- The console edge lives in `Yumo\Eleanor\Commands\Import`. The import types live in `Yumo\Eleanor\Import`. Neither is spread across the archive namespace.
 - The command names the candidate stream and does not name a line reader or a CSV reader.
 
 ## Approaches
@@ -51,6 +51,10 @@ The command reads, guards, archives, and prints, in one class. Ticket 04, which 
 The command prints and a processor archives. A straight `foreach` runs one URL after another. Ticket 04 replaces that `foreach`. The printing stays. This is the chosen way. The HTTP route already keeps the controller on the edge and the write behind it.
 
 Printing the URL when the download starts. That needs a line that changes in place, which is slice 2. Rejected for this ticket. The command prints after the result of the row is known.
+
+A later pass split the console edge out of the import types. Keeping every type in `Yumo\Eleanor\Import` leaves the Symfony writes in the command. Moving the processor and the tally under `Commands` names a console folder for types that do not print. Rejected. `Yumo\Eleanor\Commands\Import` holds the command and the console writer. `Yumo\Eleanor\Import` holds the stream, the processor, the formatters, and the tally.
+
+Folding the label padding into the console writer was considered. The line formatter already owns that one padding rule. The writer asks the formatters for text and applies the raw write. Rejected the fold.
 
 ## How the run goes
 
@@ -65,20 +69,22 @@ The stream is a port. Each value is an empty candidate or a trimmed string. Tick
 A later implementation of the same port can read a comma-separated file, choose the column, drop the header, and still yield empty candidates and trimmed strings. The command loop stays.
 
 ```text
+console.heading(path)
 for candidate in second generator
     if candidate is empty
         count skipped
-        print lineFormatter.blank()
+        console.blank()
         continue
     result = process(candidate)
-    print lineFormatter.line(result)
+    console.row(result)
     record the result
 
-print summaryFormatter.render(tally, path, errorLogPath)
+console.gap() when any row was seen
 write or delete error.log
+console.footer(tally, errorLogPath)
 ```
 
-The line formatter and the summary formatter return text. They do not read the file, call the guard, archive, or touch `error.log`. The command prints what they return. Padding and the summary sentences stay out of the loop.
+The line formatter and the summary formatter return text. They do not read the file, call the guard, archive, or touch `error.log`. The console writer asks them for that text and writes it raw. It is the only type that calls `write` or `writeln`. Padding and the summary sentences stay out of the loop. The command's `execute` body is three sections: open the run, walk the candidates, finish the run. A throwable from the walk still propagates. There is no try/catch around that walk.
 
 `process` asks the library `UrlGuard`. A `url_syntax`, `url_policy`, or `url_rejected` rejection returns skipped and does not call `ArchiveService`. An accepted string is passed to `archive(new UrlPointer(candidate))`. `AlreadyStored` returns already stored and the fetcher was not called. `Written` returns archived. An `ArchiveException` whose code is one of those three guard codes is still skipped, in case the write reports it. Any other `ArchiveException` returns error and carries that failure code. The later rows still run. Any other throwable propagates. The run did not finish, so `error.log` is left as it was and the totals are not printed. That propagation rule is a call made here: the contract describes archive failures, not a broken store that throws past `ArchiveException`.
 
@@ -111,21 +117,27 @@ A finished run with no `ERROR` exits 0, including an empty file and a file whose
 
 ## Parts
 
-One namespace, `Yumo\Eleanor\Import`. The names below are a call made here. The roles are not.
+Two namespaces. The names below are a call made here. The roles are not.
 
-- The command. Symfony console. Reads the argument and `--owner`. Owns standard output, the error output, and `error.log`. Builds `Owner` and asks `ArchiveServiceFactory` for the service. Receives a factory of the candidate stream and walks that stream. It does not construct the line reader. Asks the formatters for text and prints it. Does not pad a column, guard, or archive.
+`Yumo\Eleanor\Commands\Import` is the console edge.
+
+- The command. Symfony console. Reads the argument and `--owner`. Owns `error.log`. Builds `Owner` and asks `ArchiveServiceFactory` for the service. Receives a factory of the candidate stream and walks that stream. It does not construct the line reader. Asks the console writer to print. Does not pad a column, guard, or archive. Constructs the writer when it has an output. The writer is not a container service.
+- The console writer. Receives the Symfony output and the two formatters. Prints the heading, a blank row, a result row, the gap after the rows, the footer, and a cause on the error output. Uses raw output for every one of those writes. Does not count, pad, guard, archive, or touch `error.log`.
+
+`Yumo\Eleanor\Import` does not know the console.
+
 - The candidate stream. The port the command depends on. It yields an empty candidate or a trimmed string.
 - The line reader. Ticket 01's implementation of that port. It nests a raw-line stage and a trim stage. It is the only implementation in this ticket, so it sits beside the port. A second implementation is the reason to put the readers in a sub-namespace.
 - The processor. Takes the guard and the owner's `ArchiveService`. Returns skipped, archived, already stored, or error.
-- The line formatter. Turns one result into the 16-character label line. A blank candidate becomes `SKIPPED` and `--`. It does not count.
-- The summary formatter. Turns the tally, the path argument, and the optional absolute path of `error.log` into the `Importing:` heading, the blank lines, the four totals, and the details line. It does not count and it does not write the file.
+- The line formatter. Turns one result into the 16-character label line. A blank candidate becomes `SKIPPED` and `--`. It does not count. The console writer asks it for text.
+- The summary formatter. Turns the tally, the path argument, and the optional absolute path of `error.log` into the `Importing:` heading, the blank lines, the four totals, and the details line. It does not count and it does not write the file. The console writer asks it for text.
 - The tally. Counts the four outcomes and keeps the error URLs and codes in file order. It does not print and it does not touch the filesystem.
 
 The guard is the library `UrlGuard`. It is not `ArticleFetcher`. The command test therefore still rejects `not-a-url` when the fetcher is a double. The test's SSRF validator does not use the network. Syntax and policy follow the real guard rules.
 
 ## Left to the builder
 
-- The PHP class names inside `Yumo\Eleanor\Import`, as long as the roles stay: command, candidate-stream port, line reader, processor, line formatter, summary formatter, tally. One line formatter covers the four labels. A class per label would split one padding rule.
+- The PHP class names, as long as the roles stay: command and console writer in `Yumo\Eleanor\Commands\Import`; candidate-stream port, line reader, processor, line formatter, summary formatter, and tally in `Yumo\Eleanor\Import`. One line formatter covers the four labels. A class per label would split one padding rule.
 - How an open file handle is passed into the line reader.
 - How `UrlGuard` is constructed from the validator the application already uses for the orchestrator, without changing `ArchiveService`.
 - The wording of an early cause, provided it is English and it is not one of the four prefixes.

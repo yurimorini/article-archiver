@@ -17,7 +17,7 @@ use Yumo\Eleanor\Archive\UrlPointer;
  */
 final class FakeArticleFetcher implements ArticleFetcher
 {
-    /** @var array<string, Article|ArchiveException> */
+    /** @var array<string, Article|\Throwable> */
     private array $outcomes = [];
 
     /** @var array<string, int> */
@@ -40,6 +40,14 @@ final class FakeArticleFetcher implements ArticleFetcher
     }
 
     /**
+     * Registers a throwable that is not an archive failure for `$url`.
+     */
+    public function willThrowUnexpected(string $url, \Throwable $error): void
+    {
+        $this->outcomes[$url] = $error;
+    }
+
+    /**
      * Returns how many fetches were asked for `$url`, or for every URL when it is null.
      */
     public function fetchCount(?string $url = null): int
@@ -57,7 +65,7 @@ final class FakeArticleFetcher implements ArticleFetcher
         $this->counts[$key] = ($this->counts[$key] ?? 0) + 1;
         $outcome = $this->outcomes[$key] ?? new ArchiveException(ArchiveFailure::UrlRejected);
 
-        if ($outcome instanceof ArchiveException) {
+        if ($outcome instanceof \Throwable) {
             throw $outcome;
         }
 

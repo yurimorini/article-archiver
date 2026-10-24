@@ -255,6 +255,20 @@ final class ImportUrlListCommandTest extends WebTestCase
         self::assertSame(1, $this->fetcher()->fetchCount('https://example.com/b'));
     }
 
+    public function test_an_unexpected_throwable_prints_no_totals(): void
+    {
+        file_put_contents('error.log', 'old');
+        file_put_contents('one.txt', "https://example.com/a\n");
+        $this->fetcher()->willThrowUnexpected('https://example.com/a', new \RuntimeException('The store broke.'));
+
+        $exit = $this->runImport('one.txt', ['--owner' => 'ada@example.com']);
+
+        self::assertSame(1, $exit);
+        self::assertStringContainsString("Importing: one.txt\n", $this->tester->getDisplay());
+        self::assertStringNotContainsString('Written', $this->tester->getDisplay());
+        self::assertSame('old', file_get_contents('error.log'));
+    }
+
     public function test_error_log_cannot_be_written(): void
     {
         $source = sys_get_temp_dir() . '/eleanor-import-src-' . bin2hex(random_bytes(4));
