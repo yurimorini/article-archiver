@@ -36,7 +36,7 @@ The project uses Docker. `bin/` at the git root builds the shared PHP image and 
 
 ### Issue tracker
 
-Tickets are Linear issues on team Yumo (`YUM`). Functional specs live in `specs/`. Designs live in `design/`. See `.agents/rules/issue-tracker.md`.
+Tickets are Linear issues on team Yumo (`YUM`), project Article Reader. Functional specs live in `specs/`. Designs live in `design/`. See `.agents/rules/issue-tracker.md`.
 
 ### Triage labels
 
