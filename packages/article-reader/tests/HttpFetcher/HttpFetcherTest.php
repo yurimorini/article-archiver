@@ -16,10 +16,12 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\AbstractLogger;
 use Psr\Log\NullLogger;
+use Yumo\ArtcleReader\HttpFetcher\FetchedPage;
 use Yumo\ArtcleReader\HttpFetcher\FetchPolicy;
 use Yumo\ArtcleReader\HttpFetcher\HttpFetcher;
 use Yumo\ArtcleReader\HttpFetcher\HttpFetcherError;
 use Yumo\ArtcleReader\HttpFetcher\HttpFetcherException;
+use Yumo\ArtcleReader\HttpFetcher\RedirectResponse;
 use Yumo\ArtcleReader\UrlGuard\SafeFetchTarget;
 
 final class HttpFetcherTest extends TestCase
@@ -60,6 +62,7 @@ final class HttpFetcherTest extends TestCase
 
         $page = $fetcher->fetch($this->target());
 
+        self::assertInstanceOf(FetchedPage::class, $page);
         self::assertSame('<html>ok</html>', $page->body);
         self::assertSame('text/html; charset=utf-8', $page->contentType);
         self::assertSame(200, $page->statusCode);
@@ -75,6 +78,7 @@ final class HttpFetcherTest extends TestCase
 
         $page = $fetcher->fetch($this->target());
 
+        self::assertInstanceOf(FetchedPage::class, $page);
         self::assertSame('application/xhtml+xml', $page->contentType);
     }
 
@@ -87,6 +91,7 @@ final class HttpFetcherTest extends TestCase
 
         $page = $fetcher->fetch($this->target());
 
+        self::assertInstanceOf(FetchedPage::class, $page);
         self::assertSame('', $page->body);
         self::assertSame(204, $page->statusCode);
     }
@@ -154,20 +159,18 @@ final class HttpFetcherTest extends TestCase
     }
 
     #[DataProvider('redirectStatuses')]
-    public function test_redirect_status_fails_closed(int $status): void
+    public function test_redirect_status_returns_redirect_response(int $status): void
     {
         $client = $this->clientWithResponses([
             new Response($status, ['Location' => 'https://example.com/other']),
         ]);
         $fetcher = new HttpFetcher(new FetchPolicy(), $client, new NullLogger());
 
-        try {
-            $fetcher->fetch($this->target());
-            self::fail('Expected HttpFetcherException');
-        } catch (HttpFetcherException $e) {
-            self::assertSame(HttpFetcherError::Redirect, $e->error);
-            self::assertSame($status, $e->statusCode);
-        }
+        $response = $fetcher->fetch($this->target());
+
+        self::assertInstanceOf(RedirectResponse::class, $response);
+        self::assertSame($status, $response->statusCode);
+        self::assertSame('https://example.com/other', $response->location);
     }
 
     /**
@@ -176,10 +179,91 @@ final class HttpFetcherTest extends TestCase
     public static function redirectStatuses(): array
     {
         return [
+            'status 300' => [300],
             'status 301' => [301],
             'status 302' => [302],
+            'status 303' => [303],
+            'status 304' => [304],
             'status 307' => [307],
+            'status 308' => [308],
         ];
+    }
+
+    public function test_redirect_leaves_the_next_response_queued(): void
+    {
+        $client = $this->clientWithResponses([
+            new Response(302, ['Location' => 'https://example.com/next']),
+            new Response(200, ['Content-Type' => 'text/html'], '<html>next</html>'),
+        ]);
+        $fetcher = new HttpFetcher(new FetchPolicy(), $client, new NullLogger());
+
+        $redirect = $fetcher->fetch($this->target());
+        $page = $fetcher->fetch($this->target());
+
+        self::assertInstanceOf(RedirectResponse::class, $redirect);
+        self::assertSame('https://example.com/next', $redirect->location);
+        self::assertInstanceOf(FetchedPage::class, $page);
+        self::assertSame('<html>next</html>', $page->body);
+    }
+
+    public function test_redirect_skips_content_type_and_size(): void
+    {
+        $client = $this->clientWithResponses([
+            new Response(
+                302,
+                ['Content-Type' => 'text/plain', 'Location' => 'https://example.com/next'],
+                '0123456789abc',
+            ),
+        ]);
+        $fetcher = new HttpFetcher(new FetchPolicy(maxBytes: 10), $client, new NullLogger());
+
+        $response = $fetcher->fetch($this->target());
+
+        self::assertInstanceOf(RedirectResponse::class, $response);
+    }
+
+    public function test_redirect_returns_the_first_location_line(): void
+    {
+        $client = $this->clientWithResponses([
+            new Response(302, [
+                'Location' => ['https://example.com/first', 'https://example.com/second'],
+            ]),
+        ]);
+        $fetcher = new HttpFetcher(new FetchPolicy(), $client, new NullLogger());
+
+        $response = $fetcher->fetch($this->target());
+
+        self::assertInstanceOf(RedirectResponse::class, $response);
+        self::assertSame('https://example.com/first', $response->location);
+    }
+
+    public function test_redirect_keeps_a_missing_or_raw_location(): void
+    {
+        $client = $this->clientWithResponses([
+            new Response(302),
+            new class () extends Response {
+                public function __construct()
+                {
+                    parent::__construct(302);
+                }
+
+                public function getHeader(string $name): array
+                {
+                    return strcasecmp($name, 'Location') === 0
+                        ? ['   ']
+                        : parent::getHeader($name);
+                }
+            },
+        ]);
+        $fetcher = new HttpFetcher(new FetchPolicy(), $client, new NullLogger());
+
+        $missing = $fetcher->fetch($this->target());
+        $raw = $fetcher->fetch($this->target());
+
+        self::assertInstanceOf(RedirectResponse::class, $missing);
+        self::assertSame('', $missing->location);
+        self::assertInstanceOf(RedirectResponse::class, $raw);
+        self::assertSame('   ', $raw->location);
     }
 
     #[DataProvider('httpErrorStatuses')]
@@ -277,6 +361,7 @@ final class HttpFetcherTest extends TestCase
 
         $page = $fetcher->fetch($this->target());
 
+        self::assertInstanceOf(FetchedPage::class, $page);
         self::assertSame('short', $page->body);
     }
 
@@ -305,6 +390,7 @@ final class HttpFetcherTest extends TestCase
 
         $page = $fetcher->fetch($this->target());
 
+        self::assertInstanceOf(FetchedPage::class, $page);
         self::assertSame($body, $page->body);
         self::assertSame(10, strlen($page->body));
     }

@@ -46,7 +46,7 @@ Every failure under `/api` answers with the same small JSON object: a stable `co
 
 24. As a client of Eleanor, I want a page with no article to answer 422 `extract_no_content`, so that "this page is not an article" is not a server fault.
 25. As a client of Eleanor, I want a page whose article is empty after purification to answer 422 `sanitized_empty`, so that I can tell it from a page with no article.
-26. As a client of Eleanor, I want a redirect, which Eleanor does not follow, to answer 422 `redirect`, so that I know to send the final URL.
+26. As a client of Eleanor, I want a redirect Eleanor does not follow to answer 422 `redirect`, so that I know to send the final URL. Eleanor follows a 301, 302, 303, 307, or 308 that has a Location, up to the library default of five hops. A 300, a 304, and a redirect with no Location are not followed. A hop past that cap is 500 `unexpected`.
 27. As a client of Eleanor, I want a response that is not HTML to answer 422 `content_type`, so that a PDF or an image is a page that cannot be archived and not a fault.
 28. As a client of Eleanor, I want a body over the size cap to answer 422 `body_too_large`, so that I know the cap is the reason.
 

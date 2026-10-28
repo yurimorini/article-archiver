@@ -19,6 +19,7 @@ final readonly class FetchPolicy
      * @param string $userAgent Outgoing `User-Agent` header value
      * @param string $accept Outgoing `Accept` header value
      * @param bool $debug When true, Guzzle transfer summaries are logged at PSR-3 `debug` level
+     * @param int $maxRedirectHops Maximum HTTP redirect hops to follow (0 through 5)
      */
     public function __construct(
         public int $timeoutSeconds = 10,
@@ -27,6 +28,7 @@ final readonly class FetchPolicy
         public string $userAgent = 'LogRead/0.1',
         public string $accept = 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.8',
         public bool $debug = false,
+        public int $maxRedirectHops = 5,
     ) {
         if ($timeoutSeconds <= 0) {
             throw new \InvalidArgumentException('timeoutSeconds must be positive');
@@ -42,6 +44,9 @@ final readonly class FetchPolicy
         }
         if (trim($accept) === '') {
             throw new \InvalidArgumentException('accept must not be empty');
+        }
+        if ($maxRedirectHops < 0 || $maxRedirectHops > 5) {
+            throw new \InvalidArgumentException('maxRedirectHops must be from 0 through 5');
         }
     }
 }

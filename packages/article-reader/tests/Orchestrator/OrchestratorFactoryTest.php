@@ -12,9 +12,11 @@ use Yumo\ArtcleReader\HtmlSanitizer\HtmlSanitizer;
 use Yumo\ArtcleReader\HtmlSanitizer\PurifyPolicy;
 use Yumo\ArtcleReader\HttpFetcher\FetchPolicy;
 use Yumo\ArtcleReader\HttpFetcher\HttpFetcher;
+use Yumo\ArtcleReader\Orchestrator\GuardedFetch;
 use Yumo\ArtcleReader\Orchestrator\OrchestratorFactory;
 use Yumo\ArtcleReader\Orchestrator\PipelineOptions;
 use Yumo\ArtcleReader\Tests\ArticleExtractor\RecordingLogger;
+use Yumo\ArtcleReader\UrlGuard\UrlGuard;
 
 final class OrchestratorFactoryTest extends TestCase
 {
@@ -24,9 +26,14 @@ final class OrchestratorFactoryTest extends TestCase
 
         $logger = $this->property($orchestrator, 'logger');
         self::assertInstanceOf(NullLogger::class, $logger);
-        $fetcher = $this->property($orchestrator, 'httpFetcher');
+        $guardedFetch = $this->property($orchestrator, 'guardedFetch');
+        self::assertInstanceOf(GuardedFetch::class, $guardedFetch);
+        self::assertSame($logger, $this->property($guardedFetch, 'logger'));
+        $fetcher = $this->property($guardedFetch, 'httpFetcher');
         self::assertInstanceOf(HttpFetcher::class, $fetcher);
         self::assertSame($logger, $this->property($fetcher, 'logger'));
+        self::assertSame(0, $this->property($guardedFetch, 'maxRedirectHops'));
+        self::assertInstanceOf(UrlGuard::class, $this->property($guardedFetch, 'urlGuard'));
         $extractor = $this->property($orchestrator, 'articleExtractor');
         self::assertInstanceOf(ArticleExtractor::class, $extractor);
         self::assertNull($this->property($extractor, 'logger'));
@@ -42,7 +49,7 @@ final class OrchestratorFactoryTest extends TestCase
     public function test_create_shares_one_logger_and_passes_it_to_the_extractor_only_when_debug_is_on(): void
     {
         $logger = new RecordingLogger();
-        $fetchPolicy = new FetchPolicy(timeoutSeconds: 12);
+        $fetchPolicy = new FetchPolicy(timeoutSeconds: 12, maxRedirectHops: 3);
         $extractPolicy = new ExtractPolicy(debug: true, charThreshold: 20);
         $purifyPolicy = new PurifyPolicy(debug: true);
         $cachePath = sys_get_temp_dir() . '/log-read-htmlpurifier-custom';
@@ -56,10 +63,15 @@ final class OrchestratorFactoryTest extends TestCase
         ));
 
         self::assertSame($logger, $this->property($orchestrator, 'logger'));
-        $fetcher = $this->property($orchestrator, 'httpFetcher');
+        $guardedFetch = $this->property($orchestrator, 'guardedFetch');
+        self::assertInstanceOf(GuardedFetch::class, $guardedFetch);
+        self::assertSame($logger, $this->property($guardedFetch, 'logger'));
+        $fetcher = $this->property($guardedFetch, 'httpFetcher');
         self::assertInstanceOf(HttpFetcher::class, $fetcher);
         self::assertSame($logger, $this->property($fetcher, 'logger'));
         self::assertSame($fetchPolicy, $this->property($fetcher, 'policy'));
+        self::assertSame(3, $this->property($guardedFetch, 'maxRedirectHops'));
+        self::assertInstanceOf(UrlGuard::class, $this->property($guardedFetch, 'urlGuard'));
         $extractor = $this->property($orchestrator, 'articleExtractor');
         self::assertInstanceOf(ArticleExtractor::class, $extractor);
         self::assertSame($logger, $this->property($extractor, 'logger'));
@@ -78,9 +90,13 @@ final class OrchestratorFactoryTest extends TestCase
             logger: $logger,
         ));
 
-        $fetcher = $this->property($orchestrator, 'httpFetcher');
+        $guardedFetch = $this->property($orchestrator, 'guardedFetch');
+        self::assertInstanceOf(GuardedFetch::class, $guardedFetch);
+        self::assertSame($logger, $this->property($guardedFetch, 'logger'));
+        $fetcher = $this->property($guardedFetch, 'httpFetcher');
         self::assertInstanceOf(HttpFetcher::class, $fetcher);
         self::assertSame($logger, $this->property($fetcher, 'logger'));
+        self::assertInstanceOf(UrlGuard::class, $this->property($guardedFetch, 'urlGuard'));
         $extractor = $this->property($orchestrator, 'articleExtractor');
         self::assertInstanceOf(ArticleExtractor::class, $extractor);
         self::assertNull($this->property($extractor, 'logger'));

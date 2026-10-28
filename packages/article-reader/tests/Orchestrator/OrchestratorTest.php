@@ -15,6 +15,7 @@ use Yumo\ArtcleReader\EncodingNormalizer\EncodingNormalizerException;
 use Yumo\ArtcleReader\HtmlSanitizer\HtmlSanitizer;
 use Yumo\ArtcleReader\HtmlSanitizer\HtmlSanitizerException;
 use Yumo\ArtcleReader\HtmlSanitizer\PurifyPolicy;
+use Yumo\ArtcleReader\HttpFetcher\FetchPolicy;
 use Yumo\ArtcleReader\HttpFetcher\HttpFetcherError;
 use Yumo\ArtcleReader\HttpFetcher\HttpFetcherException;
 use Yumo\ArtcleReader\Orchestrator\OrchestratorError;
@@ -30,6 +31,7 @@ use Yumo\ArtcleReader\UrlGuard\UrlGuardException;
 final class OrchestratorTest extends TestCase
 {
     private const URL = 'https://example.com/article';
+    private const LANDED_URL = 'https://example.com/landed';
 
     public function test_happy_path_returns_non_empty_article_html(): void
     {
@@ -52,6 +54,8 @@ final class OrchestratorTest extends TestCase
         self::assertSame('A short excerpt', $result->document->excerpt->raw());
         self::assertNotNull($result->document->siteName);
         self::assertSame('Example News', $result->document->siteName->raw());
+        self::assertSame(self::URL, $result->originalUrl);
+        self::assertSame([], $result->hopHistory);
         self::assertSame(self::URL, $result->document->sourceUrl);
         self::assertSame(
             ['URL accepted', 'Page fetched', 'Character encoding normalized', 'Article extracted', 'Article HTML sanitized'],
@@ -76,6 +80,8 @@ final class OrchestratorTest extends TestCase
         self::assertCount(1, $result->warnings);
         self::assertSame(PipelineWarningCode::EncodingDegraded, $result->warnings[0]->code);
         self::assertSame(EncodingError::Conversion->defaultMessage(), $result->warnings[0]->message);
+        self::assertSame(self::URL, $result->originalUrl);
+        self::assertSame([], $result->hopHistory);
         self::assertStringContainsString('The quick brown fox jumps over the lazy dog.', $result->document->html);
         self::assertSame(
             [EncodingError::Conversion->defaultMessage()],
@@ -96,6 +102,8 @@ final class OrchestratorTest extends TestCase
         self::assertInstanceOf(PipelineNoContent::class, $result);
         self::assertSame(PipelineEmptyReason::ExtractNoContent, $result->reason);
         self::assertSame(self::URL, $result->sourceUrl);
+        self::assertFalse(property_exists($result, 'originalUrl')); // @phpstan-ignore function.impossibleType
+        self::assertFalse(property_exists($result, 'hopHistory')); // @phpstan-ignore function.impossibleType
         self::assertSame('', $result->title->raw());
         self::assertNull($result->excerpt);
         self::assertNull($result->siteName);
@@ -169,6 +177,7 @@ final class OrchestratorTest extends TestCase
         $logger = new RecordingLogger();
         $orchestrator = PipelineHarness::make([
             new Response(302, ['Location' => 'https://example.com/other', 'Content-Type' => 'text/html'], ''),
+            PipelineHarness::htmlResponse(PipelineHarness::articleHtml()),
         ], logger: $logger);
 
         try {
@@ -180,6 +189,9 @@ final class OrchestratorTest extends TestCase
             $previous = $exception->getPrevious();
             self::assertInstanceOf(HttpFetcherException::class, $previous);
             self::assertSame(HttpFetcherError::Redirect, $previous->error);
+            self::assertSame(['URL accepted'], $this->messagesAt($logger, 'info'));
+            self::assertFalse(property_exists($exception, 'originalUrl')); // @phpstan-ignore function.impossibleType
+            self::assertFalse(property_exists($exception, 'hopHistory')); // @phpstan-ignore function.impossibleType
             self::assertSame(['HTTP fetch failed'], $this->messagesAt($logger, 'error'));
         }
     }
@@ -199,6 +211,87 @@ final class OrchestratorTest extends TestCase
             self::assertInstanceOf(HttpFetcherException::class, $previous);
             self::assertSame(HttpFetcherError::HttpStatus, $previous->error);
         }
+    }
+
+    public function test_a_followed_hop_returns_the_landed_article(): void
+    {
+        $orchestrator = PipelineHarness::make(
+            [
+                $this->redirectTo('/landed'),
+                PipelineHarness::htmlResponse(PipelineHarness::articleHtml()),
+            ],
+            fetchPolicy: new FetchPolicy(maxRedirectHops: 1),
+        );
+
+        $result = $orchestrator->fetchArticle(self::URL);
+
+        self::assertInstanceOf(PipelineSuccess::class, $result);
+        self::assertSame(self::URL, $result->originalUrl);
+        self::assertSame([self::URL], $result->hopHistory);
+        self::assertSame(self::LANDED_URL, $result->document->sourceUrl);
+        self::assertNotSame('', trim($result->document->html));
+        self::assertStringContainsString('The quick brown fox jumps over the lazy dog.', $result->document->html);
+    }
+
+    public function test_an_empty_result_after_a_hop_has_no_entry_url(): void
+    {
+        $orchestrator = PipelineHarness::make(
+            [
+                $this->redirectTo('/landed'),
+                PipelineHarness::htmlResponse(" \n\t"),
+            ],
+            fetchPolicy: new FetchPolicy(maxRedirectHops: 1),
+        );
+
+        $result = $orchestrator->fetchArticle(self::URL);
+
+        self::assertInstanceOf(PipelineNoContent::class, $result);
+        self::assertSame(self::LANDED_URL, $result->sourceUrl);
+        self::assertFalse(property_exists($result, 'originalUrl')); // @phpstan-ignore function.impossibleType
+        self::assertFalse(property_exists($result, 'hopHistory')); // @phpstan-ignore function.impossibleType
+    }
+
+    public function test_a_later_404_does_not_return_the_earlier_page(): void
+    {
+        $orchestrator = PipelineHarness::make(
+            [
+                $this->redirectTo('/next'),
+                new Response(404, ['Content-Type' => 'text/html'], PipelineHarness::articleHtml()),
+            ],
+            fetchPolicy: new FetchPolicy(maxRedirectHops: 1),
+        );
+
+        try {
+            $orchestrator->fetchArticle(self::URL);
+            self::fail('Expected OrchestratorException');
+        } catch (OrchestratorException $exception) {
+            self::assertSame(OrchestratorError::Fetch, $exception->error);
+            $previous = $exception->getPrevious();
+            self::assertInstanceOf(HttpFetcherException::class, $previous);
+            self::assertSame(HttpFetcherError::HttpStatus, $previous->error);
+            self::assertFalse(property_exists($exception, 'originalUrl')); // @phpstan-ignore function.impossibleType
+            self::assertFalse(property_exists($exception, 'hopHistory')); // @phpstan-ignore function.impossibleType
+        }
+    }
+
+    public function test_a_lossy_landing_page_keeps_the_warning(): void
+    {
+        $orchestrator = PipelineHarness::make(
+            [
+                $this->redirectTo('/landed'),
+                PipelineHarness::htmlResponse(PipelineHarness::articleHtmlWithInvalidUtf8()),
+            ],
+            fetchPolicy: new FetchPolicy(maxRedirectHops: 1),
+        );
+
+        $result = $orchestrator->fetchArticle(self::URL);
+
+        self::assertInstanceOf(PipelineSuccess::class, $result);
+        self::assertTrue($result->isDegraded());
+        self::assertSame(PipelineWarningCode::EncodingDegraded, $result->warnings[0]->code);
+        self::assertSame(self::URL, $result->originalUrl);
+        self::assertSame([self::URL], $result->hopHistory);
+        self::assertSame(self::LANDED_URL, $result->document->sourceUrl);
     }
 
     public function test_encoding_failure_is_wrapped(): void
@@ -312,6 +405,14 @@ final class OrchestratorTest extends TestCase
             self::assertInstanceOf(\RuntimeException::class, $exception->getPrevious());
             self::assertSame('log failed', $exception->getPrevious()->getMessage());
         }
+    }
+
+    /**
+     * This method returns a 302 response whose `Location` header is `$location`.
+     */
+    private function redirectTo(string $location): Response
+    {
+        return new Response(302, ['Location' => $location, 'Content-Type' => 'text/html'], '');
     }
 
     /**

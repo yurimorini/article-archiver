@@ -10,7 +10,11 @@ use Yumo\ArtcleReader\ArticleExtractor\ExtractPolicy;
 use Yumo\ArtcleReader\EncodingNormalizer\EncodingNormalizer;
 use Yumo\ArtcleReader\HtmlSanitizer\HtmlSanitizer;
 use Yumo\ArtcleReader\HtmlSanitizer\PurifyPolicy;
+use Yumo\ArtcleReader\HttpFetcher\HttpFetcherError;
+use Yumo\ArtcleReader\HttpFetcher\HttpFetcherException;
 use Yumo\ArtcleReader\Orchestrator\ArticleFetchCli;
+use Yumo\ArtcleReader\Orchestrator\OrchestratorError;
+use Yumo\ArtcleReader\Orchestrator\OrchestratorException;
 use Yumo\ArtcleReader\Tests\EncodingNormalizer\FakeUtf8Converter;
 
 final class ArticleFetchCliTest extends TestCase
@@ -117,9 +121,19 @@ final class ArticleFetchCliTest extends TestCase
         $missing = new ArticleFetchCli(PipelineHarness::make([
             new Response(404, ['Content-Type' => 'text/html'], 'missing'),
         ]));
+        $limit = new OrchestratorException(
+            OrchestratorError::Fetch,
+            '',
+            new HttpFetcherException(
+                HttpFetcherError::RedirectLimit,
+                'HTTP redirect hop cap is exhausted (status 302)',
+                statusCode: 302,
+            ),
+        );
 
         self::assertSame(3, $redirect->run(['bin/run', self::URL], $this->stream(), $this->stream()));
         self::assertSame(4, $missing->run(['bin/run', self::URL], $this->stream(), $this->stream()));
+        self::assertSame(4, ArticleFetchCli::exitCode($limit));
     }
 
     public function test_encoding_extract_and_sanitize_failures_use_their_exit_codes(): void

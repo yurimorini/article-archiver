@@ -86,6 +86,7 @@ final class ArchiveFailureMapper
             HttpFetcherError::Transport => ArchiveFailure::Transport,
             HttpFetcherError::HttpStatus => ArchiveFailure::UpstreamStatus,
             HttpFetcherError::Redirect => ArchiveFailure::Redirect,
+            HttpFetcherError::RedirectLimit => ArchiveFailure::Unexpected,
             HttpFetcherError::ContentType => ArchiveFailure::ContentType,
             HttpFetcherError::BodyTooLarge => ArchiveFailure::BodyTooLarge,
         };

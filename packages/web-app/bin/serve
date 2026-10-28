@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Start PHP's built-in server for this package, on loopback port 8000.
+set -euo pipefail
+
+PACKAGE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT_DIR="$(cd "${PACKAGE_DIR}/../.." && pwd)"
+root_real="$(cd "${ROOT_DIR}" && pwd -P)"
+package_real="$(cd "${PACKAGE_DIR}" && pwd -P)"
+package_rel="${package_real#"${root_real}/"}"
+
+# shellcheck source=../../../bin/lib/container.sh
+source "${ROOT_DIR}/bin/lib/container.sh"
+
+IMAGE_NAME="${IMAGE_NAME:-log-read-php}"
+
+if [[ $# -ne 0 ]]; then
+  printf 'Usage: ./bin/serve\n' >&2
+  exit 1
+fi
+
+container_require_image "${IMAGE_NAME}"
+container_fill_run_args "${ROOT_DIR}" "${package_rel}"
+
+exec docker run -p 127.0.0.1:8000:8000 "${run_args[@]}" "${IMAGE_NAME}" php -S 0.0.0.0:8000 -t public router.php

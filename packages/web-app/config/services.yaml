@@ -60,3 +60,8 @@ services:
     Yumo\Eleanor\Request\RequestIdProcessor:
         tags:
             - { name: monolog.processor, handler: eleanor }
+
+    Yumo\Eleanor\Import\CandidateStreamFactory:
+        alias: Yumo\Eleanor\Import\LineCandidateStreamFactory
+
+    Yumo\ArtcleReader\UrlGuard\UrlGuard: ~

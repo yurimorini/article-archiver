@@ -12,3 +12,6 @@ Work recorded here has no feature slice yet. Pull an item into a feature by reco
 - [Image bytes and later assets](image-bytes-and-later-assets.md)
 - [Clean distribution image](clean-distribution-image.md)
 - [Runtime](runtime.md)
+- [Bookmark](bookmark.md)
+- [Semantic search (preventive research)](semantic-search.md)
+- [Owner database file name (discussion)](owner-database-file-name.md)

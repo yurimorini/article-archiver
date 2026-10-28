@@ -21,6 +21,9 @@ enum HttpFetcherError
     /** The response status was `3xx`. Redirects are disabled; the `Location` is not fetched. */
     case Redirect;
 
+    /** The redirect hop cap was spent on a followable hop. */
+    case RedirectLimit;
+
     /** The `Content-Type` header was missing or was not an allowed HTML type. */
     case ContentType;
 
@@ -36,6 +39,7 @@ enum HttpFetcherError
             self::Transport => 'HTTP transport failed (timeout, connect, or network error)',
             self::HttpStatus => 'HTTP response status is not successful',
             self::Redirect => 'HTTP redirect is not followed',
+            self::RedirectLimit => 'HTTP redirect hop cap is exhausted',
             self::ContentType => 'Response Content-Type is not an allowed HTML type',
             self::BodyTooLarge => 'Response body exceeds the configured size limit',
         };

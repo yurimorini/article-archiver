@@ -28,6 +28,7 @@ final class HttpFetcherExceptionTest extends TestCase
             'transport' => [HttpFetcherError::Transport, 'HTTP transport failed (timeout, connect, or network error)'],
             'http status' => [HttpFetcherError::HttpStatus, 'HTTP response status is not successful'],
             'redirect' => [HttpFetcherError::Redirect, 'HTTP redirect is not followed'],
+            'redirect limit' => [HttpFetcherError::RedirectLimit, 'HTTP redirect hop cap is exhausted'],
             'content type' => [HttpFetcherError::ContentType, 'Response Content-Type is not an allowed HTML type'],
             'body too large' => [HttpFetcherError::BodyTooLarge, 'Response body exceeds the configured size limit'],
         ];

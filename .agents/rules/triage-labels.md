@@ -12,4 +12,4 @@ The skills speak in terms of five canonical triage roles. This file maps those r
 
 When a skill mentions a role (e.g. "apply the AFK-ready triage label"), use the corresponding label string from this table.
 
-On this tracker the string is the ticket's `Status:` line, not a GitHub label.
+On this tracker the string is a Linear label. It is not a workflow state and not a `Status:` line in a file. Category labels are separate: `bug` is `Bug`, `enhancement` is `Feature`. See `.agents/rules/issue-tracker.md`.
