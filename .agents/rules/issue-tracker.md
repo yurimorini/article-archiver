@@ -1,6 +1,6 @@
 # Issue tracker: Linear
 
-Tickets are Linear issues in the Yumo workspace, team **Yumo** (key `YUM`, https://linear.app/yurimorini). There is no GitHub or GitLab issue tracker, and no `.scratch/` tree. Do not create a new ticket file under a feature's `tickets/` folder.
+Tickets are Linear issues in the Yumo workspace, team **Yumo** (key `YUM`, https://linear.app/yurimorini), project **Article Reader** (https://linear.app/yurimorini/project/article-reader-84cde01070ad). There is no GitHub or GitLab issue tracker, and no `.scratch/` tree. Do not create a new ticket file under a feature's `tickets/` folder.
 
 Functional specs, designs, and plans stay in the feature folder. `.agents/rules/feature-framework.md` is that layout. `feature.md` links the current ticket by its Linear identifier and URL. It does not copy the ticket body.
 
@@ -8,9 +8,9 @@ A spec is not an issue. `to-spec` writes `specs/<name>.md` in the feature. It do
 
 ## Conventions
 
-Use the Linear tools. Team is `Yumo` on every create.
+Use the Linear tools. Team is `Yumo` on every create. Project is `Article Reader` on every create. Do not leave `project` empty.
 
-- **Create an issue**: `save_issue` with `team` `Yumo`, `title`, and `description`. Publish blockers first. Set `blockedBy` to the blocking identifiers. Set `parentId` only when the source was already a Linear issue. Put the feature path (`packages/<package>/doc/features/<feature>/feature.md`) and, when one exists, the spec path at the top of the description.
+- **Create an issue**: `save_issue` with `team` `Yumo`, `project` `Article Reader`, `title`, and `description`. Publish blockers first. Set `blockedBy` to the blocking identifiers. Set `parentId` only when the source was already a Linear issue. Put the feature path (`packages/<package>/doc/features/<feature>/feature.md`) and, when one exists, the spec path at the top of the description.
 - **Read an issue**: `get_issue` with the identifier (for example `YUM-123`) and `includeRelations` true. Then `list_comments` with `issueId` set to that identifier.
 - **List issues**: `list_issues` with `team` `Yumo`. Filter with `label` or `state` when the caller names one.
 - **Comment**: `save_comment` with `issueId` and `body`. A triage comment starts with the triage disclaimer.

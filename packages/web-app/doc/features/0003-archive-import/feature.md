@@ -28,10 +28,12 @@ Revised 2026-10-24: the command and a console writer move to `Yumo\Eleanor\Comma
 | | Ticket | Blocked by | Status |
 | --- | --- | --- | --- |
 | 01 | [Import a URL list](tickets/01-import-a-url-list.md) | None | Done |
-| 02 | [Read a comma-separated URL column](tickets/02-read-a-comma-separated-url-column.md) | 01 | ready-for-agent |
-| 03 | [Refuse a binary file](tickets/03-refuse-a-binary-file.md) | 01 | ready-for-agent |
-| 04 | [Cap in-flight downloads](tickets/04-cap-in-flight-downloads.md) | 01 | ready-for-agent |
+| 02 | [YUM-5 Read a comma-separated URL column](https://linear.app/yurimorini/issue/YUM-5/read-a-comma-separated-url-column) | 01, done | Backlog |
+| 03 | [YUM-6 Refuse a binary file](https://linear.app/yurimorini/issue/YUM-6/refuse-a-binary-file) | 01, done | Backlog |
+| 04 | [YUM-7 Cap in-flight downloads](https://linear.app/yurimorini/issue/YUM-7/cap-in-flight-downloads) | 01, done | Backlog |
+
+Tickets 02–04 are Linear issues. Each has labels `Feature` and `ready-for-agent`. Ticket 01 stays in this folder because it is done. The files under `tickets/` for 02–04 are the old copies.
 
 ## Current
 
-Slice 1, ticket [02 — Read a comma-separated URL column](tickets/02-read-a-comma-separated-url-column.md). Ticket 01 is done at `1fa4f39`. The module design is [UrlListImport.md](design/UrlListImport.md). The plan is [2026-10-24-url-list-import.md](plans/2026-10-24-url-list-import.md). Tickets 03 and 04 are unblocked too.
+Slice 1, ticket [YUM-5 — Read a comma-separated URL column](https://linear.app/yurimorini/issue/YUM-5/read-a-comma-separated-url-column). Ticket 01 is done at `1fa4f39`. The module design is [UrlListImport.md](design/UrlListImport.md). The plan is [2026-10-24-url-list-import.md](plans/2026-10-24-url-list-import.md). [YUM-6](https://linear.app/yurimorini/issue/YUM-6/refuse-a-binary-file) and [YUM-7](https://linear.app/yurimorini/issue/YUM-7/cap-in-flight-downloads) are unblocked too.
