@@ -6,14 +6,14 @@ A caller of the library has pages that were saved long ago and now answer with a
 
 ## Solution
 
-The caller sets a maximum number of redirect hops for a fetch. The default is zero, which keeps today's refusal. A value from 1 to 5 follows that many redirect hops. Each hop is checked and DNS-pinned again before it is fetched. The HTTP client does not follow a redirect by itself.
+The caller sets a maximum number of redirect hops for a fetch. The default is five. A value from 1 to 5 follows that many redirect hops. Zero follows none and keeps the refusal. Each hop is checked and DNS-pinned again before it is fetched. The HTTP client does not follow a redirect by itself.
 
 An article result reports the entry URL, the final URL, and the hop history. The hop count is the length of that history. An empty result does not gain those facts. It keeps the single page URL it already has. A thrown failure carries none of them. The article, or the empty result, is taken from the last successful page. The library does not name an archive.
 
 ## User Stories
 
 1. As a caller of the library, I want a page that redirects to another public page to yield that page's article, so that a saved URL which moved still produces an article.
-2. As a caller of the library, I want the default fetch to follow no redirect hop, so that a caller who sets nothing keeps today's refusal.
+2. As a caller of the library, I want the default fetch to follow up to five redirect hops, so that a caller who sets nothing still receives the page a saved URL moved to.
 3. As a caller of the library, I want to set the hop cap to zero explicitly, so that the fail-closed fetch is a choice I can write down.
 4. As a caller of the library, I want to set the hop cap from 1 to 5, so that I choose how many redirect hops a fetch may follow.
 5. As a caller of the library, I want a hop cap below 0 to be rejected when the fetch is configured, so that a fetch never starts with a negative cap.
@@ -61,7 +61,7 @@ An article result reports the entry URL, the final URL, and the hop history. The
 ## Implementation Decisions
 
 - A redirect hop is status 301, 302, 303, 307, or 308 with a Location header. A 300, a 304, a meta refresh, a script redirect, and a canonical link are not hops.
-- The caller sets the hop cap on the fetch configuration. The legal values are the integers 0 through 5. The default is 0. Any other integer is rejected while the configuration is built, before a request.
+- The caller sets the hop cap on the fetch configuration. The legal values are the integers 0 through 5. The default is 5. Any other integer is rejected while the configuration is built, before a request.
 - Cap 0 does not follow. The first redirect hop fails with the existing redirect failure.
 - A redirect hop is followed only while the number already followed is below the cap. The next request is a new guarded, DNS-pinned GET. The HTTP client is configured not to follow redirects.
 - A relative Location is resolved against the URL of the current hop, then passed to the guard as an absolute URL. The guard's existing rules decide that URL. A rejection is the existing URL-rejection failure, including a private address, a disallowed scheme, or credentials in the URL.
@@ -79,12 +79,12 @@ An article result reports the entry URL, the final URL, and the hop history. The
 - One seam. Queue the HTTP responses and stub the address check, using the same pipeline harness the fetch tests already use. Do not open a socket and do not resolve DNS.
 - Prove a chain only at that fetch. A separate single-request test may still prove that one pinned GET does not follow a redirect by itself.
 - Cover cap 0, a cap of 1 through 5 that lands on a 2xx, a chain longer than the cap, a missing Location, a 300, a 304, a guard rejection on a later hop, a relative Location, a change of host, an empty result after a hop that carries neither the entry URL nor the hop history, and a direct 2xx with an empty hop history.
-- An invalid cap is asserted where the configuration is built, and that case performs no request.
+- An invalid cap is asserted where the configuration is built, and that case performs no request. The omitted cap is 5, and that default is asserted on the fetch configuration and on the orchestrator built with no options.
 
 ## Out of Scope
 
 - Meta refresh, script redirects, and canonical links.
-- Storing the final URL on an archive, and choosing the importer's hop cap. Eleanor's archive API keeps the default of zero. The importer's opt-in belongs to the import feature.
+- Storing the final URL on an archive. Eleanor's archive API and `archive:import` use this default of five, because both call the library fetch with no hop cap of their own. Cap 0 remains available when a caller sets it.
 - A command flag on the article-reader command. The command will gain a way to set the cap later. Its shape is not part of this spec.
 - Cookies, login detection, and a check that the landed page is the same article.
 - Merging fetches that share a final URL.
@@ -93,6 +93,7 @@ An article result reports the entry URL, the final URL, and the hop history. The
 
 - Terms: entry URL, final URL, hop history, hop count, and redirect hop. They are defined in the package glossary.
 - Revised: the entry URL and the hop history belong to the article result only. An empty result does not gain them.
-- Decisions already recorded: hop cap defaulting to zero, entry URL distinct from final URL, the library not naming an archive, and opt-in being per caller.
-- The import spec still requires the same write as the archive API. That spec changes in the import feature, when the importer's cap is chosen.
+- Revised 2026-10-25: the hop cap defaults to five. Zero remains an explicit cap. The earlier default of zero is withdrawn.
+- Decisions already recorded: entry URL distinct from final URL, and the library not naming an archive.
+- The import spec still requires the same write as the archive API. That write uses this default of five.
 - Several Location values on one response were not discussed. This spec does not choose among them.

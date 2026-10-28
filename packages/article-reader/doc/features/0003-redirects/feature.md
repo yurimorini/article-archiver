@@ -4,7 +4,7 @@
 
 ## Goal
 
-A caller can follow redirect hops, up to a cap, and still tell the entry URL from the final URL. The default cap is zero.
+A caller can follow redirect hops, up to a cap, and still tell the entry URL from the final URL. The default cap is five.
 
 Terms live in the package [GLOSSARY.md](../../GLOSSARY.md). **Entry URL** is the string the caller passed. **Final URL** is the canonical URL of the page whose body is extracted. **Hop count** is how many redirect hops were followed. **Redirect hop** is one followable HTTP redirect.
 

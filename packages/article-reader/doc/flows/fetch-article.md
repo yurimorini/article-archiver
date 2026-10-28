@@ -30,9 +30,9 @@ flowchart TD
 
 | Step | Receives | Passes on | Does not pass on |
 | --- | --- | --- | --- |
-| GuardedFetch | The caller string. | A `GuardedPage`: the downloaded page, `originalUrl` equal to that string, and `hopHistory` as `[]`. | `GuardResult.original`. The caller string is the one `GuardedFetch` stored. |
+| GuardedFetch | The caller string. | A `GuardedPage`: the downloaded page, `originalUrl` equal to that string, and `hopHistory` as the request URLs left behind. | `GuardResult.original`. The caller string is the one `GuardedFetch` stored. |
 | UrlGuard | The caller string. | `SafeFetchTarget`: canonical request URL plus the pinned public IPs. | The caller string. |
-| HttpFetcher | One `SafeFetchTarget`. | `FetchedPage`. `requestUri` is that canonical URL. | A redirect. A `3xx` throws. |
+| HttpFetcher | One `SafeFetchTarget`. | `FetchedPage` for a 2xx, or a `RedirectResponse` for a 3xx. `requestUri` on the page is that canonical URL. | The next hop. One request does not follow a redirect. |
 | EncodingNormalizer | `FetchedPage`. | `Utf8Html`. `sourceUrl` is `requestUri`. | `originalUrl` and `hopHistory`. |
 | ArticleExtractor | `Utf8Html`. | `ReadableDocument.sourceUrl`, or `ExtractResult.sourceUrl` when there is no article. | The caller string. |
 | HtmlSanitizer | `ReadableDocument`. | `SafeDocument.sourceUrl`, copied through. | The caller string. |
@@ -40,13 +40,13 @@ flowchart TD
 | PipelineNoContent | The extract result, or a blank `SafeDocument`. | `sourceUrl` only. | `originalUrl` and `hopHistory`. |
 | OrchestratorException | A stage failure. | The wrapped stage error. | `originalUrl`, `hopHistory`, and `sourceUrl`. |
 
-`hopHistory` is empty on every article result today. `GuardedFetch` does not follow a redirect, and it does not read `FetchPolicy::$maxRedirectHops`.
+`hopHistory` lists the request URLs left behind. It is empty when the first response is a 2xx. `GuardedFetch` follows a redirect hop while the number already followed is below `FetchPolicy::$maxRedirectHops`. The default is 5.
 
 ## Boxes
 
 | Box | Role | File |
 | --- | --- | --- |
-| GuardedFetch | Checks the caller string and downloads that page once. Stores the caller string and an empty hop list beside the page. | [GuardedFetch.php](../../src/Orchestrator/GuardedFetch.php) |
+| GuardedFetch | Checks the caller string, downloads that page, and follows redirect hops up to the cap. Stores the caller string and the hop list beside the landed page. | [GuardedFetch.php](../../src/Orchestrator/GuardedFetch.php) |
 | UrlGuard | Parses the string, checks scheme and host, resolves DNS, and returns a pinned target. No policy object. | [UrlGuard.php](../../src/UrlGuard/UrlGuard.php) |
 | HttpFetcher | One pinned GET. Uses `FetchPolicy` for timeouts, the body cap, and headers. Redirects stay off. | [HttpFetcher.php](../../src/HttpFetcher/HttpFetcher.php) |
 | EncodingNormalizer | Converts the body to UTF-8. Copies `requestUri` onto `sourceUrl`. No policy object. | [EncodingNormalizer.php](../../src/EncodingNormalizer/EncodingNormalizer.php) |
@@ -62,7 +62,7 @@ Set once, when `OrchestratorFactory::create()` builds the stages. `fetchArticle(
 
 | Policy | Used by | What it controls |
 | --- | --- | --- |
-| FetchPolicy | HttpFetcher | Timeouts, body cap, `User-Agent`, `Accept`, transfer debug, and `maxRedirectHops` (0 through 5, default 0). The hop cap is stored and not read. |
+| FetchPolicy | HttpFetcher and GuardedFetch | Timeouts, body cap, `User-Agent`, `Accept`, transfer debug, and `maxRedirectHops` (0 through 5, default 5). `OrchestratorFactory` passes the hop cap into `GuardedFetch`. |
 | ExtractPolicy | ArticleExtractor | Readability limits, debug, and rewriting relative links against `sourceUrl`. |
 | PurifyPolicy | HtmlSanitizer | Which URI schemes survive inside the fragment. |
 
