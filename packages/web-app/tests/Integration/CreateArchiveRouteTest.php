@@ -48,7 +48,7 @@ final class CreateArchiveRouteTest extends WebTestCase
         self::assertRouteSame('create_archive');
         self::assertResponseStatusCodeSame(201);
         self::assertResponseHeaderSame('content-type', 'application/json');
-        self::assertSame('{"url":"https://example.com/a","title":"Title"}', $this->responseBody($client->getInternalResponse()));
+        self::assertSame('{"id":1,"url":"https://example.com/a","title":"Title"}', $this->responseBody($client->getInternalResponse()));
     }
 
     public function test_same_url_again_returns_200_with_the_same_body_and_one_fetch(): void
@@ -80,7 +80,7 @@ final class CreateArchiveRouteTest extends WebTestCase
         $this->postUrl($second, 'https://example.com/a');
 
         self::assertResponseStatusCodeSame(200);
-        self::assertSame('{"url":"https://example.com/a","title":"Title"}', $this->responseBody($second->getInternalResponse()));
+        self::assertSame('{"id":1,"url":"https://example.com/a","title":"Title"}', $this->responseBody($second->getInternalResponse()));
         self::assertSame(0, $this->fetcher()->fetchCount());
     }
 
@@ -95,7 +95,7 @@ final class CreateArchiveRouteTest extends WebTestCase
         $this->postUrl($client, 'https://example.com/b');
 
         self::assertResponseStatusCodeSame(201);
-        self::assertSame('{"url":"https://example.com/b","title":"Second"}', $this->responseBody($client->getInternalResponse()));
+        self::assertSame('{"id":2,"url":"https://example.com/b","title":"Second"}', $this->responseBody($client->getInternalResponse()));
         self::assertSame(2, $this->fetcher()->fetchCount());
     }
 
@@ -107,7 +107,7 @@ final class CreateArchiveRouteTest extends WebTestCase
         $this->postUrl($client, "\0https://example.com/a\0");
 
         self::assertResponseStatusCodeSame(201);
-        self::assertSame('{"url":"https://example.com/a","title":"Title"}', $this->responseBody($client->getInternalResponse()));
+        self::assertSame('{"id":1,"url":"https://example.com/a","title":"Title"}', $this->responseBody($client->getInternalResponse()));
     }
 
     public function test_title_with_quote_and_backslash_decodes_to_the_same_title(): void
@@ -121,6 +121,7 @@ final class CreateArchiveRouteTest extends WebTestCase
         $decoded = json_decode($this->responseBody($client->getInternalResponse()), true, flags: JSON_THROW_ON_ERROR);
         self::assertIsArray($decoded);
         self::assertSame($title, $decoded['title']);
+        self::assertSame(1, $decoded['id']);
     }
 
     public function test_missing_title_is_an_empty_string(): void
@@ -130,7 +131,7 @@ final class CreateArchiveRouteTest extends WebTestCase
 
         $this->postUrl($client, 'https://example.com/a');
 
-        self::assertSame('{"url":"https://example.com/a","title":""}', $this->responseBody($client->getInternalResponse()));
+        self::assertSame('{"id":1,"url":"https://example.com/a","title":""}', $this->responseBody($client->getInternalResponse()));
     }
 
     public function test_non_ascii_title_and_slashes_stay_readable(): void
@@ -140,7 +141,7 @@ final class CreateArchiveRouteTest extends WebTestCase
 
         $this->postUrl($client, 'https://example.com/a/b');
 
-        self::assertSame('{"url":"https://example.com/a/b","title":"Café"}', $this->responseBody($client->getInternalResponse()));
+        self::assertSame('{"id":1,"url":"https://example.com/a/b","title":"Café"}', $this->responseBody($client->getInternalResponse()));
     }
 
     public function test_unwritable_data_directory_answers_archive_not_written(): void

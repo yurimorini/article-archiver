@@ -75,7 +75,7 @@ final class LogApiRequestTest extends WebTestCase
         $response = $this->symfonyResponse($client->getResponse());
         self::assertSame(201, $response->getStatusCode());
         self::assertSame('application/json', $response->headers->get('content-type'));
-        self::assertSame('{"url":"https://example.test/a","title":"Title"}', $this->body($client->getInternalResponse()));
+        self::assertSame('{"id":1,"url":"https://example.test/a","title":"Title"}', $this->body($client->getInternalResponse()));
     }
 
     public function test_missing_id_is_a_uuid(): void

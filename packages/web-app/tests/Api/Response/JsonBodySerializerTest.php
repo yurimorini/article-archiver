@@ -19,16 +19,16 @@ final class JsonBodySerializerTest extends TestCase
 {
     public function test_writes_an_archive_body_without_escaping_slashes_or_unicode(): void
     {
-        $json = $this->serializer()->serialize(new ArchiveResponse('https://example.com/a/b', 'Café'));
+        $json = $this->serializer()->serialize(new ArchiveResponse(17, 'https://example.com/a/b', 'Café'));
 
-        self::assertSame('{"url":"https://example.com/a/b","title":"Café"}', $json);
+        self::assertSame('{"id":17,"url":"https://example.com/a/b","title":"Café"}', $json);
     }
 
     public function test_quotes_and_backslashes_survive_a_round_trip(): void
     {
         $title = 'He said "hi" \ and left';
 
-        $json = $this->serializer()->serialize(new ArchiveResponse('https://example.com', $title));
+        $json = $this->serializer()->serialize(new ArchiveResponse(1, 'https://example.com', $title));
 
         self::assertSame($title, json_decode($json, true, flags: JSON_THROW_ON_ERROR)['title']);
     }
