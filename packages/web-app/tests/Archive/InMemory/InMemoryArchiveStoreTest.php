@@ -29,20 +29,20 @@ final class InMemoryArchiveStoreTest extends TestCase
         $archive = $this->archive('https://example.com/a');
         $store = new InMemoryArchiveStore(new Owner('ada@example.com'), new InMemoryArchiveShelf());
 
-        $store->save($archive);
+        $stored = $store->save($archive);
 
-        self::assertSame($archive, $store->find(new UrlPointer('https://example.com/a')));
+        self::assertSame($stored, $store->find(new UrlPointer('https://example.com/a')));
     }
 
     public function test_two_stores_for_one_owner_share_rows(): void
     {
         $shelf = new InMemoryArchiveShelf();
         $archive = $this->archive('https://example.com/a');
-        new InMemoryArchiveStore(new Owner('ada@example.com'), $shelf)->save($archive);
+        $stored = new InMemoryArchiveStore(new Owner('ada@example.com'), $shelf)->save($archive);
 
         $second = new InMemoryArchiveStore(new Owner('ada@example.com'), $shelf);
 
-        self::assertSame($archive, $second->find(new UrlPointer('https://example.com/a')));
+        self::assertSame($stored, $second->find(new UrlPointer('https://example.com/a')));
     }
 
     public function test_a_store_for_another_owner_does_not_see_the_archive(): void
@@ -67,7 +67,7 @@ final class InMemoryArchiveStoreTest extends TestCase
         $summary = $store->findSummary(new UrlPointer($url));
         $stored = $store->find(new UrlPointer($url));
 
-        self::assertEquals(new ArchiveSummary($url, $title, $excerpt, $siteName), $summary);
+        self::assertEquals(new ArchiveSummary($url, $title, $excerpt, $siteName, 1), $summary);
         self::assertNotNull($stored);
         self::assertSame('<p>x</p>', $stored->html);
     }

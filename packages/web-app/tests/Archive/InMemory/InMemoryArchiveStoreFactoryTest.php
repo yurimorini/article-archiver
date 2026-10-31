@@ -20,11 +20,11 @@ final class InMemoryArchiveStoreFactoryTest extends TestCase
     {
         $factory = new InMemoryArchiveStoreFactory(new InMemoryArchiveShelf());
         $archive = new Archive('https://example.com/a', 'Title', null, null, '<p>Body</p>', null);
-        $factory->create(new Owner('ada@example.com'))->save($archive);
+        $stored = $factory->create(new Owner('ada@example.com'))->save($archive);
 
         $found = $factory->create(new Owner('ada@example.com'))->find(new UrlPointer('https://example.com/a'));
 
-        self::assertSame($archive, $found);
+        self::assertSame($stored, $found);
     }
 
     public function test_stores_made_for_two_owners_do_not(): void

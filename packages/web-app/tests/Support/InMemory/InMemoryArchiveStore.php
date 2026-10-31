@@ -47,11 +47,11 @@ final class InMemoryArchiveStore implements ArchiveStore
     }
 
     /**
-     * Stores `$archive` on the shelf under its URL for this owner.
+     * Stores `$archive` on the shelf under its URL for this owner and returns the stored archive.
      */
-    public function save(Archive $archive): void
+    public function save(Archive $archive): Archive
     {
-        $this->shelf->save($this->owner, $archive);
+        return $this->shelf->save($this->owner, $archive);
     }
 
     /**

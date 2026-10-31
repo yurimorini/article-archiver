@@ -24,14 +24,22 @@ final readonly class ArchiveSummary
         public ?string $excerpt,
         /** The name of the site, or null when the page has none. */
         public ?string $siteName,
+        /** The database identity of the stored archive. */
+        public int $id,
     ) {
     }
 
     /**
-     * Copies the light fields of `$archive`. The HTML stays out.
+     * Copies the light fields of `$archive`, including its id. The HTML stays out.
+     *
+     * @throws \LogicException When `$archive` has no id
      */
     public static function fromArchive(Archive $archive): self
     {
-        return new self($archive->url, $archive->title, $archive->excerpt, $archive->siteName);
+        if ($archive->id === null) {
+            throw new \LogicException('The archive has no id.');
+        }
+
+        return new self($archive->url, $archive->title, $archive->excerpt, $archive->siteName, $archive->id);
     }
 }
