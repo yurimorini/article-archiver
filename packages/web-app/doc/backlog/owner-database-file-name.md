@@ -6,7 +6,7 @@ Discussion recorded on 2026-10-24. Non-authoritative. No feature owns this note.
 
 One SQLite file per owner. `Owner` lowercases the email with `mb_strtolower` in UTF-8. `SqliteArchiveStoreFactory` names the file `hash('sha256', $owner->email) . '.sqlite'`: 64 hexadecimal characters. WAL adds the same name with the suffixes `-wal` and `-shm`. The email is stored in the `meta` table. `archive.written` and `archive.failed` put that path in the log field `store`. The archive log keeps the email out of log fields.
 
-The closed spec says the name is the SHA-256 of the lowercased email. This note does not revise that sentence.
+[adr/0013](../adr/0013-owner-database-file-name.md) records the decision. The spec adopts it.
 
 ## Proposals
 

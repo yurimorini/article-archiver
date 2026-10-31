@@ -59,7 +59,7 @@ The service does not write a line before `findSummary`, and it does not write a 
 
 `location(): ?string` is the file the store writes, or `null` when the store has no file. It does not open the file and it does not throw.
 
-`SqliteArchiveStore` returns the path `SqliteArchiveStoreFactory` already builds: the data directory, a slash, the SHA-256 of the owner email, and `.sqlite`. The email is not a log field. The in-memory store returns `null`.
+`SqliteArchiveStore` returns the path `SqliteArchiveStoreFactory` already builds: the data directory, a slash, the first 16 hexadecimal characters of the SHA-256 of the owner email, and `.sqlite`. The email is not a log field. The in-memory store returns `null`.
 
 ## Data flow
 

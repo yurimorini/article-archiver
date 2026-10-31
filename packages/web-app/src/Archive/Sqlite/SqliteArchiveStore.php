@@ -132,11 +132,33 @@ final class SqliteArchiveStore implements ArchiveStore
     {
         try {
             $pdo = $this->connection->open();
+            $this->assertOwner($pdo);
 
             return $use($pdo);
         } finally {
             $this->connection->close();
         }
+    }
+
+    /**
+     * Stops when the file already names a different owner.
+     *
+     * A missing email row is the first write, which inserts the email.
+     *
+     * @throws OwnerFileException When `meta.email` is present and is not this owner
+     */
+    private function assertOwner(\PDO $pdo): void
+    {
+        $statement = $pdo->query("SELECT value FROM meta WHERE key = 'email'");
+        if ($statement === false) {
+            throw new OwnerFileException('The owner email could not be read.');
+        }
+        $email = $statement->fetchColumn();
+        if ($email === false || $email === $this->owner->email) {
+            return;
+        }
+
+        throw new OwnerFileException('The database file belongs to another owner.');
     }
 
     private function writeOwner(\PDO $pdo): void

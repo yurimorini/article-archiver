@@ -280,10 +280,68 @@ final class ArchiveStoreContractTest extends TestCase
 
         self::assertNull($memory->location());
         self::assertSame(
-            $this->directory . '/' . hash('sha256', 'ada@example.com') . '.sqlite',
+            $this->directory . '/' . substr(hash('sha256', 'ada@example.com'), 0, 16) . '.sqlite',
             $sqlite->location(),
         );
         self::assertSame([], $this->databaseFiles());
+    }
+
+    public function test_a_full_hash_file_is_renamed_to_the_short_name(): void
+    {
+        $owner = new Owner('ada@example.com');
+        $hash = hash('sha256', $owner->email);
+        $full = $this->directory . '/' . $hash . '.sqlite';
+        $short = $this->directory . '/' . substr($hash, 0, 16) . '.sqlite';
+        $archive = new Archive(self::URL, 'Title', null, null, '<p>Body</p>');
+        $this->sqliteStore($full)->save($archive);
+        file_put_contents($full . '-wal', '');
+        file_put_contents($full . '-shm', '');
+
+        $store = $this->factory('sqlite')->create($owner);
+
+        self::assertSame($short, $store->location());
+        self::assertFileDoesNotExist($full);
+        self::assertFileDoesNotExist($full . '-wal');
+        self::assertFileDoesNotExist($full . '-shm');
+        self::assertFileExists($short . '-wal');
+        self::assertFileExists($short . '-shm');
+        unlink($short . '-wal');
+        unlink($short . '-shm');
+        self::assertEquals($archive, $store->find(new UrlPointer(self::URL)));
+    }
+
+    public function test_both_file_names_are_refused(): void
+    {
+        $owner = new Owner('ada@example.com');
+        $hash = hash('sha256', $owner->email);
+        $full = $this->directory . '/' . $hash . '.sqlite';
+        $short = $this->directory . '/' . substr($hash, 0, 16) . '.sqlite';
+        $this->factory('sqlite')->create($owner)->save(new Archive(self::URL, 'Title', null, null, '<p>Body</p>'));
+        file_put_contents($full, '');
+
+        $this->assertRefused(fn () => $this->factory('sqlite')->create($owner));
+
+        self::assertFileExists($short);
+        self::assertFileExists($full);
+    }
+
+    public function test_a_file_for_another_owner_is_not_read_or_written(): void
+    {
+        $owner = new Owner('ada@example.com');
+        $store = $this->factory('sqlite')->create($owner);
+        $store->save(new Archive(self::URL, 'Title', null, null, '<p>Body</p>'));
+        $pdo = new \PDO('sqlite:' . $store->location());
+        $pdo->exec("UPDATE meta SET value = 'grace@example.com' WHERE key = 'email'");
+        unset($pdo);
+
+        $this->assertRefused(fn () => $store->find(new UrlPointer(self::URL)));
+        $this->assertRefused(fn () => $store->findSummary(new UrlPointer(self::URL)));
+        $this->assertRefused(fn () => $store->save(new Archive(self::URL, 'Replaced', null, null, '<p>Replaced</p>')));
+
+        $pdo = new \PDO('sqlite:' . $store->location());
+        $statement = $pdo->query('SELECT title FROM archive');
+        self::assertInstanceOf(\PDOStatement::class, $statement);
+        self::assertSame('Title', $statement->fetchColumn());
     }
 
     /**
@@ -300,6 +358,19 @@ final class ArchiveStoreContractTest extends TestCase
         self::assertInstanceOf(\PDOStatement::class, $statement);
 
         return array_values($statement->fetchAll(\PDO::FETCH_ASSOC));
+    }
+
+    private function assertRefused(callable $call): void
+    {
+        try {
+            $call();
+        } catch (ArchiveException $exception) {
+            self::fail('Refused with an archive failure: ' . $exception->failure->value);
+        } catch (\Throwable) {
+            return;
+        }
+
+        self::fail('Expected the owner file to be refused.');
     }
 
     private function sqliteStore(string $path): SqliteArchiveStore
