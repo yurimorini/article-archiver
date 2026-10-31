@@ -21,6 +21,7 @@ final class ArchiveSummaryTest extends TestCase
             'Excerpt',
             'Site',
             '<p>body</p>',
+            null,
         );
 
         $summary = ArchiveSummary::fromArchive($archive);

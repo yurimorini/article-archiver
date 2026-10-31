@@ -66,7 +66,7 @@ final class SqliteArchiveStore implements ArchiveStore
             return null;
         }
 
-        return new Archive($row['url'], $row['title'], $row['excerpt'], $row['site_name'], $row['html']);
+        return new Archive($row['url'], $row['title'], $row['excerpt'], $row['site_name'], $row['html'], null);
     }
 
     /**

@@ -62,7 +62,7 @@ final class InMemoryArchiveStoreTest extends TestCase
         $excerpt = 'Excerpt';
         $siteName = 'Site';
         $store = new InMemoryArchiveStore(new Owner('ada@example.com'), new InMemoryArchiveShelf());
-        $store->save(new Archive($url, $title, $excerpt, $siteName, '<p>x</p>'));
+        $store->save(new Archive($url, $title, $excerpt, $siteName, '<p>x</p>', null));
 
         $summary = $store->findSummary(new UrlPointer($url));
         $stored = $store->find(new UrlPointer($url));
@@ -74,6 +74,6 @@ final class InMemoryArchiveStoreTest extends TestCase
 
     private function archive(string $url): Archive
     {
-        return new Archive($url, 'Title', null, null, '<p>Body</p>');
+        return new Archive($url, 'Title', null, null, '<p>Body</p>', null);
     }
 }
