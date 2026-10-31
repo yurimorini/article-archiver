@@ -1,0 +1,5 @@
+# Composer install trees (root and every package)
+vendor/
+
+# Symfony compiled container and HTTP cache
+**/var/cache/
