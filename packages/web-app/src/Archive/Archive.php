@@ -28,6 +28,8 @@ final readonly class Archive
         public ?string $siteName,
         /** The purified article HTML. */
         public string $html,
+        /** The database identity, or null before the store assigns one. */
+        public ?int $id,
     ) {
     }
 }

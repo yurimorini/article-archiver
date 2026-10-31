@@ -41,7 +41,7 @@ curl -X POST http://127.0.0.1:8000/api/archives \
   -d '{"url":"https://example.com/a"}'
 ```
 
-A new archive answers 201 with `{"url":"https://example.com/a","title":"..."}`. A second POST of the same URL answers 200 with the same body and does not fetch the page again.
+A new archive answers 201 with `{"id":1,"url":"https://example.com/a","title":"..."}`. A second POST of the same URL answers 200 with the same body and does not fetch the page again.
 
 The archive belongs to the owner whose email is the `eleanor.owner_email` parameter in `config/services.yaml`. Change it there. That owner has one SQLite file under `var/data/`. The file keeps the archive across requests.
 

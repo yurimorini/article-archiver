@@ -11,19 +11,19 @@ use Yumo\Eleanor\Archive\ArchiveResult;
 use Yumo\Eleanor\Archive\ArchiveSummary;
 
 /**
- * Proves that the archive success body copies only the URL and the title.
+ * Proves that the archive success body copies the id, the URL, and the title.
  */
 final class ArchiveResponseTest extends TestCase
 {
     public function test_copies_url_and_title_and_leaves_the_rest_of_the_result_out(): void
     {
         $result = new ArchiveResult(
-            new ArchiveSummary('https://example.com/a', 'Title', 'Excerpt', 'Site'),
+            new ArchiveSummary('https://example.com/a', 'Title', 'Excerpt', 'Site', 17),
             ArchiveOutcome::Written,
         );
 
         $response = ArchiveResponse::fromArchiveResult($result);
 
-        self::assertEquals(new ArchiveResponse('https://example.com/a', 'Title'), $response);
+        self::assertEquals(new ArchiveResponse(17, 'https://example.com/a', 'Title'), $response);
     }
 }

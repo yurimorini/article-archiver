@@ -20,18 +20,18 @@ final class ReplyResponderTest extends TestCase
 {
     public function test_answers_with_the_status_json_content_type_and_serialized_body(): void
     {
-        $body = new ArchiveResponse('https://example.com/a', 'Title');
+        $body = new ArchiveResponse(1, 'https://example.com/a', 'Title');
 
         $response = $this->responder()->respond(new Reply(201, $body));
 
         self::assertSame(201, $response->getStatusCode());
         self::assertSame('application/json', $response->headers->get('content-type'));
-        self::assertSame('{"url":"https://example.com/a","title":"Title"}', $response->getContent());
+        self::assertSame('{"id":1,"url":"https://example.com/a","title":"Title"}', $response->getContent());
     }
 
     public function test_adds_the_given_headers(): void
     {
-        $reply = new Reply(405, new ArchiveResponse('https://example.com', 'T'));
+        $reply = new Reply(405, new ArchiveResponse(1, 'https://example.com', 'T'));
 
         $response = $this->responder()->respond($reply, ['Allow' => 'POST']);
 

@@ -19,19 +19,19 @@ final class InMemoryArchiveStoreFactoryTest extends TestCase
     public function test_stores_made_for_one_owner_share_rows(): void
     {
         $factory = new InMemoryArchiveStoreFactory(new InMemoryArchiveShelf());
-        $archive = new Archive('https://example.com/a', 'Title', null, null, '<p>Body</p>');
-        $factory->create(new Owner('ada@example.com'))->save($archive);
+        $archive = new Archive('https://example.com/a', 'Title', null, null, '<p>Body</p>', null);
+        $stored = $factory->create(new Owner('ada@example.com'))->save($archive);
 
         $found = $factory->create(new Owner('ada@example.com'))->find(new UrlPointer('https://example.com/a'));
 
-        self::assertSame($archive, $found);
+        self::assertSame($stored, $found);
     }
 
     public function test_stores_made_for_two_owners_do_not(): void
     {
         $factory = new InMemoryArchiveStoreFactory(new InMemoryArchiveShelf());
         $factory->create(new Owner('ada@example.com'))
-            ->save(new Archive('https://example.com/a', 'Title', null, null, '<p>Body</p>'));
+            ->save(new Archive('https://example.com/a', 'Title', null, null, '<p>Body</p>', null));
 
         $found = $factory->create(new Owner('grace@example.com'))->find(new UrlPointer('https://example.com/a'));
 

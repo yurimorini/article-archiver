@@ -30,14 +30,14 @@ final class WriteReplyTest extends TestCase
 
     public function test_a_reply_becomes_a_response_with_its_status_and_body(): void
     {
-        $event = $this->viewEvent(new Reply(201, new ArchiveResponse('https://example.com/a', 'T')));
+        $event = $this->viewEvent(new Reply(201, new ArchiveResponse(1, 'https://example.com/a', 'T')));
 
         $this->subscriber()->onView($event);
 
         $response = $event->getResponse();
         self::assertNotNull($response);
         self::assertSame(201, $response->getStatusCode());
-        self::assertSame('{"url":"https://example.com/a","title":"T"}', $response->getContent());
+        self::assertSame('{"id":1,"url":"https://example.com/a","title":"T"}', $response->getContent());
     }
 
     public function test_another_result_is_left_alone(): void

@@ -42,12 +42,12 @@ final class SqliteArchiveStore implements ArchiveStore
      */
     public function findSummary(UrlPointer $url): ?ArchiveSummary
     {
-        $row = $this->fetchRow('SELECT url, title, excerpt, site_name FROM archive WHERE url = :url', $url->toString());
+        $row = $this->fetchRow('SELECT id, url, title, excerpt, site_name FROM archive WHERE url = :url', $url->toString());
         if ($row === null) {
             return null;
         }
 
-        return new ArchiveSummary($row['url'], $row['title'], $row['excerpt'], $row['site_name']);
+        return new ArchiveSummary($row['url'], $row['title'], $row['excerpt'], $row['site_name'], (int) $row['id']);
     }
 
     /**
@@ -58,7 +58,7 @@ final class SqliteArchiveStore implements ArchiveStore
     public function find(UrlPointer $url): ?Archive
     {
         $row = $this->fetchRow(
-            'SELECT a.url, a.title, a.excerpt, a.site_name, b.html'
+            'SELECT a.id, a.url, a.title, a.excerpt, a.site_name, b.html'
             . ' FROM archive a JOIN archive_body b ON b.archive_id = a.id WHERE a.url = :url',
             $url->toString(),
         );
@@ -66,24 +66,36 @@ final class SqliteArchiveStore implements ArchiveStore
             return null;
         }
 
-        return new Archive($row['url'], $row['title'], $row['excerpt'], $row['site_name'], $row['html']);
+        return new Archive($row['url'], $row['title'], $row['excerpt'], $row['site_name'], $row['html'], (int) $row['id']);
     }
 
     /**
-     * Stores `$archive` under its URL. A second save of the same URL replaces the title, excerpt, site name and HTML.
+     * Stores `$archive` under its URL and returns the stored archive.
+     *
+     * A second save of the same URL replaces the title, excerpt, site name, and HTML, and keeps the id.
+     * The id on `$archive` is not written.
      *
      * @throws ArchiveException When the archive cannot be stored, with `NotWritten`
      */
-    public function save(Archive $archive): void
+    public function save(Archive $archive): Archive
     {
         try {
-            $this->withConnection(function (\PDO $pdo) use ($archive): void {
+            return $this->withConnection(function (\PDO $pdo) use ($archive): Archive {
                 try {
                     $pdo->beginTransaction();
                     $this->writeOwner($pdo);
                     $id = $this->writeArchive($pdo, $archive);
                     $this->writeBody($pdo, $id, $archive->html);
                     $pdo->commit();
+
+                    return new Archive(
+                        $archive->url,
+                        $archive->title,
+                        $archive->excerpt,
+                        $archive->siteName,
+                        $archive->html,
+                        $id,
+                    );
                 } catch (\Throwable $failure) {
                     if ($pdo->inTransaction()) {
                         $pdo->rollBack();

@@ -24,6 +24,13 @@ final class InMemoryArchiveShelf
     private array $archives = [];
 
     /**
+     * The next id for each owner email. The first archive of an owner gets 1.
+     *
+     * @var array<string, int>
+     */
+    private array $nextId = [];
+
+    /**
      * Returns the light fields of `$owner` stored for `$url`, or null.
      */
     public function findSummary(Owner $owner, string $url): ?ArchiveSummary
@@ -45,10 +52,39 @@ final class InMemoryArchiveShelf
     }
 
     /**
-     * Stores `$archive` for `$owner` under the archive's URL.
+     * Stores `$archive` for `$owner` under the archive's URL and returns the stored archive.
+     *
+     * The first archive for an owner gets id 1. A URL that is already stored keeps its id.
+     * The id on `$archive` is ignored.
      */
-    public function save(Owner $owner, Archive $archive): void
+    public function save(Owner $owner, Archive $archive): Archive
     {
-        $this->archives[$owner->email][$archive->url] = $archive;
+        $stored = new Archive(
+            $archive->url,
+            $archive->title,
+            $archive->excerpt,
+            $archive->siteName,
+            $archive->html,
+            $this->idFor($owner, $archive->url),
+        );
+        $this->archives[$owner->email][$archive->url] = $stored;
+
+        return $stored;
+    }
+
+    /**
+     * Returns the id already stored for `$url`, or the next id for `$owner`.
+     */
+    private function idFor(Owner $owner, string $url): int
+    {
+        $current = $this->archives[$owner->email][$url] ?? null;
+        if ($current?->id !== null) {
+            return $current->id;
+        }
+
+        $id = $this->nextId[$owner->email] ?? 1;
+        $this->nextId[$owner->email] = $id + 1;
+
+        return $id;
     }
 }

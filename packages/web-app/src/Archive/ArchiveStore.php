@@ -24,11 +24,14 @@ interface ArchiveStore
     public function find(UrlPointer $url): ?Archive;
 
     /**
-     * Stores `$archive` under its URL for this owner.
+     * Stores `$archive` under its URL for this owner and returns the stored archive.
+     *
+     * The id on `$archive` is ignored. The returned id is the one this store assigned.
+     * A second save of the same URL keeps that id.
      *
      * @throws ArchiveException When the archive cannot be stored, with `NotWritten`
      */
-    public function save(Archive $archive): void;
+    public function save(Archive $archive): Archive;
 
     /**
      * Returns the file this store writes, or null when the store has no file.

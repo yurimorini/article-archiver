@@ -35,6 +35,9 @@ final class FakeArchiveStore implements ArchiveStore
     /** @var array<string, Archive> */
     private array $archives = [];
 
+    /** The next id this store assigns. The first archive gets 1. */
+    private int $nextId = 1;
+
     /**
      * Creates an empty store that writes its calls to `$log`.
      *
@@ -67,7 +70,13 @@ final class FakeArchiveStore implements ArchiveStore
         return $this->archives[$url->toString()] ?? null;
     }
 
-    public function save(Archive $archive): void
+    /**
+     * Stores `$archive` under its URL and returns the stored archive.
+     *
+     * The first archive gets id 1. A URL that is already stored keeps its id.
+     * The id on `$archive` is ignored.
+     */
+    public function save(Archive $archive): Archive
     {
         $this->log->append('save');
         $this->savedUrls[] = $archive->url;
@@ -75,7 +84,33 @@ final class FakeArchiveStore implements ArchiveStore
             throw $this->saveFailure;
         }
 
-        $this->archives[$archive->url] = $archive;
+        $stored = new Archive(
+            $archive->url,
+            $archive->title,
+            $archive->excerpt,
+            $archive->siteName,
+            $archive->html,
+            $this->idFor($archive->url),
+        );
+        $this->archives[$archive->url] = $stored;
+
+        return $stored;
+    }
+
+    /**
+     * Returns the id already stored for `$url`, or the next id for this store.
+     */
+    private function idFor(string $url): int
+    {
+        $current = $this->archives[$url] ?? null;
+        if ($current?->id !== null) {
+            return $current->id;
+        }
+
+        $id = $this->nextId;
+        ++$this->nextId;
+
+        return $id;
     }
 
     /**
