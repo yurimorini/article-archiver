@@ -16,6 +16,8 @@ final class CurlProcessIo implements Io
 
     private const float SERVER_BOOT_SECONDS = 10.0;
 
+    private const float BOOT_HOLD_SECONDS = 0.050;
+
     private const float IMPORT_TIMEOUT_SECONDS = 600.0;
 
     private const string SQL = <<<'SQL'
@@ -53,11 +55,8 @@ final class CurlProcessIo implements Io
 
     private ?bool $bootOk = null;
 
-    /**
-     * True after a poll has already seen a boot response.
-     * Success waits for a later poll, so a dying php -S can show up first.
-     */
-    private bool $bootHeld = false;
+    /** Wall clock when the boot response arrived. Success waits until `BOOT_HOLD_SECONDS` after this. */
+    private ?float $bootSeenAt = null;
 
     private ?Job $serverJob = null;
 
@@ -284,7 +283,7 @@ final class CurlProcessIo implements Io
         $this->serverStderrText = '';
         $this->serverStartedAt = microtime(true);
         $this->serverSettled = false;
-        $this->bootHeld = false;
+        $this->bootSeenAt = null;
         $this->armBoot();
     }
 
@@ -435,6 +434,9 @@ final class CurlProcessIo implements Io
         if ($this->boot instanceof \CurlHandle && $this->boot === $handle) {
             $status = curl_getinfo($handle, CURLINFO_RESPONSE_CODE);
             $this->bootOk = curl_errno($handle) === 0 && is_int($status) && $status > 0;
+            if ($this->bootOk === true) {
+                $this->bootSeenAt = microtime(true);
+            }
             $this->dropBoot();
 
             return;
@@ -585,15 +587,13 @@ final class CurlProcessIo implements Io
             return;
         }
 
-        if ($this->bootOk === true && $this->bootHeld) {
+        if ($this->bootOk === true && $this->bootSeenAt !== null && (microtime(true) - $this->bootSeenAt) >= self::BOOT_HOLD_SECONDS) {
             $this->settleServer(null);
 
             return;
         }
 
         if ($this->bootOk === true) {
-            $this->bootHeld = true;
-
             return;
         }
 
