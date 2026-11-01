@@ -22,8 +22,8 @@ The backlog note `list.md` is adopted here and removed. [adr/0010](../../adr/001
 
 | | Ticket | Blocked by | Status |
 | --- | --- | --- | --- |
-| 01 | [YUM-8 Return the archive id from the archive command](https://linear.app/yurimorini/issue/YUM-8/return-the-archive-id-from-the-archive-command) | None | Backlog |
-| 02 | [YUM-9 List a page of archives](https://linear.app/yurimorini/issue/YUM-9/list-a-page-of-archives) | YUM-8 | Backlog |
+| 01 | [YUM-8 Return the archive id from the archive command](https://linear.app/yurimorini/issue/YUM-8/return-the-archive-id-from-the-archive-command) | None | Done |
+| 02 | [YUM-9 List a page of archives](https://linear.app/yurimorini/issue/YUM-9/list-a-page-of-archives) | YUM-8 | Done |
 | 03 | [YUM-10 Read one archive](https://linear.app/yurimorini/issue/YUM-10/read-one-archive) | YUM-8 | Backlog |
 
 ## Design
@@ -35,4 +35,4 @@ The backlog note `list.md` is adopted here and removed. [adr/0010](../../adr/001
 
 ## Current
 
-[YUM-8 — Return the archive id from the archive command](https://linear.app/yurimorini/issue/YUM-8/return-the-archive-id-from-the-archive-command). Design: [Archive id](design/ArchiveId.md). Plan: [2026-10-31](plans/2026-10-31-archive-id.md). [YUM-9](https://linear.app/yurimorini/issue/YUM-9/list-a-page-of-archives) and [YUM-10](https://linear.app/yurimorini/issue/YUM-10/read-one-archive) wait on YUM-8.
+[YUM-10 — Read one archive](https://linear.app/yurimorini/issue/YUM-10/read-one-archive). [YUM-8](https://linear.app/yurimorini/issue/YUM-8/return-the-archive-id-from-the-archive-command) and [YUM-9](https://linear.app/yurimorini/issue/YUM-9/list-a-page-of-archives) are Done. YUM-9 is on `list-route` at `ead930d`.
