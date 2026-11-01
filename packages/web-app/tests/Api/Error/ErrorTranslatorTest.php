@@ -17,6 +17,7 @@ use Yumo\Eleanor\Api\Error\ErrorTranslator;
 use Yumo\Eleanor\Archive\ArchiveException;
 use Yumo\Eleanor\Archive\ArchiveFailure;
 use Yumo\Eleanor\Archive\InvalidArchiveQuery;
+use Yumo\Eleanor\Archive\MissingArchive;
 
 /**
  * Proves that every throwable becomes one status, one stable code, and one fixed message.
@@ -181,6 +182,15 @@ final class ErrorTranslatorTest extends TestCase
         self::assertSame(400, $reply->status);
         self::assertSame('invalid_query', $reply->body->code);
         self::assertSame('A parameter has an invalid value.', $reply->body->message);
+    }
+
+    public function test_translates_missing_archive(): void
+    {
+        $reply = new ErrorTranslator()->translate(new MissingArchive());
+
+        self::assertSame(404, $reply->status);
+        self::assertSame('archive_not_found', $reply->body->code);
+        self::assertSame('The archive does not exist.', $reply->body->message);
     }
 
     #[DataProvider('translations')]

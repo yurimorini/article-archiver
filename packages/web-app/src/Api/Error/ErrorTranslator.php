@@ -19,6 +19,7 @@ use Yumo\Eleanor\Api\Response\Reply;
 use Yumo\Eleanor\Archive\ArchiveException;
 use Yumo\Eleanor\Archive\ArchiveFailure;
 use Yumo\Eleanor\Archive\InvalidArchiveQuery;
+use Yumo\Eleanor\Archive\MissingArchive;
 
 /**
  * Turns any throwable into the error reply a client sees.
@@ -134,6 +135,7 @@ final class ErrorTranslator
             $error instanceof AuthenticationException => RequestFailure::Unauthenticated,
             $error instanceof AccessDeniedException && !$this->isFullyAuthenticated() => RequestFailure::Unauthenticated,
             $error instanceof NotFoundHttpException => RequestFailure::NotFound,
+            $error instanceof MissingArchive => RequestFailure::ArchiveNotFound,
             $error instanceof MethodNotAllowedHttpException => RequestFailure::MethodNotAllowed,
             $error instanceof UnsupportedMediaTypeHttpException => RequestFailure::UnsupportedMediaType,
             $error instanceof InvalidArchiveQuery => RequestFailure::InvalidQuery,

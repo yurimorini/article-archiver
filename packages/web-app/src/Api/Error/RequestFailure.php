@@ -23,6 +23,9 @@ enum RequestFailure: string
     /** No route matches the path. */
     case NotFound = 'not_found';
 
+    /** No archive has the requested id. */
+    case ArchiveNotFound = 'archive_not_found';
+
     /** The path exists but not for this method. */
     case MethodNotAllowed = 'method_not_allowed';
 
@@ -40,7 +43,7 @@ enum RequestFailure: string
         return match ($this) {
             self::InvalidJson, self::InvalidBody, self::InvalidQuery => 400,
             self::Unauthenticated => 401,
-            self::NotFound => 404,
+            self::NotFound, self::ArchiveNotFound => 404,
             self::MethodNotAllowed => 405,
             self::UnsupportedMediaType => 415,
         };
@@ -57,6 +60,7 @@ enum RequestFailure: string
             self::InvalidQuery => 'A parameter has an invalid value.',
             self::Unauthenticated => 'The request is not authenticated.',
             self::NotFound => 'The path does not exist.',
+            self::ArchiveNotFound => 'The archive does not exist.',
             self::MethodNotAllowed => 'The method is not allowed for this path.',
             self::UnsupportedMediaType => 'The request must be sent as application/json.',
         };
