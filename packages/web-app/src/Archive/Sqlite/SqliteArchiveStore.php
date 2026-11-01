@@ -6,8 +6,12 @@ namespace Yumo\Eleanor\Archive\Sqlite;
 
 use Symfony\Component\DependencyInjection\Attribute\Exclude;
 use Yumo\Eleanor\Archive\Archive;
+use Yumo\Eleanor\Archive\ArchiveDirection;
 use Yumo\Eleanor\Archive\ArchiveException;
 use Yumo\Eleanor\Archive\ArchiveFailure;
+use Yumo\Eleanor\Archive\ArchivePageQuery;
+use Yumo\Eleanor\Archive\ArchivePageSlice;
+use Yumo\Eleanor\Archive\ArchiveSort;
 use Yumo\Eleanor\Archive\ArchiveStore;
 use Yumo\Eleanor\Archive\ArchiveSummary;
 use Yumo\Eleanor\Archive\Owner;
@@ -17,7 +21,8 @@ use Yumo\Eleanor\Archive\UrlPointer;
  * Keeps one owner's archives in one SQLite file.
  *
  * A lookup never creates the file. The first `save` opens the connection, which creates the file and its directory.
- * `save` throws `ArchiveException`. The connection still raises `DirectoryException` and `\PDOException`.
+ * `save` throws `ArchiveException` with `NotWritten`. `findPage` throws `ArchiveException` with `Unexpected`.
+ * `find` and `findSummary` are not wrapped. The connection still raises `DirectoryException` and `\PDOException`.
  *
  * `$store = new SqliteArchiveStore($owner, new SqliteConnection('/data/ada.sqlite', new SqliteSchema()));`
  */
@@ -42,12 +47,22 @@ final class SqliteArchiveStore implements ArchiveStore
      */
     public function findSummary(UrlPointer $url): ?ArchiveSummary
     {
-        $row = $this->fetchRow('SELECT url, title, excerpt, site_name FROM archive WHERE url = :url', $url->toString());
+        $row = $this->fetchRow(
+            'SELECT id, url, title, excerpt, site_name, created_at FROM archive WHERE url = :url',
+            $url->toString(),
+        );
         if ($row === null) {
             return null;
         }
 
-        return new ArchiveSummary($row['url'], $row['title'], $row['excerpt'], $row['site_name']);
+        return new ArchiveSummary(
+            $row['url'],
+            $row['title'],
+            $row['excerpt'],
+            $row['site_name'],
+            (int) $row['id'],
+            (string) $row['created_at'],
+        );
     }
 
     /**
@@ -58,7 +73,7 @@ final class SqliteArchiveStore implements ArchiveStore
     public function find(UrlPointer $url): ?Archive
     {
         $row = $this->fetchRow(
-            'SELECT a.url, a.title, a.excerpt, a.site_name, b.html'
+            'SELECT a.id, a.url, a.title, a.excerpt, a.site_name, a.created_at, b.html'
             . ' FROM archive a JOIN archive_body b ON b.archive_id = a.id WHERE a.url = :url',
             $url->toString(),
         );
@@ -66,24 +81,72 @@ final class SqliteArchiveStore implements ArchiveStore
             return null;
         }
 
-        return new Archive($row['url'], $row['title'], $row['excerpt'], $row['site_name'], $row['html']);
+        return new Archive(
+            $row['url'],
+            $row['title'],
+            $row['excerpt'],
+            $row['site_name'],
+            $row['html'],
+            (int) $row['id'],
+            (string) $row['created_at'],
+        );
     }
 
     /**
-     * Stores `$archive` under its URL. A second save of the same URL replaces the title, excerpt, site name and HTML.
+     * Returns one page of this owner's archives and the count of every archive.
+     *
+     * A missing file is an empty page and is not created. Rows are ordered by `created_at`, then by id.
+     * The page and the count are one snapshot. The sort token `archived` is the `created_at` column.
+     *
+     * @throws ArchiveException When the page cannot be read, with `Unexpected`
+     * @throws OwnerFileException When the file belongs to another owner
+     */
+    public function findPage(ArchivePageQuery $query): ArchivePageSlice
+    {
+        if (!is_file($this->connection->path)) {
+            return new ArchivePageSlice([], 0);
+        }
+
+        try {
+            return $this->withConnection(function (\PDO $pdo) use ($query): ArchivePageSlice {
+                return $this->readPage($pdo, $query);
+            });
+        } catch (OwnerFileException $error) {
+            // The owner check stays a refusal. It is not an archive read failure.
+            throw $error;
+        } catch (\Throwable $error) {
+            throw new ArchiveException(ArchiveFailure::Unexpected, $error);
+        }
+    }
+
+    /**
+     * Stores `$archive` under its URL and returns the stored archive.
+     *
+     * A second save of the same URL replaces the title, excerpt, site name, and HTML, and keeps the id and the insert time.
+     * The id on `$archive` is not written. The insert time is the row's `created_at` and is not changed on conflict.
      *
      * @throws ArchiveException When the archive cannot be stored, with `NotWritten`
      */
-    public function save(Archive $archive): void
+    public function save(Archive $archive): Archive
     {
         try {
-            $this->withConnection(function (\PDO $pdo) use ($archive): void {
+            return $this->withConnection(function (\PDO $pdo) use ($archive): Archive {
                 try {
                     $pdo->beginTransaction();
                     $this->writeOwner($pdo);
-                    $id = $this->writeArchive($pdo, $archive);
+                    [$id, $archived] = $this->writeArchive($pdo, $archive);
                     $this->writeBody($pdo, $id, $archive->html);
                     $pdo->commit();
+
+                    return new Archive(
+                        $archive->url,
+                        $archive->title,
+                        $archive->excerpt,
+                        $archive->siteName,
+                        $archive->html,
+                        $id,
+                        $archived,
+                    );
                 } catch (\Throwable $failure) {
                     if ($pdo->inTransaction()) {
                         $pdo->rollBack();
@@ -95,6 +158,66 @@ final class SqliteArchiveStore implements ArchiveStore
             throw new ArchiveException(ArchiveFailure::NotWritten, $error);
         } catch (\PDOException $error) {
             throw new ArchiveException(ArchiveFailure::NotWritten, $error);
+        }
+    }
+
+    /**
+     * Reads one page and the count of every archive.
+     *
+     * Both statements share one transaction, so a save cannot land between them.
+     * The order words come from `$query`, not from a query string.
+     *
+     * @throws \PDOException When the page cannot be read
+     */
+    private function readPage(\PDO $pdo, ArchivePageQuery $query): ArchivePageSlice
+    {
+        $column = match ($query->sort) {
+            ArchiveSort::Archived => 'created_at',
+        };
+        $direction = match ($query->dir) {
+            ArchiveDirection::Asc => 'ASC',
+            ArchiveDirection::Desc => 'DESC',
+        };
+        $offset = ($query->page - 1) * $query->size;
+
+        try {
+            $pdo->beginTransaction();
+            $statement = $pdo->query(
+                'SELECT id, url, title, excerpt, site_name, created_at FROM archive'
+                . ' ORDER BY ' . $column . ' ' . $direction . ', id ' . $direction
+                . ' LIMIT ' . $query->size . ' OFFSET ' . $offset,
+            );
+            if ($statement === false) {
+                throw new \PDOException('The archive page could not be read.');
+            }
+
+            $items = [];
+            foreach ($statement->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                $items[] = new ArchiveSummary(
+                    $row['url'],
+                    $row['title'],
+                    $row['excerpt'],
+                    $row['site_name'],
+                    (int) $row['id'],
+                    (string) $row['created_at'],
+                );
+            }
+
+            $count = $pdo->query('SELECT COUNT(*) FROM archive');
+            if ($count === false) {
+                throw new \PDOException('The archive count could not be read.');
+            }
+
+            $slice = new ArchivePageSlice($items, (int) $count->fetchColumn());
+            $pdo->commit();
+
+            return $slice;
+        } catch (\Throwable $failure) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            throw $failure;
         }
     }
 
@@ -132,11 +255,33 @@ final class SqliteArchiveStore implements ArchiveStore
     {
         try {
             $pdo = $this->connection->open();
+            $this->assertOwner($pdo);
 
             return $use($pdo);
         } finally {
             $this->connection->close();
         }
+    }
+
+    /**
+     * Stops when the file already names a different owner.
+     *
+     * A missing email row is the first write, which inserts the email.
+     *
+     * @throws OwnerFileException When `meta.email` is present and is not this owner
+     */
+    private function assertOwner(\PDO $pdo): void
+    {
+        $statement = $pdo->query("SELECT value FROM meta WHERE key = 'email'");
+        if ($statement === false) {
+            throw new OwnerFileException('The owner email could not be read.');
+        }
+        $email = $statement->fetchColumn();
+        if ($email === false || $email === $this->owner->email) {
+            return;
+        }
+
+        throw new OwnerFileException('The database file belongs to another owner.');
     }
 
     private function writeOwner(\PDO $pdo): void
@@ -152,14 +297,21 @@ final class SqliteArchiveStore implements ArchiveStore
         );
     }
 
-    private function writeArchive(\PDO $pdo, Archive $archive): int
+    /**
+     * Inserts or updates the archive row and returns its id and insert time.
+     *
+     * The insert time is the column default. A conflict does not assign `created_at`.
+     *
+     * @return array{int, string}
+     */
+    private function writeArchive(\PDO $pdo, Archive $archive): array
     {
         $statement = $pdo->prepare(
             'INSERT INTO archive (url, title, excerpt, site_name)'
             . ' VALUES (:url, :title, :excerpt, :site_name)'
             . ' ON CONFLICT(url) DO UPDATE SET'
             . ' title = excluded.title, excerpt = excluded.excerpt, site_name = excluded.site_name'
-            . ' RETURNING id',
+            . ' RETURNING id, created_at',
         );
         $statement->execute([
             'url' => $archive->url,
@@ -167,8 +319,12 @@ final class SqliteArchiveStore implements ArchiveStore
             'excerpt' => $archive->excerpt,
             'site_name' => $archive->siteName,
         ]);
+        $row = $statement->fetch(\PDO::FETCH_NUM);
+        if (!is_array($row)) {
+            throw new \PDOException('The stored archive row could not be read.');
+        }
 
-        return (int) $statement->fetchColumn();
+        return [(int) $row[0], (string) $row[1]];
     }
 
     private function writeBody(\PDO $pdo, int $id, string $html): void

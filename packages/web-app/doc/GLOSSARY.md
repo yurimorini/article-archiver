@@ -5,7 +5,7 @@ Eleanor keeps a copy of a page an owner chooses. The copy, the purified body, an
 ## Language
 
 **Archive**:
-The stored copy of one page for one owner. That owner has one archive of the page, and the page URL names it.
+The stored copy of one page for one owner. That owner has one archive of the page. The page URL names the archive. An integer id refers to the same archive.
 _Avoid_: Article, bookmark, snapshot
 
 **Article**:

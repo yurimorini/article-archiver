@@ -1,11 +1,18 @@
 parameters:
     eleanor.owner_email: 'owner@example.test'
 
+    # The largest page size GET /api/archives accepts. A larger size is rejected.
+    eleanor.archive_page_max_size: 100
+
     # Each test that boots the kernel sets ELEANOR_DATA_DIR first. See ArchiveDirectories::isolate().
     eleanor.data_dir: '%env(ELEANOR_DATA_DIR)%'
     eleanor.lock_dir: '%env(ELEANOR_LOCK_DIR)%'
 
 services:
+    Yumo\Eleanor\Api\ArchivePageQueryFactory:
+        arguments:
+            $maxSize: '%eleanor.archive_page_max_size%'
+
     Yumo\Eleanor\Tests\Support\FakeArticleFetcher:
         public: true
 

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Yumo\Eleanor\Tests\Support;
 
 use Yumo\Eleanor\Archive\Archive;
+use Yumo\Eleanor\Archive\ArchivePageQuery;
+use Yumo\Eleanor\Archive\ArchivePageSlice;
 use Yumo\Eleanor\Archive\ArchiveStore;
 use Yumo\Eleanor\Archive\ArchiveSummary;
 use Yumo\Eleanor\Archive\UrlPointer;
@@ -13,7 +15,7 @@ use Yumo\Eleanor\Archive\UrlPointer;
  * Keeps archives in an array, records every call, and can be told to fail.
  *
  * `findSummary` appends `find` to the shared log and `save` appends `save`. `find` is for the test to read
- * what was stored, so it leaves no trace.
+ * what was stored, so it leaves no trace. `findPage` returns `page` and leaves no trace.
  */
 final class FakeArchiveStore implements ArchiveStore
 {
@@ -32,8 +34,14 @@ final class FakeArchiveStore implements ArchiveStore
     /** The file `location` returns, or null when this store has no file. */
     public ?string $location = null;
 
+    /** The page `findPage` returns. A test replaces it. */
+    public ArchivePageSlice $page;
+
     /** @var array<string, Archive> */
     private array $archives = [];
+
+    /** The next id this store assigns. The first archive gets 1. */
+    private int $nextId = 1;
 
     /**
      * Creates an empty store that writes its calls to `$log`.
@@ -44,6 +52,7 @@ final class FakeArchiveStore implements ArchiveStore
         /** The log that the lock, the fetcher, and this store share. */
         private \ArrayObject $log = new \ArrayObject(),
     ) {
+        $this->page = new ArchivePageSlice([], 0);
     }
 
     public function findSummary(UrlPointer $url): ?ArchiveSummary
@@ -67,7 +76,23 @@ final class FakeArchiveStore implements ArchiveStore
         return $this->archives[$url->toString()] ?? null;
     }
 
-    public function save(Archive $archive): void
+    /**
+     * Returns the page a test stored on `page`.
+     *
+     * The default is an empty list and total 0.
+     */
+    public function findPage(ArchivePageQuery $query): ArchivePageSlice
+    {
+        return $this->page;
+    }
+
+    /**
+     * Stores `$archive` under its URL and returns the stored archive.
+     *
+     * The first archive gets id 1. A URL that is already stored keeps its id and its insert time.
+     * The id on `$archive` is ignored. A new row with no insert time is stamped in UTC.
+     */
+    public function save(Archive $archive): Archive
     {
         $this->log->append('save');
         $this->savedUrls[] = $archive->url;
@@ -75,7 +100,47 @@ final class FakeArchiveStore implements ArchiveStore
             throw $this->saveFailure;
         }
 
-        $this->archives[$archive->url] = $archive;
+        $stored = new Archive(
+            $archive->url,
+            $archive->title,
+            $archive->excerpt,
+            $archive->siteName,
+            $archive->html,
+            $this->idFor($archive->url),
+            $this->archivedFor($archive),
+        );
+        $this->archives[$archive->url] = $stored;
+
+        return $stored;
+    }
+
+    /**
+     * Returns the insert time already stored for `$archive`, or stamps one when the row is new.
+     */
+    private function archivedFor(Archive $archive): string
+    {
+        $current = $this->archives[$archive->url] ?? null;
+        if (is_string($current?->archived)) {
+            return $current->archived;
+        }
+
+        return $archive->archived ?? gmdate('Y-m-d\TH:i:s\Z');
+    }
+
+    /**
+     * Returns the id already stored for `$url`, or the next id for this store.
+     */
+    private function idFor(string $url): int
+    {
+        $current = $this->archives[$url] ?? null;
+        if ($current?->id !== null) {
+            return $current->id;
+        }
+
+        $id = $this->nextId;
+        ++$this->nextId;
+
+        return $id;
     }
 
     /**

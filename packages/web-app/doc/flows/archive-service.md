@@ -15,7 +15,7 @@ flowchart TD
   fetch -->|Article| built[Archive]
   fetch -->|ArchiveException| fail[ArchiveException]
   built --> save["ArchiveStore.save"]
-  save -->|saved| written["ArchiveResult Written"]
+  save -->|stored archive| written["ArchiveResult Written"]
   save -->|ArchiveException| fail
 ```
 
@@ -28,9 +28,9 @@ flowchart TD
 | ArchiveStore.findSummary | Returns the stored summary, or nothing. A hit does not fetch. | [ArchiveStore.php](../../src/Archive/ArchiveStore.php) |
 | ArticleFetcher | Fetches the page. `ArticleReaderAdapter` maps a library failure to `ArchiveException`. | [ArticleFetcher.php](../../src/Archive/ArticleFetcher.php) |
 | Archive | The copy built from the fetched article. | [Archive.php](../../src/Archive/Archive.php) |
-| ArchiveStore.save | Stores that copy. A failure is `ArchiveException`. | [ArchiveStore.php](../../src/Archive/ArchiveStore.php) |
+| ArchiveStore.save | Stores that copy and returns the stored archive. A failure is `ArchiveException`. | [ArchiveStore.php](../../src/Archive/ArchiveStore.php) |
 | ArchiveResult AlreadyStored | The summary that was already stored. | [ArchiveResult.php](../../src/Archive/ArchiveResult.php) |
-| ArchiveResult Written | The summary of the copy just stored. | [ArchiveResult.php](../../src/Archive/ArchiveResult.php) |
+| ArchiveResult Written | The summary of the archive `save` returned. | [ArchiveResult.php](../../src/Archive/ArchiveResult.php) |
 | ArchiveException | Leaves the service. The service does not map it to a response. | [ArchiveException.php](../../src/Archive/ArchiveException.php) |
 
 ## Leaves

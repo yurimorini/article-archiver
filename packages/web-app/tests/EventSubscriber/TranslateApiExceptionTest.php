@@ -22,6 +22,7 @@ use Yumo\Eleanor\Api\Response\JsonBodySerializer;
 use Yumo\Eleanor\Api\Response\ReplyResponder;
 use Yumo\Eleanor\Archive\ArchiveException;
 use Yumo\Eleanor\Archive\ArchiveFailure;
+use Yumo\Eleanor\Archive\InvalidArchiveQuery;
 use Yumo\Eleanor\EventSubscriber\TranslateApiException;
 use Yumo\Eleanor\Request\EnrichedRequest;
 
@@ -105,6 +106,22 @@ final class TranslateApiExceptionTest extends TestCase
         $this->subscriber()->onException($event);
 
         self::assertSame(422, $event->getResponse()?->getStatusCode());
+        self::assertSame([], $this->handler->getRecords());
+    }
+
+    public function test_invalid_query_writes_no_error_line(): void
+    {
+        $event = $this->exceptionEvent('/api/archives', new InvalidArchiveQuery());
+
+        $this->subscriber()->onException($event);
+
+        $response = $event->getResponse();
+        self::assertNotNull($response);
+        self::assertSame(400, $response->getStatusCode());
+        self::assertSame(
+            '{"code":"invalid_query","message":"A parameter has an invalid value."}',
+            $response->getContent(),
+        );
         self::assertSame([], $this->handler->getRecords());
     }
 

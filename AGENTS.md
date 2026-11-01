@@ -5,16 +5,16 @@ You are an expert AI coding assistant working in this repository. Your goal is t
 Write exclusively in English.
 
 ## Core Workflow Rules
+
 - **Follow existing patterns:** Inspect adjacent code and match the established style, naming conventions, and architecture before writing new code.
 - **Scope of changes:** Keep pull requests and diffs small. Focus on one feature or bugfix at a time.
 - **Dependencies:** Do not add new third-party packages or dependencies without explicit justification and approval.
 - **Verification:** Always run relevant tests and linters locally to ensure nothing is broken before finishing a task.
+- **Keep public APIs narrow:** CLI/server code should not know tensor internals.
 
 ## Design
 
-- Apply SOLID principles.
-- Prefer simplicity over compactness.
-- Prefer readable code and an clean architecture.
+See `.agents/rules/project-foundation.md` 
 
 ## Where to read
 

@@ -49,7 +49,7 @@ This folder is where `to-spec` publishes, in place of `.scratch/<feature>/`. `br
 4. For the current ticket, run `brainstorming`. The functional spec and the ticket are closed. Write the design to `design/<Name>.md`. Done when the user accepts that design.
 5. Run `writing-plans` from that design. Save the plan under `plans/`. Done when the user accepts the plan.
 
-Then implement that ticket. The next ticket starts at step 4.
+Then implement that ticket in an isolated workspace. Follow `.agents/rules/plan-workspace.md`. The next ticket starts at step 4.
 
 A contrast during `brainstorming or grill-me-with-docs` uses the question in `.agents/rules/project-foundation.md`: name the document, the locked choice, and one alternative, and ask whether to revise it. The document may be the functional spec, a design, or an ADR. Edit it only after the user says yes. Then continue the design.
 

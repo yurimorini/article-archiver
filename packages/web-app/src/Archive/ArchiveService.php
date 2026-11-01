@@ -65,11 +65,11 @@ final class ArchiveService
         }
 
         $archive = $this->fromSuccess($url, $fetched);
-        $this->save($url, $archive);
+        $stored = $this->save($url, $archive);
         $this->written($url);
 
         return new ArchiveResult(
-            ArchiveSummary::fromArchive($archive),
+            ArchiveSummary::fromArchive($stored),
             ArchiveOutcome::Written,
         );
     }
@@ -93,18 +93,22 @@ final class ArchiveService
             $article->excerpt,
             $article->siteName,
             $article->html,
+            null,
+            null,
         );
     }
 
     /**
-     * Stores `$archive`. The store throws `ArchiveException` and this method logs and rethrows it.
+     * Stores `$archive` and returns the stored archive.
+     *
+     * The store throws `ArchiveException` and this method logs and rethrows it.
      *
      * @throws ArchiveException
      */
-    private function save(UrlPointer $url, Archive $archive): void
+    private function save(UrlPointer $url, Archive $archive): Archive
     {
         try {
-            $this->store->save($archive);
+            return $this->store->save($archive);
         } catch (ArchiveException $error) {
             $this->failed($url, $error);
 

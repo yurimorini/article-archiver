@@ -17,6 +17,9 @@ enum RequestFailure: string
     /** The body is JSON but does not have the expected shape. */
     case InvalidBody = 'invalid_body';
 
+    /** A query parameter is not a legal value. */
+    case InvalidQuery = 'invalid_query';
+
     /** No route matches the path. */
     case NotFound = 'not_found';
 
@@ -35,7 +38,7 @@ enum RequestFailure: string
     public function status(): int
     {
         return match ($this) {
-            self::InvalidJson, self::InvalidBody => 400,
+            self::InvalidJson, self::InvalidBody, self::InvalidQuery => 400,
             self::Unauthenticated => 401,
             self::NotFound => 404,
             self::MethodNotAllowed => 405,
@@ -51,6 +54,7 @@ enum RequestFailure: string
         return match ($this) {
             self::InvalidJson => 'The request body is not valid JSON.',
             self::InvalidBody => 'The request body must be a JSON object with a string url.',
+            self::InvalidQuery => 'A parameter has an invalid value.',
             self::Unauthenticated => 'The request is not authenticated.',
             self::NotFound => 'The path does not exist.',
             self::MethodNotAllowed => 'The method is not allowed for this path.',

@@ -12,13 +12,15 @@ Every controller that works on one owner's archives needs the same two steps: re
 
 ## Module
 
-One new class in `Yumo\Eleanor\Api\Resolver`.
+The resolver lives in `Yumo\Eleanor\Api\Resolver`.
 
-- `ArchiveServiceResolver`: final class implementing `Symfony\Component\HttpKernel\Controller\ValueResolverInterface`.
-  - The constructor takes `OwnerProvider` and `ArchiveServiceFactory`.
-  - `resolve(Request $request, ArgumentMetadata $argument): iterable` returns an empty array unless `$argument->getType()` is `ArchiveService::class`. For that type it returns a one-item array: `$this->factory->create($this->owners->owner())`.
+- `OwnerScopedServiceResolver`: final class implementing `Symfony\Component\HttpKernel\Controller\ValueResolverInterface`.
+  - The constructor is `(OwnerProvider $owners, ArchiveServiceFactory $archives, ArchiveListServiceFactory $lists)`.
+  - `resolve(Request $request, ArgumentMetadata $argument): array` returns `list<ArchiveService|ArchiveListService>`. For `ArchiveService::class` it returns `[$this->archives->create($this->owners->owner())]`. For `ArchiveListService::class` it returns `[$this->lists->create($this->owners->owner())]`. Any other type returns an empty array.
+  - `owner()` runs only on a match.
   - It does not read the request.
-  - It is global, not targeted. `ArchiveService` is `#[Exclude]`, so `ServiceValueResolver` cannot resolve it and no other resolver competes for that type. No attribute is needed on the argument.
+  - It stays global, not targeted. `ArchiveService` and `ArchiveListService` both stay `#[Exclude]`, so `ServiceValueResolver` cannot resolve them and no other resolver competes for those types. No attribute is needed on the argument.
+  - A later owner-scoped service adds one constructor argument and one `match` arm.
 
 `CreateArchiveController`:
 
@@ -26,8 +28,6 @@ One new class in `Yumo\Eleanor\Api\Resolver`.
 - `create(CreateArchiveBody $body, ArchiveService $archives): JsonResponse`. The body argument keeps `MapRequestPayload`.
 - `$result = $archives->archive($url)`. The status, the JSON, and the `ArchiveException` handling do not change.
 - The class docblock keeps its note that `ArchiveException` is not caught.
-
-When a second owner-scoped service exists, extract the shared step "owner, then factory" from the two resolvers. Not before.
 
 ## Configuration
 
@@ -40,7 +40,7 @@ The default priority is used. Observed in slice 5b with `debug:container debug.a
 `POST /api/archives`, unchanged for the client:
 
 1. `RequestPayloadValueResolver` maps and validates the body.
-2. `ArchiveServiceResolver` asks `OwnerProvider` for the `Owner` and `ArchiveServiceFactory` for the service of that owner.
+2. `OwnerScopedServiceResolver` asks `OwnerProvider` for the `Owner` and `ArchiveServiceFactory` for the service of that owner.
 3. The action calls `$archives->archive($url)` and answers 201 or 200 as before.
 
 The resolver runs after `kernel.request`, so after the firewall slice's authentication. It runs after `kernel.controller`, so after `LogApiRequest`.
@@ -51,15 +51,17 @@ None added. An exception thrown by `OwnerProvider::owner()` escapes the resolver
 
 ## Test
 
-Unit test, no kernel, `tests/Api/Resolver/ArchiveServiceResolverTest.php`:
+Unit test, no kernel, `tests/Api/Resolver/OwnerScopedServiceResolverTest.php`:
 
-- An argument of type `ArchiveService` returns one `ArchiveService`. With the real in-memory factory and the fake fetcher, archiving a URL through it, then through a second resolved service for the same owner, gives `AlreadyStored`. This proves the owner reached the factory.
-- An argument of another type returns an empty array.
-- An argument with no type returns an empty array.
+- `test_builds_the_archive_service_for_the_owner_of_the_provider`
+- `test_asks_the_provider_on_every_archive_call_and_keeps_no_service`
+- `test_returns_the_list_service_of_the_current_owner`
+- `test_returns_one_service_for_each_known_type`
+- `test_answers_a_nullable_argument_and_an_argument_with_a_default`
+- `test_lets_an_owner_failure_escape_before_any_service_is_built`
+- `test_ignores_an_argument_it_does_not_own_without_asking_the_owner`
 
-`OwnerProvider` in that test is a small stub that returns a chosen `Owner`.
-
-No other test changes. `CreateArchiveRouteTest` and `LogApiRequestTest` stay as they are and prove the wiring through the kernel. `ProductionWiringTest` handles a real request on the `prod` container, so it also proves the resolver is registered there. A failing wiring would stop all three.
+`CreateArchiveRouteTest` and `LogApiRequestTest` stay as they are and prove the wiring through the kernel. `ProductionWiringTest` handles a real request on the `prod` container, so it also proves the resolver is registered there. A failing wiring would stop all three.
 
 `./bin/quality` passing for `web-app` is an acceptance check, not a test.
 
@@ -72,4 +74,4 @@ No other test changes. `CreateArchiveRouteTest` and `LogApiRequestTest` stay as 
 
 ## Out of scope
 
-A generic resolver. A targeted resolver. A context object. Mapping an unresolved owner to a status. Any change to `ArchiveService`, `ArchiveServiceFactory`, `OwnerProvider`, or the store.
+A factory port and an iterable of factories. A targeted resolver. A context object. Mapping an unresolved owner to a status. Any change to `ArchiveService`, `ArchiveServiceFactory`, `OwnerProvider`, or the store.
