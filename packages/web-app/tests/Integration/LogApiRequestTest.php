@@ -142,13 +142,22 @@ final class LogApiRequestTest extends WebTestCase
         self::assertNull($enriched->referer);
     }
 
-    public function test_head_leaves_the_attribute_absent(): void
+    public function test_unauthenticated_head_leaves_the_attribute_absent(): void
     {
         $client = static::createClient();
         $client->request('HEAD', '/api/archives');
 
-        self::assertSame(405, $this->symfonyResponse($client->getResponse())->getStatusCode());
         self::assertFalse($this->httpRequest($client->getRequest())->attributes->has(EnrichedRequest::class));
+    }
+
+    public function test_authenticated_head_reaches_the_action(): void
+    {
+        $client = static::createClient();
+        $client->request('HEAD', '/api/archives', server: [
+            'HTTP_AUTHORIZATION' => Bearer::header(),
+        ]);
+
+        self::assertTrue($this->httpRequest($client->getRequest())->attributes->has(EnrichedRequest::class));
     }
 
     public function test_unmatched_post_leaves_the_attribute_absent(): void

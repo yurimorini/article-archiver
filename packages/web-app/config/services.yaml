@@ -20,6 +20,9 @@ parameters:
     # The directory that holds the per-url lock files.
     eleanor.lock_dir: '%kernel.project_dir%/var/lock'
 
+    # The largest page size GET /api/archives accepts. A larger size is rejected.
+    eleanor.archive_page_max_size: 100
+
 services:
     # default configuration for services in *this* file
     _defaults:
@@ -65,3 +68,7 @@ services:
         alias: Yumo\Eleanor\Import\LineCandidateStreamFactory
 
     Yumo\ArtcleReader\UrlGuard\UrlGuard: ~
+
+    Yumo\Eleanor\Api\ArchivePageQueryFactory:
+        arguments:
+            $maxSize: '%eleanor.archive_page_max_size%'

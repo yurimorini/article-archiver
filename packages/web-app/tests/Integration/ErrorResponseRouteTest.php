@@ -107,29 +107,25 @@ final class ErrorResponseRouteTest extends WebTestCase
     /**
      * @return iterable<string, array{string}>
      */
-    public static function readMethodProvider(): iterable
+    public static function disallowedMethodProvider(): iterable
     {
-        yield 'GET' => ['GET'];
-        yield 'HEAD' => ['HEAD'];
+        yield 'PUT' => ['PUT'];
+        yield 'DELETE' => ['DELETE'];
     }
 
-    #[DataProvider('readMethodProvider')]
-    public function test_get_and_head_are_405_with_allow(string $method): void
+    #[DataProvider('disallowedMethodProvider')]
+    public function test_put_and_delete_are_405_with_allow(string $method): void
     {
         $client = static::createClient();
         $client->request($method, '/api/archives');
 
         $response = $client->getResponse();
+        $allow = (string) $response->headers->get('Allow');
         self::assertSame(405, $response->getStatusCode());
-        self::assertStringContainsString('POST', (string) $response->headers->get('Allow'));
+        self::assertStringContainsString('GET', $allow);
+        self::assertStringContainsString('HEAD', $allow);
+        self::assertStringContainsString('POST', $allow);
         self::assertResponseHeaderSame('content-type', 'application/json');
-
-        if ($method === 'HEAD') {
-            self::assertSame('', $response->getContent());
-
-            return;
-        }
-
         self::assertSame(
             ['code' => 'method_not_allowed', 'message' => 'The method is not allowed for this path.'],
             $this->decodedBody($client),
