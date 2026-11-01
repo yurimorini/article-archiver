@@ -6,6 +6,7 @@ namespace Yumo\Eleanor\Tests\Support\InMemory;
 
 use Symfony\Component\DependencyInjection\Attribute\Exclude;
 use Yumo\Eleanor\Archive\Archive;
+use Yumo\Eleanor\Archive\ArchiveId;
 use Yumo\Eleanor\Archive\ArchivePageQuery;
 use Yumo\Eleanor\Archive\ArchivePageSlice;
 use Yumo\Eleanor\Archive\ArchiveStore;
@@ -46,6 +47,32 @@ final class InMemoryArchiveStore implements ArchiveStore
     public function find(UrlPointer $url): ?Archive
     {
         return $this->shelf->find($this->owner, $url->toString());
+    }
+
+    /**
+     * Returns the light fields this owner stored for `$id`, or null when there is none.
+     */
+    public function findSummaryById(ArchiveId $id): ?ArchiveSummary
+    {
+        return $this->shelf->findSummaryById($this->owner, $id->value);
+    }
+
+    /**
+     * Returns the archive this owner stored for `$id`, or null when there is none.
+     */
+    public function findById(ArchiveId $id): ?Archive
+    {
+        return $this->shelf->findById($this->owner, $id->value);
+    }
+
+    /**
+     * Returns the HTML this owner stored for `$id`, or null when there is none.
+     *
+     * Empty HTML is an empty string.
+     */
+    public function findHtmlById(ArchiveId $id): ?string
+    {
+        return $this->shelf->findHtmlById($this->owner, $id->value);
     }
 
     /**

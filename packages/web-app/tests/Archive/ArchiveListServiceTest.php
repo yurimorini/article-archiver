@@ -7,6 +7,7 @@ namespace Yumo\Eleanor\Tests\Archive;
 use PHPUnit\Framework\TestCase;
 use Yumo\Eleanor\Archive\Archive;
 use Yumo\Eleanor\Archive\ArchiveDirection;
+use Yumo\Eleanor\Archive\ArchiveId;
 use Yumo\Eleanor\Archive\ArchiveListService;
 use Yumo\Eleanor\Archive\ArchiveListServiceFactory;
 use Yumo\Eleanor\Archive\ArchivePage;
@@ -185,6 +186,21 @@ final class ThrowingPageStore implements ArchiveStore
     public function find(UrlPointer $url): ?Archive
     {
         throw new \LogicException('unused');
+    }
+
+    public function findSummaryById(ArchiveId $id): ?ArchiveSummary
+    {
+        throw $this->error;
+    }
+
+    public function findById(ArchiveId $id): ?Archive
+    {
+        throw $this->error;
+    }
+
+    public function findHtmlById(ArchiveId $id): ?string
+    {
+        throw $this->error;
     }
 
     public function findPage(ArchivePageQuery $query): ArchivePageSlice

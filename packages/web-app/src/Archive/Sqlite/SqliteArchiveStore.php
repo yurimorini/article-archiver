@@ -9,6 +9,7 @@ use Yumo\Eleanor\Archive\Archive;
 use Yumo\Eleanor\Archive\ArchiveDirection;
 use Yumo\Eleanor\Archive\ArchiveException;
 use Yumo\Eleanor\Archive\ArchiveFailure;
+use Yumo\Eleanor\Archive\ArchiveId;
 use Yumo\Eleanor\Archive\ArchivePageQuery;
 use Yumo\Eleanor\Archive\ArchivePageSlice;
 use Yumo\Eleanor\Archive\ArchiveSort;
@@ -22,7 +23,8 @@ use Yumo\Eleanor\Archive\UrlPointer;
  *
  * A lookup never creates the file. The first `save` opens the connection, which creates the file and its directory.
  * `save` throws `ArchiveException` with `NotWritten`. `findPage` throws `ArchiveException` with `Unexpected`.
- * `find` and `findSummary` are not wrapped. The connection still raises `DirectoryException` and `\PDOException`.
+ * `find`, `findSummary`, `findById`, `findSummaryById`, and `findHtmlById` are not wrapped.
+ * The connection still raises `DirectoryException` and `\PDOException`.
  *
  * `$store = new SqliteArchiveStore($owner, new SqliteConnection('/data/ada.sqlite', new SqliteSchema()));`
  */
@@ -90,6 +92,78 @@ final class SqliteArchiveStore implements ArchiveStore
             (int) $row['id'],
             (string) $row['created_at'],
         );
+    }
+
+    /**
+     * Returns the light fields this owner stored for `$id`, or null when there is none.
+     *
+     * The body table stays out, so a missing HTML row still returns the light fields.
+     * A missing file is null and is not created. A failure is not wrapped.
+     */
+    public function findSummaryById(ArchiveId $id): ?ArchiveSummary
+    {
+        $row = $this->fetchById(
+            'SELECT id, url, title, excerpt, site_name, created_at FROM archive WHERE id = :id',
+            $id->value,
+        );
+        if ($row === null) {
+            return null;
+        }
+
+        return new ArchiveSummary(
+            $row['url'],
+            $row['title'],
+            $row['excerpt'],
+            $row['site_name'],
+            (int) $row['id'],
+            (string) $row['created_at'],
+        );
+    }
+
+    /**
+     * Returns the archive this owner stored for `$id`, or null when there is none.
+     *
+     * A missing file is null and is not created. A failure is not wrapped.
+     */
+    public function findById(ArchiveId $id): ?Archive
+    {
+        $row = $this->fetchById(
+            'SELECT a.id, a.url, a.title, a.excerpt, a.site_name, a.created_at, b.html'
+            . ' FROM archive a JOIN archive_body b ON b.archive_id = a.id WHERE a.id = :id',
+            $id->value,
+        );
+        if ($row === null) {
+            return null;
+        }
+
+        return new Archive(
+            $row['url'],
+            $row['title'],
+            $row['excerpt'],
+            $row['site_name'],
+            $row['html'],
+            (int) $row['id'],
+            (string) $row['created_at'],
+        );
+    }
+
+    /**
+     * Returns the HTML this owner stored for `$id`, or null when there is none.
+     *
+     * A missing file is null and is not created. Empty HTML is an empty string.
+     * A failure is not wrapped.
+     */
+    public function findHtmlById(ArchiveId $id): ?string
+    {
+        $row = $this->fetchById(
+            'SELECT html FROM archive_body WHERE archive_id = :id',
+            $id->value,
+        );
+        if ($row === null) {
+            return null;
+        }
+
+        return $row['html'];
     }
 
     /**
@@ -235,6 +309,29 @@ final class SqliteArchiveStore implements ArchiveStore
         $row = $this->withConnection(function (\PDO $pdo) use ($sql, $url): array|false {
             $statement = $pdo->prepare($sql);
             $statement->execute(['url' => $url]);
+
+            return $statement->fetch(\PDO::FETCH_ASSOC);
+        });
+
+        return $row === false ? null : $row;
+    }
+
+    /**
+     * Runs a one-row lookup by id and returns the row, or null when the file or the row is missing.
+     *
+     * The file is not opened and is not created when it is missing. The owner check is the one `findPage` uses.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function fetchById(string $sql, int $id): ?array
+    {
+        if (!is_file($this->connection->path)) {
+            return null;
+        }
+
+        $row = $this->withConnection(function (\PDO $pdo) use ($sql, $id): array|false {
+            $statement = $pdo->prepare($sql);
+            $statement->execute(['id' => $id]);
 
             return $statement->fetch(\PDO::FETCH_ASSOC);
         });

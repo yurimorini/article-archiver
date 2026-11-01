@@ -24,6 +24,28 @@ interface ArchiveStore
     public function find(UrlPointer $url): ?Archive;
 
     /**
+     * Returns the light fields stored for `$id`, or null when this owner has none.
+     *
+     * A missing file is null and is not created. A failure is not wrapped.
+     */
+    public function findSummaryById(ArchiveId $id): ?ArchiveSummary;
+
+    /**
+     * Returns the archive stored for `$id`, or null when this owner has none.
+     *
+     * A missing file is null and is not created. A failure is not wrapped.
+     */
+    public function findById(ArchiveId $id): ?Archive;
+
+    /**
+     * Returns the HTML stored for `$id`, or null when this owner has none.
+     *
+     * A missing file is null and is not created. Empty HTML is an empty string.
+     * A failure is not wrapped.
+     */
+    public function findHtmlById(ArchiveId $id): ?string;
+
+    /**
      * Returns one page of this owner's archives and the count of every archive.
      *
      * A missing file is an empty page and is not created. Rows are ordered by insert time, then by id.
