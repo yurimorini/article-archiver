@@ -53,6 +53,12 @@ final class CurlProcessIo implements Io
 
     private ?bool $bootOk = null;
 
+    /**
+     * True after a poll has already seen a boot response.
+     * Success waits for a later poll, so a dying php -S can show up first.
+     */
+    private bool $bootHeld = false;
+
     private ?Job $serverJob = null;
 
     /** @var resource|null */
@@ -278,6 +284,7 @@ final class CurlProcessIo implements Io
         $this->serverStderrText = '';
         $this->serverStartedAt = microtime(true);
         $this->serverSettled = false;
+        $this->bootHeld = false;
         $this->armBoot();
     }
 
@@ -578,8 +585,14 @@ final class CurlProcessIo implements Io
             return;
         }
 
-        if ($this->bootOk === true) {
+        if ($this->bootOk === true && $this->bootHeld) {
             $this->settleServer(null);
+
+            return;
+        }
+
+        if ($this->bootOk === true) {
+            $this->bootHeld = true;
 
             return;
         }

@@ -241,19 +241,7 @@ final class CurlProcessIoTest extends TestCase
         file_put_contents($package . '/router.php', "<?php\necho 'probe';\n");
         $io = $this->makeIo($package, $this->root . '/run', $port);
         $io->start(new Job('server', 'server', null, null));
-        $settled = null;
-        for ($attempt = 0; $attempt < 40 && !$settled instanceof Settled; ++$attempt) {
-            foreach ($io->poll() as $item) {
-                if ($item->job->name === 'server') {
-                    $settled = $item;
-                }
-            }
-            if (!$settled instanceof Settled) {
-                // This gap lands the boot response on the same poll as the bind failure.
-                usleep(8000);
-            }
-        }
-        self::assertInstanceOf(Settled::class, $settled);
+        $settled = $this->awaitSettled($io, 'server', 40);
 
         self::assertIsString($settled->error);
         $this->assertNoToken($settled);
