@@ -78,6 +78,7 @@ Checked in slice 5b: `ServiceValueResolver` has priority `-50` and `DefaultValue
 [OwnerScopedService.md](../design/OwnerScopedService.md) adopts the resolver option.
 
 - Global resolver, not targeted. `ArchiveService` stays `#[Exclude]`. Only the factory is a service.
+- The second service arrived with the archive list. `OwnerScopedServiceResolver` is that extracted step. The factories stay concrete.
 - Own slice 5b, not part of slice 8.
 - The revised choices in [Controller.md](Controller.md) and in the [Archive command](../design/ArchiveCommand.md) spec were revised with the user's agreement.
 

@@ -32,7 +32,7 @@ final class ListArchivesController
     /**
      * Returns one page of the caller's archives.
      *
-     * `ListArchivesQueryResolver` supplies `$query`. `ArchiveListServiceResolver` supplies `$archives`.
+     * `ListArchivesQueryResolver` supplies `$query`. `OwnerScopedServiceResolver` supplies `$archives`.
      * `HEAD` is declared beside `GET` because Symfony puts only declared methods in `Allow`.
      *
      * @return Reply<ArchiveListResponse>

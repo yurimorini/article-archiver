@@ -9,7 +9,7 @@ Shared pipeline: [API request](api-request.md).
 ```mermaid
 flowchart TD
   payload[RequestPayloadValueResolver] --> action[CreateArchiveController]
-  resolver[ArchiveServiceResolver] --> action
+  resolver[OwnerScopedServiceResolver] --> action
   action -->|ArchiveResult| reply[Reply]
   action -->|ArchiveException| error[TranslateApiException]
   reply --> view[WriteReply]
@@ -20,7 +20,7 @@ flowchart TD
 | Box | Role | File |
 | --- | --- | --- |
 | RequestPayloadValueResolver | Builds `CreateArchiveBody` from the JSON body. `#[MapRequestPayload]` on the action selects it. | [CreateArchiveController.php](../../src/Api/Controller/CreateArchiveController.php) |
-| ArchiveServiceResolver | Builds `ArchiveService` for the authenticated owner. | [ArchiveServiceResolver.php](../../src/Api/Resolver/ArchiveServiceResolver.php) |
+| OwnerScopedServiceResolver | Builds `ArchiveService` for the authenticated owner. | [OwnerScopedServiceResolver.php](../../src/Api/Resolver/OwnerScopedServiceResolver.php) |
 | CreateArchiveController | Builds `UrlPointer`, calls `archive`, and returns `Reply`. The call is [Archive service](archive-service.md). | [CreateArchiveController.php](../../src/Api/Controller/CreateArchiveController.php) |
 | Reply | `201` when the archive was written, `200` when it was already stored. The body is `ArchiveResponse`. | [Reply.php](../../src/Api/Response/Reply.php) |
 | WriteReply | Shared exit for `Reply`. | [api-request.md](api-request.md) |

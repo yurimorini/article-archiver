@@ -25,7 +25,7 @@ final class CreateArchiveController
     /**
      * Archives the URL of the body and answers 201 for a new archive or 200 for one already stored.
      *
-     * `ArchiveServiceResolver` supplies `$archives` for the current owner.
+     * `OwnerScopedServiceResolver` supplies `$archives` for the current owner.
      *
      * @return Reply<ArchiveResponse>
      */
