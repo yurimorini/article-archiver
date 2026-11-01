@@ -96,7 +96,7 @@ final class SqliteArchiveStore implements ArchiveStore
      * Returns one page of this owner's archives and the count of every archive.
      *
      * A missing file is an empty page and is not created. Rows are ordered by `created_at`, then by id.
-     * The sort token `archived` is the `created_at` column.
+     * The page and the count are one snapshot. The sort token `archived` is the `created_at` column.
      *
      * @throws ArchiveException When the page cannot be read, with `Unexpected`
      * @throws OwnerFileException When the file belongs to another owner
@@ -164,6 +164,7 @@ final class SqliteArchiveStore implements ArchiveStore
     /**
      * Reads one page and the count of every archive.
      *
+     * Both statements share one transaction, so a save cannot land between them.
      * The order words come from `$query`, not from a query string.
      *
      * @throws \PDOException When the page cannot be read
@@ -178,33 +179,46 @@ final class SqliteArchiveStore implements ArchiveStore
             ArchiveDirection::Desc => 'DESC',
         };
         $offset = ($query->page - 1) * $query->size;
-        $statement = $pdo->query(
-            'SELECT id, url, title, excerpt, site_name, created_at FROM archive'
-            . ' ORDER BY ' . $column . ' ' . $direction . ', id ' . $direction
-            . ' LIMIT ' . $query->size . ' OFFSET ' . $offset,
-        );
-        if ($statement === false) {
-            throw new \PDOException('The archive page could not be read.');
-        }
 
-        $items = [];
-        foreach ($statement->fetchAll(\PDO::FETCH_ASSOC) as $row) {
-            $items[] = new ArchiveSummary(
-                $row['url'],
-                $row['title'],
-                $row['excerpt'],
-                $row['site_name'],
-                (int) $row['id'],
-                (string) $row['created_at'],
+        try {
+            $pdo->beginTransaction();
+            $statement = $pdo->query(
+                'SELECT id, url, title, excerpt, site_name, created_at FROM archive'
+                . ' ORDER BY ' . $column . ' ' . $direction . ', id ' . $direction
+                . ' LIMIT ' . $query->size . ' OFFSET ' . $offset,
             );
-        }
+            if ($statement === false) {
+                throw new \PDOException('The archive page could not be read.');
+            }
 
-        $count = $pdo->query('SELECT COUNT(*) FROM archive');
-        if ($count === false) {
-            throw new \PDOException('The archive count could not be read.');
-        }
+            $items = [];
+            foreach ($statement->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                $items[] = new ArchiveSummary(
+                    $row['url'],
+                    $row['title'],
+                    $row['excerpt'],
+                    $row['site_name'],
+                    (int) $row['id'],
+                    (string) $row['created_at'],
+                );
+            }
 
-        return new ArchivePageSlice($items, (int) $count->fetchColumn());
+            $count = $pdo->query('SELECT COUNT(*) FROM archive');
+            if ($count === false) {
+                throw new \PDOException('The archive count could not be read.');
+            }
+
+            $slice = new ArchivePageSlice($items, (int) $count->fetchColumn());
+            $pdo->commit();
+
+            return $slice;
+        } catch (\Throwable $failure) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            throw $failure;
+        }
     }
 
     /**
