@@ -32,6 +32,11 @@ final class CurlProcessIoTest extends TestCase
 
     private mixed $takenPort = null;
 
+    private mixed $occupant = null;
+
+    /** @var list<resource> */
+    private array $occupantPipes = [];
+
     private ?int $childPid = null;
 
     protected function setUp(): void
@@ -50,6 +55,16 @@ final class CurlProcessIoTest extends TestCase
         if (is_resource($this->takenPort)) {
             fclose($this->takenPort);
             $this->takenPort = null;
+        }
+
+        if (is_resource($this->occupant)) {
+            proc_terminate($this->occupant);
+            foreach ($this->occupantPipes as $pipe) {
+                fclose($pipe);
+            }
+            $this->occupantPipes = [];
+            proc_close($this->occupant);
+            $this->occupant = null;
         }
 
         if ($this->childPid !== null && $this->running($this->childPid)) {
@@ -152,6 +167,50 @@ final class CurlProcessIoTest extends TestCase
         self::assertNull($settled[0]->error);
     }
 
+    public function test_sql_poll_reads_wal_after_the_shm_file_is_removed_and_skips_a_missing_file(): void
+    {
+        $package = $this->root . '/package';
+        $dataDir = $package . '/var/data';
+        mkdir($dataDir, 0o777, true);
+        $absolute = $dataDir . '/66e79b6a193b2290.sqlite';
+        $pdo = new \PDO('sqlite:' . $absolute);
+        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        new SqliteSchema()->migrate($pdo);
+        $pdo->exec('PRAGMA journal_mode = WAL');
+        $pdo->exec(
+            "INSERT INTO archive (url, title, excerpt, site_name, created_at) VALUES ('https://example.com/a', 'A', NULL, 'Example', '2026-11-01T15:41:02Z')",
+        );
+        $insert = $pdo->prepare('INSERT INTO archive_body (archive_id, html) VALUES (:id, :html)');
+        $insert->execute(['id' => (int) $pdo->lastInsertId(), 'html' => 'hello']);
+        unset($insert, $pdo);
+        if (is_file($absolute . '-shm')) {
+            unlink($absolute . '-shm');
+        }
+
+        $io = $this->makeIo($package, $this->root . '/run', $this->freePort(), self::MIXED_EMAIL);
+        mkdir($this->root . '/run');
+        $io->start(new Job('sql', 'sql', null, 'https://example.com/a'));
+        $settled = $io->poll();
+
+        self::assertCount(1, $settled);
+        self::assertNull($settled[0]->error);
+        self::assertIsArray($settled[0]->rows);
+        self::assertCount(1, $settled[0]->rows);
+        self::assertSame(5, $settled[0]->rows[0]['body_bytes']);
+
+        $missingPackage = $this->root . '/missing-package';
+        mkdir($missingPackage . '/var/data', 0o777, true);
+        $missing = $missingPackage . '/var/data/c8cd3c6427301eaf.sqlite';
+        $missingIo = $this->makeIo($missingPackage, $this->root . '/run', $this->freePort());
+        $missingIo->start(new Job('sql', 'sql', null, 'https://example.com/missing'));
+        $missingSettled = $missingIo->poll();
+
+        self::assertCount(1, $missingSettled);
+        self::assertSame([], $missingSettled[0]->rows);
+        self::assertNull($missingSettled[0]->error);
+        self::assertFileDoesNotExist($missing);
+    }
+
     public function test_taken_port_settles_server_with_an_error_without_waiting_out_boot(): void
     {
         $socket = stream_socket_server('tcp://0.0.0.0:8765', $errno, $error);
@@ -168,6 +227,34 @@ final class CurlProcessIoTest extends TestCase
         $settled = $this->awaitSettled($io, 'server', 30);
 
         self::assertLessThan(3.0, microtime(true) - $started);
+        self::assertIsString($settled->error);
+        $this->assertNoToken($settled);
+    }
+
+    public function test_http_occupant_on_a_taken_port_settles_server_with_an_error(): void
+    {
+        $port = $this->reserveHttpPort();
+        $this->startOccupant($port);
+
+        $package = $this->root . '/package';
+        mkdir($package . '/public', 0o777, true);
+        file_put_contents($package . '/router.php', "<?php\necho 'probe';\n");
+        $io = $this->makeIo($package, $this->root . '/run', $port);
+        $io->start(new Job('server', 'server', null, null));
+        $settled = null;
+        for ($attempt = 0; $attempt < 40 && !$settled instanceof Settled; ++$attempt) {
+            foreach ($io->poll() as $item) {
+                if ($item->job->name === 'server') {
+                    $settled = $item;
+                }
+            }
+            if (!$settled instanceof Settled) {
+                // This gap lands the boot response on the same poll as the bind failure.
+                usleep(8000);
+            }
+        }
+        self::assertInstanceOf(Settled::class, $settled);
+
         self::assertIsString($settled->error);
         $this->assertNoToken($settled);
     }
@@ -217,6 +304,28 @@ final class CurlProcessIoTest extends TestCase
         self::assertSame(404, $byName['not-found']->status);
         self::assertNull($byName['not-found']->error);
         $this->assertNoToken($byName['post']);
+    }
+
+    public function test_archive_job_sends_the_recorded_url_json_when_the_preset_body_is_null(): void
+    {
+        $package = $this->writeRouter($this->root . '/package');
+        $port = $this->freePort();
+        $io = $this->makeIo($package, $this->root . '/run', $port);
+        $this->boot($io);
+
+        $archive = Catalog::preset('archive');
+        self::assertNull($archive->body);
+        $io->start(new Job('http', 'archive', $archive, 'https://example.com/a/b'));
+        $io->start(new Job('http', 'list', Catalog::preset('list'), null));
+
+        $byName = $this->awaitAll($io, ['archive', 'list']);
+        $sent = $this->payload($byName['archive']);
+        self::assertNull($byName['archive']->error);
+        self::assertSame('{"url":"https://example.com/a/b"}', $sent['body']);
+
+        $list = $this->payload($byName['list']);
+        self::assertNull($byName['list']->error);
+        self::assertSame('', $list['body']);
     }
 
     public function test_poll_does_not_block_while_an_http_transfer_is_open(): void
@@ -643,6 +752,92 @@ final class CurlProcessIoTest extends TestCase
         self::assertIsArray($decoded);
 
         return $decoded;
+    }
+
+    private function reserveHttpPort(): int
+    {
+        $candidates = [8766];
+        for ($port = 8767; $port <= 8776; ++$port) {
+            $candidates[] = $port;
+        }
+
+        foreach ($candidates as $port) {
+            $socket = @stream_socket_server('tcp://0.0.0.0:' . $port, $errno, $error);
+            if (is_resource($socket)) {
+                fclose($socket);
+
+                return $port;
+            }
+        }
+
+        self::fail('Could not bind an HTTP port.');
+    }
+
+    private function startOccupant(int $port): void
+    {
+        $dir = $this->root . '/occupant';
+        mkdir($dir . '/public', 0o777, true);
+        file_put_contents($dir . '/router.php', <<<'PHP'
+            <?php
+
+            declare(strict_types=1);
+
+            http_response_code(200);
+            header('Content-Type: text/plain');
+            echo 'occupied';
+            PHP);
+
+        $pipes = [];
+        $process = proc_open(
+            ['php', '-S', '0.0.0.0:' . $port, '-t', 'public', 'router.php'],
+            [
+                0 => ['pipe', 'r'],
+                1 => ['pipe', 'w'],
+                2 => ['pipe', 'w'],
+            ],
+            $pipes,
+            $dir,
+        );
+        if (!is_resource($process)) {
+            self::fail('Could not start the occupant HTTP server.');
+        }
+
+        $stdin = $pipes[0] ?? null;
+        if (is_resource($stdin)) {
+            fclose($stdin);
+        }
+
+        $kept = [];
+        foreach ([1, 2] as $index) {
+            $pipe = $pipes[$index] ?? null;
+            if (!is_resource($pipe) || !stream_set_blocking($pipe, false)) {
+                self::fail('Could not watch the occupant HTTP server.');
+            }
+            $kept[] = $pipe;
+        }
+
+        $this->occupant = $process;
+        $this->occupantPipes = $kept;
+
+        $answered = false;
+        for ($attempt = 0; $attempt < 50; ++$attempt) {
+            $handle = curl_init('http://127.0.0.1:' . $port . '/');
+            if ($handle === false) {
+                break;
+            }
+            curl_setopt($handle, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($handle, CURLOPT_TIMEOUT, 1);
+            $body = curl_exec($handle);
+            $status = curl_getinfo($handle, CURLINFO_RESPONSE_CODE);
+            unset($handle);
+            if ($body !== false && is_int($status) && $status > 0) {
+                $answered = true;
+                break;
+            }
+            usleep(50000);
+        }
+
+        self::assertTrue($answered);
     }
 
     private function freePort(): int

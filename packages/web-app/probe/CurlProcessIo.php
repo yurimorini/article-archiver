@@ -324,7 +324,7 @@ final class CurlProcessIo implements Io
             return;
         }
 
-        $this->configureHandle($handle, $preset);
+        $this->configureHandle($handle, $preset, $job->url);
         curl_multi_add_handle($this->multi, $handle);
         $this->transfers[spl_object_id($handle)] = [
             'job' => $job,
@@ -350,7 +350,7 @@ final class CurlProcessIo implements Io
         $this->bootOk = null;
     }
 
-    private function configureHandle(\CurlHandle $handle, ?Preset $preset): void
+    private function configureHandle(\CurlHandle $handle, ?Preset $preset, ?string $url = null): void
     {
         curl_setopt($handle, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($handle, CURLOPT_TIMEOUT, self::HTTP_TIMEOUT_SECONDS);
@@ -375,8 +375,12 @@ final class CurlProcessIo implements Io
         if ($headers !== []) {
             curl_setopt($handle, CURLOPT_HTTPHEADER, $headers);
         }
-        if ($preset->body !== null) {
-            curl_setopt($handle, CURLOPT_POSTFIELDS, $preset->body);
+        $body = $preset->body;
+        if ($body === null && is_string($url) && $url !== '') {
+            $body = json_encode(['url' => $url], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+        }
+        if ($body !== null) {
+            curl_setopt($handle, CURLOPT_POSTFIELDS, $body);
         }
     }
 
@@ -562,12 +566,6 @@ final class CurlProcessIo implements Io
             return;
         }
 
-        if ($this->bootOk === true) {
-            $this->settleServer(null);
-
-            return;
-        }
-
         if ($this->addressInUse()) {
             $this->settleServer('The server address is already in use.');
 
@@ -576,6 +574,12 @@ final class CurlProcessIo implements Io
 
         if ($this->serverExited()) {
             $this->settleServer('The server process exited before it answered.');
+
+            return;
+        }
+
+        if ($this->bootOk === true) {
+            $this->settleServer(null);
 
             return;
         }
@@ -687,8 +691,9 @@ final class CurlProcessIo implements Io
             $pdo = new \PDO('sqlite:' . $absolute, options: [
                 \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
                 \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
-                \Pdo\Sqlite::ATTR_OPEN_FLAGS => \Pdo\Sqlite::OPEN_READONLY,
+                \Pdo\Sqlite::ATTR_OPEN_FLAGS => \Pdo\Sqlite::OPEN_READWRITE,
             ]);
+            $pdo->exec('PRAGMA query_only = ON');
 
             return $this->settled($job, null, rows: $this->selectRows($pdo, $job->url), sqlFile: $relative);
         } catch (\PDOException) {
