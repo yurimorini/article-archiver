@@ -16,7 +16,7 @@ Every failure under `/api` answers with the same small JSON object: a stable `co
 2. As a client of Eleanor, I want an archive that is already stored to answer 200 with the same JSON, so that a repeat is not an error and has the same shape.
 3. As a client of Eleanor, I want a title such as `Café` and a URL with slashes to arrive as readable UTF-8 and unescaped slashes, so that I do not decode `\u00e9` or `\/` myself.
 4. As a client of Eleanor, I want a title with a quote or a backslash to stay valid JSON, so that the body is encoded and never concatenated.
-5. As a client of Eleanor, I want the success JSON to contain only `url` and `title`, so that the excerpt, the site name, and the article stay in the archive.
+5. As a client of Eleanor, I want the success JSON to contain only `url` and `title`, so that the excerpt, the site name, and the article stay in the archive. Revised 2026-10-31: the success JSON also includes `id`, the integer row id. The excerpt, the site name, and the HTML stay out of this POST. Until that change ships, the server stays `url` and `title`.
 
 ### The error shape
 
@@ -38,7 +38,7 @@ Every failure under `/api` answers with the same small JSON object: a stable `co
 18. As a client of Eleanor, I want a URL that Eleanor's rules refuse, such as a scheme or credentials that are not allowed, or an address that is not public, to answer 400 `url_policy`, so that I know the pointer is refused by policy and not by syntax.
 19. As a client of Eleanor, I want any other refusal of the URL string to answer 400 `url_rejected`, so that no refusal falls outside a 400.
 20. As a client of Eleanor, I want a missing `Content-Type` and `text/plain` to answer 415 `unsupported_media_type`, so that a wrong media type is told apart from a wrong body.
-21. As a client of Eleanor, I want `GET` and `HEAD` on the archive route to answer 405 `method_not_allowed` and keep the `Allow` header, so that I learn which method the route accepts.
+21. As a client of Eleanor, I want `GET` and `HEAD` on the archive route to answer 405 `method_not_allowed` and keep the `Allow` header, so that I learn which method the route accepts. Revised 2026-10-31: `GET /api/archives` is the archive list in a later feature, and `HEAD` on that route and on `GET /api/archives/{id}` returns the GET status and headers with an empty body. Until that feature ships, GET and HEAD stay 405.
 22. As a client of Eleanor, I want a `HEAD` answer to carry the status and headers and no body, so that the response follows HTTP.
 23. As a client of Eleanor, I want an unknown path under `/api` to answer 404 `not_found`, so that a wrong path has the same error shape.
 
@@ -103,6 +103,8 @@ Every failure under `/api` answers with the same small JSON object: a stable `co
 - Eleanor does not publish an OpenAPI document (revised 2026-10-18). Status and `code` are proved by the kernel tests. No schema package is added.
 - No runtime schema validation of a request or a response is added. The request body check stays the validator on the body object from the payload slice.
 - The glossary terms are unchanged. `Archive`, `URL pointer`, and `Owner` keep their meaning. `ArchiveFailure` and the response types are types, not glossary terms.
+- The POST success JSON gains `id` (revised 2026-10-31). Story 5 keeps the excerpt, the site name, and the HTML out of this response. The running server stays `url` and `title` until that change ships. [adr/0011](../../../adr/0011-archive-id-is-public.md) records the choice.
+- `GET /api/archives` becomes the archive list (revised 2026-10-31). `HEAD` on the list and on `GET /api/archives/{id}` returns the GET status and headers with an empty body. GET and HEAD stay 405 in this slice until that feature ships. Sibling specs that still say GET is 405 describe the shipped server.
 
 ## Testing Decisions
 

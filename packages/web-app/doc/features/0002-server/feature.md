@@ -20,6 +20,8 @@ Terms live in the package [GLOSSARY.md](../../GLOSSARY.md). **Owner** is the per
 
 This feature is closed. A new session does not open a slice from this file. The research queue is closed. `research/Open.md` points at the package backlog.
 
+`GET /api/archives` is the archive list in a later feature (2026-10-31). `HEAD` on the list and on the detail route returns the GET status and headers with an empty body. GET and HEAD stay 405 until that feature ships. [error-response.md](specs/error-response.md) story 21 records that. The same feature adds `id` to the POST success JSON. Until it ships, the POST stays `url` and `title`. [adr/0011](../../adr/0011-archive-id-is-public.md) records that choice. `GET /api/archives/{id}` reads one archive. [adr/0012](../../adr/0012-archive-detail-is-read-by-id.md) records that route.
+
 Slices 1–8 were built one at a time: spec, plan, tests, then `Done` when `./bin/quality` passed for `web-app`. That procedure is finished.
 
 Deferred work stays in [Backlog](#backlog) until a later feature adopts an item by recording that change in its own `feature.md`.
