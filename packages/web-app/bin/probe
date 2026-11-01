@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Run one probe step, or every configured step, against the dev server.
+set -euo pipefail
+
+PACKAGE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT_DIR="$(cd "${PACKAGE_DIR}/../.." && pwd)"
+root_real="$(cd "${ROOT_DIR}" && pwd -P)"
+package_real="$(cd "${PACKAGE_DIR}" && pwd -P)"
+package_rel="${package_real#"${root_real}/"}"
+
+# shellcheck source=../../../bin/lib/container.sh
+source "${ROOT_DIR}/bin/lib/container.sh"
+
+IMAGE_NAME="${IMAGE_NAME:-log-read-php}"
+
+if [[ $# -gt 1 ]]; then
+  printf 'Usage: ./bin/probe [step]\n' >&2
+  exit 1
+fi
+
+port="$(python3 -c 'import json,sys; document=json.load(open(sys.argv[1], encoding="utf-8")); print(document.get("port", 8000))' "${PACKAGE_DIR}/probe/probe.json")"
+
+container_require_image "${IMAGE_NAME}"
+container_fill_run_args "${ROOT_DIR}" "${package_rel}"
+
+exec docker run -e ELEANOR_BEARER_TOKEN -p "127.0.0.1:${port}:${port}" "${run_args[@]}" "${IMAGE_NAME}" php probe/run.php "$@"
