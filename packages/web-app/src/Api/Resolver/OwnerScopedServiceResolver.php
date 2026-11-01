@@ -8,13 +8,13 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Controller\ValueResolverInterface;
 use Symfony\Component\HttpKernel\ControllerMetadata\ArgumentMetadata;
 use Yumo\Eleanor\Api\Owner\OwnerProvider;
-use Yumo\Eleanor\Archive\ArchiveListService;
-use Yumo\Eleanor\Archive\ArchiveListServiceFactory;
+use Yumo\Eleanor\Archive\ArchiveReadService;
+use Yumo\Eleanor\Archive\ArchiveReadServiceFactory;
 use Yumo\Eleanor\Archive\ArchiveService;
 use Yumo\Eleanor\Archive\ArchiveServiceFactory;
 
 /**
- * Builds the current owner's service for an action argument of type `ArchiveService` or `ArchiveListService`.
+ * Builds the current owner's service for an action argument of type `ArchiveService` or `ArchiveReadService`.
  *
  * A controller declares the service and does not build it.
  */
@@ -28,8 +28,8 @@ final class OwnerScopedServiceResolver implements ValueResolverInterface
         private OwnerProvider $owners,
         /** Builds the archive service of one owner. */
         private ArchiveServiceFactory $archives,
-        /** Builds the list service of one owner. */
-        private ArchiveListServiceFactory $lists,
+        /** Builds the read service of one owner. */
+        private ArchiveReadServiceFactory $lists,
     ) {
     }
 
@@ -38,13 +38,13 @@ final class OwnerScopedServiceResolver implements ValueResolverInterface
      *
      * `owner()` runs only for a matching type.
      *
-     * @return list<ArchiveService|ArchiveListService>
+     * @return list<ArchiveService|ArchiveReadService>
      */
     public function resolve(Request $request, ArgumentMetadata $argument): array
     {
         return match ($argument->getType()) {
             ArchiveService::class => [$this->archives->create($this->owners->owner())],
-            ArchiveListService::class => [$this->lists->create($this->owners->owner())],
+            ArchiveReadService::class => [$this->lists->create($this->owners->owner())],
             default => [],
         };
     }

@@ -13,10 +13,10 @@ use Yumo\Eleanor\Api\Dto\ListArchivesQuery;
 use Yumo\Eleanor\Api\Owner\OwnerProvider;
 use Yumo\Eleanor\Api\Resolver\OwnerScopedServiceResolver;
 use Yumo\Eleanor\Archive\Archive;
-use Yumo\Eleanor\Archive\ArchiveListService;
-use Yumo\Eleanor\Archive\ArchiveListServiceFactory;
 use Yumo\Eleanor\Archive\ArchiveOutcome;
 use Yumo\Eleanor\Archive\ArchivePageQuery;
+use Yumo\Eleanor\Archive\ArchiveReadService;
+use Yumo\Eleanor\Archive\ArchiveReadServiceFactory;
 use Yumo\Eleanor\Archive\ArchiveService;
 use Yumo\Eleanor\Archive\ArchiveServiceFactory;
 use Yumo\Eleanor\Archive\Owner;
@@ -37,7 +37,7 @@ final class OwnerScopedServiceResolverTest extends TestCase
 
     private ArchiveServiceFactory $factory;
 
-    private ArchiveListServiceFactory $lists;
+    private ArchiveReadServiceFactory $lists;
 
     private SwitchableOwnerProvider $provider;
 
@@ -51,7 +51,7 @@ final class OwnerScopedServiceResolverTest extends TestCase
             new FakeArchiveLockFactory(),
             new NullLogger(),
         );
-        $this->lists = new ArchiveListServiceFactory(new InMemoryArchiveStoreFactory(new InMemoryArchiveShelf()), new NullLogger());
+        $this->lists = new ArchiveReadServiceFactory(new InMemoryArchiveStoreFactory(new InMemoryArchiveShelf()), new NullLogger());
         $this->provider = new SwitchableOwnerProvider(new Owner('ada@example.com'));
     }
 
@@ -91,7 +91,7 @@ final class OwnerScopedServiceResolverTest extends TestCase
             null,
             null,
         ));
-        $resolver = $this->resolverFor('ada@example.com', new ArchiveListServiceFactory($stores, new NullLogger()));
+        $resolver = $this->resolverFor('ada@example.com', new ArchiveReadServiceFactory($stores, new NullLogger()));
         $query = ArchivePageQuery::from(null, null, null, null, 100);
 
         $adaPage = $this->listService($resolver)->page($query);
@@ -109,19 +109,19 @@ final class OwnerScopedServiceResolverTest extends TestCase
         $resolver = $this->resolverFor('ada@example.com');
 
         $archives = $resolver->resolve(new Request(), $this->argument(ArchiveService::class));
-        $lists = $resolver->resolve(new Request(), $this->argument(ArchiveListService::class));
+        $lists = $resolver->resolve(new Request(), $this->argument(ArchiveReadService::class));
 
         self::assertCount(1, $archives);
         self::assertInstanceOf(ArchiveService::class, $archives[0]);
         self::assertCount(1, $lists);
-        self::assertInstanceOf(ArchiveListService::class, $lists[0]);
+        self::assertInstanceOf(ArchiveReadService::class, $lists[0]);
     }
 
     public function test_answers_a_nullable_argument_and_an_argument_with_a_default(): void
     {
         $resolver = $this->resolverFor('ada@example.com');
 
-        foreach ([ArchiveService::class, ArchiveListService::class] as $type) {
+        foreach ([ArchiveService::class, ArchiveReadService::class] as $type) {
             $nullable = new ArgumentMetadata('archives', $type, false, false, null, true);
             $withDefault = new ArgumentMetadata('archives', $type, false, true, null, true);
 
@@ -134,7 +134,7 @@ final class OwnerScopedServiceResolverTest extends TestCase
     {
         $resolver = new OwnerScopedServiceResolver($this->ownerWhoFails(), $this->factory, $this->lists);
 
-        foreach ([ArchiveService::class, ArchiveListService::class] as $type) {
+        foreach ([ArchiveService::class, ArchiveReadService::class] as $type) {
             try {
                 $resolver->resolve(new Request(), $this->argument($type));
                 self::fail('The owner failure must escape.');
@@ -153,7 +153,7 @@ final class OwnerScopedServiceResolverTest extends TestCase
         self::assertSame([], $resolver->resolve(new Request(), $this->argument(null)));
     }
 
-    private function resolverFor(string $email, ?ArchiveListServiceFactory $lists = null): OwnerScopedServiceResolver
+    private function resolverFor(string $email, ?ArchiveReadServiceFactory $lists = null): OwnerScopedServiceResolver
     {
         $this->provider = new SwitchableOwnerProvider(new Owner($email));
 
@@ -168,10 +168,10 @@ final class OwnerScopedServiceResolverTest extends TestCase
         return $resolved[0];
     }
 
-    private function listService(OwnerScopedServiceResolver $resolver): ArchiveListService
+    private function listService(OwnerScopedServiceResolver $resolver): ArchiveReadService
     {
-        $resolved = $resolver->resolve(new Request(), $this->argument(ArchiveListService::class));
-        self::assertInstanceOf(ArchiveListService::class, $resolved[0]);
+        $resolved = $resolver->resolve(new Request(), $this->argument(ArchiveReadService::class));
+        self::assertInstanceOf(ArchiveReadService::class, $resolved[0]);
 
         return $resolved[0];
     }

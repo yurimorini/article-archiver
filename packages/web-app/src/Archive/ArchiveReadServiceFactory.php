@@ -8,12 +8,12 @@ use Monolog\Attribute\WithMonologChannel;
 use Psr\Log\LoggerInterface;
 
 /**
- * Builds the list service of one owner. It keeps no state.
+ * Builds the read service of one owner. It keeps no state.
  *
  * `$service = $factory->create(new Owner('ada@example.com'));`
  */
 #[WithMonologChannel('domain')]
-final class ArchiveListServiceFactory
+final class ArchiveReadServiceFactory
 {
     /**
      * Creates the factory from the factory of per-owner stores and the domain logger.
@@ -29,8 +29,8 @@ final class ArchiveListServiceFactory
     /**
      * Returns a service that reads the archives of `$owner`.
      */
-    public function create(Owner $owner): ArchiveListService
+    public function create(Owner $owner): ArchiveReadService
     {
-        return new ArchiveListService($this->stores->create($owner), $this->logger);
+        return new ArchiveReadService($this->stores->create($owner), $this->logger);
     }
 }

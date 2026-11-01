@@ -10,7 +10,7 @@ use Yumo\Eleanor\Api\Dto\ListArchivesQuery;
 use Yumo\Eleanor\Api\Response\ArchiveListDocuments;
 use Yumo\Eleanor\Api\Response\ArchiveListResponse;
 use Yumo\Eleanor\Api\Response\Reply;
-use Yumo\Eleanor\Archive\ArchiveListService;
+use Yumo\Eleanor\Archive\ArchiveReadService;
 
 /**
  * HTTP adapter for one page of the caller's archives.
@@ -38,7 +38,7 @@ final class ListArchivesController
      * @return Reply<ArchiveListResponse>
      */
     #[Route('/archives', name: 'list_archives', methods: ['GET', 'HEAD'], format: 'json')]
-    public function list(ListArchivesQuery $query, ArchiveListService $archives): Reply
+    public function list(ListArchivesQuery $query, ArchiveReadService $archives): Reply
     {
         $query = $this->queries->from($query);
         $page = $archives->page($query);
