@@ -9,6 +9,9 @@ use PHPUnit\Framework\TestCase;
 use Yumo\Eleanor\Archive\Archive;
 use Yumo\Eleanor\Archive\ArchiveException;
 use Yumo\Eleanor\Archive\ArchiveFailure;
+use Yumo\Eleanor\Archive\ArchivePageQuery;
+use Yumo\Eleanor\Archive\ArchivePageSlice;
+use Yumo\Eleanor\Archive\ArchiveStore;
 use Yumo\Eleanor\Archive\ArchiveStoreFactory;
 use Yumo\Eleanor\Archive\ArchiveSummary;
 use Yumo\Eleanor\Archive\Owner;
@@ -32,10 +35,13 @@ final class ArchiveStoreContractTest extends TestCase
 
     private string $directory;
 
+    private InMemoryArchiveShelf $shelf;
+
     protected function setUp(): void
     {
         $this->directory = sys_get_temp_dir() . '/archive-store-' . bin2hex(random_bytes(6));
         mkdir($this->directory);
+        $this->shelf = new InMemoryArchiveShelf();
     }
 
     protected function tearDown(): void
@@ -403,12 +409,146 @@ final class ArchiveStoreContractTest extends TestCase
 
         $this->assertRefused(fn () => $store->find(new UrlPointer(self::URL)));
         $this->assertRefused(fn () => $store->findSummary(new UrlPointer(self::URL)));
+        $this->assertRefused(fn () => $store->findPage(ArchivePageQuery::from(null, null, null, null, 100)));
         $this->assertRefused(fn () => $store->save(new Archive(self::URL, 'Replaced', null, null, '<p>Replaced</p>', null, null)));
 
         $pdo = new \PDO('sqlite:' . $store->location());
         $statement = $pdo->query('SELECT title FROM archive');
         self::assertInstanceOf(\PDOStatement::class, $statement);
         self::assertSame('Title', $statement->fetchColumn());
+    }
+
+    #[DataProvider('storeKindProvider')]
+    public function test_missing_file_page_is_empty(string $kind): void
+    {
+        $store = $this->factory($kind)->create(new Owner('ada@example.com'));
+
+        $page = $store->findPage(ArchivePageQuery::from(null, null, null, null, 100));
+
+        self::assertSame([], $page->items);
+        self::assertSame(0, $page->total);
+        self::assertSame([], $this->databaseFiles());
+    }
+
+    #[DataProvider('storeKindProvider')]
+    public function test_page_orders_by_insert_time_then_id(string $kind): void
+    {
+        $store = $this->factory($kind)->create(new Owner('ada@example.com'));
+        $this->saveAt($kind, $store, 'https://example.com/middle', 'Middle', 'Mid excerpt', 'Mid site', '2020-01-02T00:00:00Z');
+        $this->saveAt($kind, $store, 'https://example.com/newest', 'Newest', 'New excerpt', 'New site', '2020-01-03T00:00:00Z');
+        $this->saveAt($kind, $store, 'https://example.com/oldest', 'Oldest', 'Old excerpt', 'Old site', '2020-01-01T00:00:00Z');
+
+        $page = $store->findPage(ArchivePageQuery::from('archived', 'desc', null, null, 100));
+
+        self::assertEquals(new ArchivePageSlice([
+            new ArchiveSummary('https://example.com/newest', 'Newest', 'New excerpt', 'New site', 2, '2020-01-03T00:00:00Z'),
+            new ArchiveSummary('https://example.com/middle', 'Middle', 'Mid excerpt', 'Mid site', 1, '2020-01-02T00:00:00Z'),
+            new ArchiveSummary('https://example.com/oldest', 'Oldest', 'Old excerpt', 'Old site', 3, '2020-01-01T00:00:00Z'),
+        ], 3), $page);
+
+        $rest = $store->findPage(ArchivePageQuery::from('archived', 'desc', '2', '2', 100));
+
+        self::assertCount(1, $rest->items);
+        self::assertInstanceOf(ArchiveSummary::class, $rest->items[0]);
+        self::assertEquals(new ArchivePageSlice([
+            new ArchiveSummary('https://example.com/oldest', 'Oldest', 'Old excerpt', 'Old site', 3, '2020-01-01T00:00:00Z'),
+        ], 3), $rest);
+
+        $this->assertSameInsertTimeBreaksById($kind);
+    }
+
+    #[DataProvider('storeKindProvider')]
+    public function test_page_past_the_end_is_empty(string $kind): void
+    {
+        $store = $this->factory($kind)->create(new Owner('ada@example.com'));
+        $store->save(new Archive(self::URL, 'One', null, null, '<p>1</p>', null, null));
+        $store->save(new Archive(self::OTHER_URL, 'Two', null, null, '<p>2</p>', null, null));
+        $store->save(new Archive('https://example.com/c', 'Three', null, null, '<p>3</p>', null, null));
+
+        $page = $store->findPage(ArchivePageQuery::from(null, null, '3', '2', 100));
+
+        self::assertSame([], $page->items);
+        self::assertSame(3, $page->total);
+    }
+
+    public function test_page_read_of_a_non_database_file_is_unexpected(): void
+    {
+        $path = $this->directory . '/ada.sqlite';
+        file_put_contents($path, 'not a database');
+        $store = $this->sqliteStore($path);
+
+        try {
+            $store->findPage(ArchivePageQuery::from(null, null, null, null, 100));
+            self::fail('Expected an ArchiveException.');
+        } catch (ArchiveException $exception) {
+            self::assertSame(ArchiveFailure::Unexpected, $exception->failure);
+            self::assertInstanceOf(\PDOException::class, $exception->getPrevious());
+        }
+    }
+
+    /**
+     * Stores one archive whose insert time is `$when`.
+     *
+     * The in-memory shelf reads its test clock. SQLite updates `created_at` after the insert.
+     */
+    private function saveAt(
+        string $kind,
+        ArchiveStore $store,
+        string $url,
+        string $title,
+        ?string $excerpt,
+        ?string $siteName,
+        string $when,
+    ): void {
+        if ($kind === 'memory') {
+            $this->shelf->now = $when;
+        }
+
+        $stored = $store->save(new Archive($url, $title, $excerpt, $siteName, '<p>' . $title . '</p>', null, null));
+        if ($kind !== 'sqlite') {
+            return;
+        }
+
+        $path = $store->location();
+        self::assertIsString($path);
+        $id = $stored->id;
+        self::assertIsInt($id);
+        $pdo = new \PDO('sqlite:' . $path, options: [\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION]);
+        $statement = $pdo->prepare('UPDATE archive SET created_at = :created_at WHERE id = :id');
+        $statement->execute(['created_at' => $when, 'id' => $id]);
+        self::assertSame(1, $statement->rowCount());
+        unset($pdo);
+    }
+
+    /**
+     * Proves that two rows with one insert time are ordered by id.
+     */
+    private function assertSameInsertTimeBreaksById(string $kind): void
+    {
+        $store = $this->factory($kind)->create(new Owner('grace@example.com'));
+        if ($kind === 'memory') {
+            $this->shelf->now = '2020-01-01T00:00:00Z';
+        }
+
+        $store->save(new Archive('https://example.com/low', 'Low', null, null, '<p>Low</p>', null, null));
+        $store->save(new Archive('https://example.com/high', 'High', null, null, '<p>High</p>', null, null));
+        if ($kind === 'sqlite') {
+            $path = $store->location();
+            self::assertIsString($path);
+            $pdo = new \PDO('sqlite:' . $path, options: [\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION]);
+            $changed = $pdo->exec("UPDATE archive SET created_at = '2020-01-01T00:00:00Z'");
+            self::assertSame(2, $changed);
+            unset($pdo);
+        }
+
+        $pinned = '2020-01-01T00:00:00Z';
+        $low = new ArchiveSummary('https://example.com/low', 'Low', null, null, 1, $pinned);
+        $high = new ArchiveSummary('https://example.com/high', 'High', null, null, 2, $pinned);
+        $ascending = $store->findPage(ArchivePageQuery::from('archived', 'asc', null, null, 100));
+        $descending = $store->findPage(ArchivePageQuery::from('archived', 'desc', null, null, 100));
+
+        self::assertEquals(new ArchivePageSlice([$low, $high], 2), $ascending);
+        self::assertEquals(new ArchivePageSlice([$high, $low], 2), $descending);
     }
 
     /**
@@ -460,7 +600,7 @@ final class ArchiveStoreContractTest extends TestCase
     private function factory(string $kind): ArchiveStoreFactory
     {
         if ($kind === 'memory') {
-            return new InMemoryArchiveStoreFactory(new InMemoryArchiveShelf());
+            return new InMemoryArchiveStoreFactory($this->shelf);
         }
 
         return new SqliteArchiveStoreFactory($this->directory);

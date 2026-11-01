@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Yumo\Eleanor\Tests\Support;
 
 use Yumo\Eleanor\Archive\Archive;
+use Yumo\Eleanor\Archive\ArchivePageQuery;
+use Yumo\Eleanor\Archive\ArchivePageSlice;
 use Yumo\Eleanor\Archive\ArchiveStore;
 use Yumo\Eleanor\Archive\ArchiveSummary;
 use Yumo\Eleanor\Archive\UrlPointer;
@@ -13,7 +15,7 @@ use Yumo\Eleanor\Archive\UrlPointer;
  * Keeps archives in an array, records every call, and can be told to fail.
  *
  * `findSummary` appends `find` to the shared log and `save` appends `save`. `find` is for the test to read
- * what was stored, so it leaves no trace.
+ * what was stored, so it leaves no trace. `findPage` returns `page` and leaves no trace.
  */
 final class FakeArchiveStore implements ArchiveStore
 {
@@ -32,6 +34,9 @@ final class FakeArchiveStore implements ArchiveStore
     /** The file `location` returns, or null when this store has no file. */
     public ?string $location = null;
 
+    /** The page `findPage` returns. A test replaces it. */
+    public ArchivePageSlice $page;
+
     /** @var array<string, Archive> */
     private array $archives = [];
 
@@ -47,6 +52,7 @@ final class FakeArchiveStore implements ArchiveStore
         /** The log that the lock, the fetcher, and this store share. */
         private \ArrayObject $log = new \ArrayObject(),
     ) {
+        $this->page = new ArchivePageSlice([], 0);
     }
 
     public function findSummary(UrlPointer $url): ?ArchiveSummary
@@ -68,6 +74,16 @@ final class FakeArchiveStore implements ArchiveStore
     public function find(UrlPointer $url): ?Archive
     {
         return $this->archives[$url->toString()] ?? null;
+    }
+
+    /**
+     * Returns the page a test stored on `page`.
+     *
+     * The default is an empty list and total 0.
+     */
+    public function findPage(ArchivePageQuery $query): ArchivePageSlice
+    {
+        return $this->page;
     }
 
     /**

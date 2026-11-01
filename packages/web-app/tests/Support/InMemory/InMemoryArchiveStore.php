@@ -6,6 +6,8 @@ namespace Yumo\Eleanor\Tests\Support\InMemory;
 
 use Symfony\Component\DependencyInjection\Attribute\Exclude;
 use Yumo\Eleanor\Archive\Archive;
+use Yumo\Eleanor\Archive\ArchivePageQuery;
+use Yumo\Eleanor\Archive\ArchivePageSlice;
 use Yumo\Eleanor\Archive\ArchiveStore;
 use Yumo\Eleanor\Archive\ArchiveSummary;
 use Yumo\Eleanor\Archive\Owner;
@@ -44,6 +46,14 @@ final class InMemoryArchiveStore implements ArchiveStore
     public function find(UrlPointer $url): ?Archive
     {
         return $this->shelf->find($this->owner, $url->toString());
+    }
+
+    /**
+     * Returns one page of this owner's archives and the count of every archive.
+     */
+    public function findPage(ArchivePageQuery $query): ArchivePageSlice
+    {
+        return $this->shelf->findPage($this->owner, $query);
     }
 
     /**

@@ -24,6 +24,16 @@ interface ArchiveStore
     public function find(UrlPointer $url): ?Archive;
 
     /**
+     * Returns one page of this owner's archives and the count of every archive.
+     *
+     * A missing file is an empty page and is not created. Rows are ordered by insert time, then by id.
+     * A file that names another owner is refused the same way as `find`.
+     *
+     * @throws ArchiveException When the page cannot be read, with `Unexpected`
+     */
+    public function findPage(ArchivePageQuery $query): ArchivePageSlice;
+
+    /**
      * Stores `$archive` under its URL for this owner and returns the stored archive.
      *
      * The id on `$archive` is ignored. The returned id is the one this store assigned.

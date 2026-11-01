@@ -5,6 +5,10 @@ declare(strict_types=1);
 namespace Yumo\Eleanor\Tests\Support\InMemory;
 
 use Yumo\Eleanor\Archive\Archive;
+use Yumo\Eleanor\Archive\ArchiveDirection;
+use Yumo\Eleanor\Archive\ArchivePageQuery;
+use Yumo\Eleanor\Archive\ArchivePageSlice;
+use Yumo\Eleanor\Archive\ArchiveSort;
 use Yumo\Eleanor\Archive\ArchiveSummary;
 use Yumo\Eleanor\Archive\Owner;
 
@@ -31,6 +35,13 @@ final class InMemoryArchiveShelf
     private array $nextId = [];
 
     /**
+     * The UTC insert time a new row gets, or null to read the clock.
+     *
+     * A test sets this so rows can share one insert time.
+     */
+    public ?string $now = null;
+
+    /**
      * Returns the light fields of `$owner` stored for `$url`, or null.
      */
     public function findSummary(Owner $owner, string $url): ?ArchiveSummary
@@ -41,6 +52,41 @@ final class InMemoryArchiveShelf
         }
 
         return ArchiveSummary::fromArchive($archive);
+    }
+
+    /**
+     * Returns one page of `$owner`'s archives and the count of every archive.
+     *
+     * The page is ordered by insert time, then by id, both in `$query`'s direction.
+     */
+    public function findPage(Owner $owner, ArchivePageQuery $query): ArchivePageSlice
+    {
+        $archived = match ($query->sort) {
+            ArchiveSort::Archived => static fn (Archive $archive): string => (string) $archive->archived,
+        };
+        $sign = match ($query->dir) {
+            ArchiveDirection::Asc => 1,
+            ArchiveDirection::Desc => -1,
+        };
+        $archives = array_values($this->archives[$owner->email] ?? []);
+        usort(
+            $archives,
+            static function (Archive $left, Archive $right) use ($archived, $sign): int {
+                $byTime = strcmp($archived($left), $archived($right));
+                if ($byTime !== 0) {
+                    return $sign * $byTime;
+                }
+
+                return $sign * (($left->id ?? 0) <=> ($right->id ?? 0));
+            },
+        );
+
+        $items = [];
+        foreach (array_slice($archives, ($query->page - 1) * $query->size, $query->size) as $archive) {
+            $items[] = ArchiveSummary::fromArchive($archive);
+        }
+
+        return new ArchivePageSlice($items, count($archives));
     }
 
     /**
@@ -56,6 +102,7 @@ final class InMemoryArchiveShelf
      *
      * The first archive for an owner gets id 1. A URL that is already stored keeps its id and its insert time.
      * The id on `$archive` is ignored. A new row with no insert time is stamped in UTC.
+     * The stamp is `now` when that property is set.
      */
     public function save(Owner $owner, Archive $archive): Archive
     {
@@ -83,7 +130,7 @@ final class InMemoryArchiveShelf
             return $current->archived;
         }
 
-        return $archive->archived ?? gmdate('Y-m-d\TH:i:s\Z');
+        return $archive->archived ?? $this->now ?? gmdate('Y-m-d\TH:i:s\Z');
     }
 
     /**

@@ -6,8 +6,12 @@ namespace Yumo\Eleanor\Archive\Sqlite;
 
 use Symfony\Component\DependencyInjection\Attribute\Exclude;
 use Yumo\Eleanor\Archive\Archive;
+use Yumo\Eleanor\Archive\ArchiveDirection;
 use Yumo\Eleanor\Archive\ArchiveException;
 use Yumo\Eleanor\Archive\ArchiveFailure;
+use Yumo\Eleanor\Archive\ArchivePageQuery;
+use Yumo\Eleanor\Archive\ArchivePageSlice;
+use Yumo\Eleanor\Archive\ArchiveSort;
 use Yumo\Eleanor\Archive\ArchiveStore;
 use Yumo\Eleanor\Archive\ArchiveSummary;
 use Yumo\Eleanor\Archive\Owner;
@@ -17,7 +21,8 @@ use Yumo\Eleanor\Archive\UrlPointer;
  * Keeps one owner's archives in one SQLite file.
  *
  * A lookup never creates the file. The first `save` opens the connection, which creates the file and its directory.
- * `save` throws `ArchiveException`. The connection still raises `DirectoryException` and `\PDOException`.
+ * `save` throws `ArchiveException` with `NotWritten`. `findPage` throws `ArchiveException` with `Unexpected`.
+ * `find` and `findSummary` are not wrapped. The connection still raises `DirectoryException` and `\PDOException`.
  *
  * `$store = new SqliteArchiveStore($owner, new SqliteConnection('/data/ada.sqlite', new SqliteSchema()));`
  */
@@ -88,6 +93,33 @@ final class SqliteArchiveStore implements ArchiveStore
     }
 
     /**
+     * Returns one page of this owner's archives and the count of every archive.
+     *
+     * A missing file is an empty page and is not created. Rows are ordered by `created_at`, then by id.
+     * The sort token `archived` is the `created_at` column.
+     *
+     * @throws ArchiveException When the page cannot be read, with `Unexpected`
+     * @throws OwnerFileException When the file belongs to another owner
+     */
+    public function findPage(ArchivePageQuery $query): ArchivePageSlice
+    {
+        if (!is_file($this->connection->path)) {
+            return new ArchivePageSlice([], 0);
+        }
+
+        try {
+            return $this->withConnection(function (\PDO $pdo) use ($query): ArchivePageSlice {
+                return $this->readPage($pdo, $query);
+            });
+        } catch (OwnerFileException $error) {
+            // The owner check stays a refusal. It is not an archive read failure.
+            throw $error;
+        } catch (\Throwable $error) {
+            throw new ArchiveException(ArchiveFailure::Unexpected, $error);
+        }
+    }
+
+    /**
      * Stores `$archive` under its URL and returns the stored archive.
      *
      * A second save of the same URL replaces the title, excerpt, site name, and HTML, and keeps the id and the insert time.
@@ -127,6 +159,52 @@ final class SqliteArchiveStore implements ArchiveStore
         } catch (\PDOException $error) {
             throw new ArchiveException(ArchiveFailure::NotWritten, $error);
         }
+    }
+
+    /**
+     * Reads one page and the count of every archive.
+     *
+     * The order words come from `$query`, not from a query string.
+     *
+     * @throws \PDOException When the page cannot be read
+     */
+    private function readPage(\PDO $pdo, ArchivePageQuery $query): ArchivePageSlice
+    {
+        $column = match ($query->sort) {
+            ArchiveSort::Archived => 'created_at',
+        };
+        $direction = match ($query->dir) {
+            ArchiveDirection::Asc => 'ASC',
+            ArchiveDirection::Desc => 'DESC',
+        };
+        $offset = ($query->page - 1) * $query->size;
+        $statement = $pdo->query(
+            'SELECT id, url, title, excerpt, site_name, created_at FROM archive'
+            . ' ORDER BY ' . $column . ' ' . $direction . ', id ' . $direction
+            . ' LIMIT ' . $query->size . ' OFFSET ' . $offset,
+        );
+        if ($statement === false) {
+            throw new \PDOException('The archive page could not be read.');
+        }
+
+        $items = [];
+        foreach ($statement->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+            $items[] = new ArchiveSummary(
+                $row['url'],
+                $row['title'],
+                $row['excerpt'],
+                $row['site_name'],
+                (int) $row['id'],
+                (string) $row['created_at'],
+            );
+        }
+
+        $count = $pdo->query('SELECT COUNT(*) FROM archive');
+        if ($count === false) {
+            throw new \PDOException('The archive count could not be read.');
+        }
+
+        return new ArchivePageSlice($items, (int) $count->fetchColumn());
     }
 
     /**
