@@ -14,6 +14,7 @@ final readonly class Settled
      *
      * @param array<string, string> $headers
      * @param list<array<string, mixed>>|null $rows
+     * @param string|null $path The path that was requested, when it differs from the preset
      */
     public function __construct(
         public Job $job,
@@ -27,6 +28,7 @@ final readonly class Settled
         public ?string $errorLog,
         public ?array $rows,
         public ?string $sqlFile,
+        public ?string $path = null,
     ) {
     }
 }

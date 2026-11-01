@@ -26,7 +26,7 @@ final class Catalog
      */
     public static function reads(): array
     {
-        return ['list', 'sql'];
+        return ['list', 'detail', 'detail-content', 'detail-html', 'sql'];
     }
 
     /**
@@ -59,6 +59,9 @@ final class Catalog
         return match ($name) {
             'archive', 'archive-again' => new Preset('POST', '/api/archives', 'application/json', null, 'bearer'),
             'list' => new Preset('GET', '/api/archives', null, null, 'bearer'),
+            'detail' => new Preset('GET', '/api/archives/{id}', null, null, 'bearer'),
+            'detail-content' => new Preset('GET', '/api/archives/{id}?includeContent=true', null, null, 'bearer'),
+            'detail-html' => new Preset('GET', '/api/archives/{id}.html', null, null, 'bearer'),
             'no-bearer' => new Preset('POST', '/api/archives', 'application/json', '{"url":"https://example.com/"}', 'absent'),
             'wrong-bearer' => new Preset('POST', '/api/archives', 'application/json', '{"url":"https://example.com/"}', 'wrong'),
             'invalid-json' => new Preset('POST', '/api/archives', 'application/json', '{', 'bearer'),
@@ -73,10 +76,18 @@ final class Catalog
     }
 
     /**
+     * Reports whether `$name` sends or reads the first drawn URL.
+     */
+    public static function usesDrawnUrl(string $name): bool
+    {
+        return in_array($name, ['archive', 'archive-again', 'sql', 'detail', 'detail-content', 'detail-html'], true);
+    }
+
+    /**
      * Reports whether `$name` needs a drawn URL sample.
      */
     public static function needsDraw(string $name): bool
     {
-        return in_array($name, ['import', 'archive', 'archive-again', 'sql'], true);
+        return $name === 'import' || self::usesDrawnUrl($name);
     }
 }

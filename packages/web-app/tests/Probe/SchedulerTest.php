@@ -301,6 +301,99 @@ final class SchedulerTest extends TestCase
         self::assertFileDoesNotExist($this->directory . '/run.json');
     }
 
+    public function test_server_failure_writes_the_error(): void
+    {
+        $io = new FakeIo();
+        $io->script('server', $this->outcome('server', 'server', error: 'The server did not answer.'));
+        $stderr = fopen('php://memory', 'w+');
+        self::assertIsResource($stderr);
+
+        $exit = new Scheduler($io, new Record($this->directory), self::BASE_URL, self::ARCHIVE_URL, null, $stderr)->run(['archive']);
+
+        self::assertSame(1, $exit);
+        rewind($stderr);
+        self::assertSame("server: The server did not answer.\n", stream_get_contents($stderr));
+    }
+
+    public function test_step_error_writes_the_sentence(): void
+    {
+        $io = new FakeIo();
+        $io->script('server', $this->outcome('server', 'server'));
+        $io->script('import', $this->outcome('import', 'import', error: 'Import did not start.'));
+        $io->script('archive', $this->outcome('http', 'archive', status: 201, body: '{"id":1}'));
+        $stderr = fopen('php://memory', 'w+');
+        self::assertIsResource($stderr);
+
+        $exit = new Scheduler($io, new Record($this->directory), self::BASE_URL, self::ARCHIVE_URL, null, $stderr)->run(['import', 'archive']);
+
+        self::assertSame(1, $exit);
+        rewind($stderr);
+        self::assertSame("import: Import did not start.\n", stream_get_contents($stderr));
+    }
+
+    public function test_detail_reads_start_with_list_and_record_the_resolved_path(): void
+    {
+        $io = new FakeIo();
+        $io->script('server', $this->outcome('server', 'server'));
+        $io->script('archive', $this->outcome('http', 'archive', status: 201, body: '{"id":7}'));
+        $io->script('list', $this->outcome('http', 'list', status: 200, body: '[]'));
+        $io->script('detail', $this->outcome(
+            'http',
+            'detail',
+            status: 200,
+            body: '{"id":7}',
+            path: '/api/archives/7',
+        ));
+        $io->script('detail-content', $this->outcome(
+            'http',
+            'detail-content',
+            status: 200,
+            body: '{"html":"<p>x</p>"}',
+            path: '/api/archives/7?includeContent=true',
+        ));
+        $io->script('detail-html', $this->outcome(
+            'http',
+            'detail-html',
+            status: 200,
+            body: '<p>x</p>',
+            path: '/api/archives/7.html',
+        ));
+
+        $exit = $this->scheduler($io)->run([
+            'archive',
+            'list',
+            'detail',
+            'detail-content',
+            'detail-html',
+        ]);
+
+        self::assertSame(0, $exit);
+        $polls = $this->pollsByName($io);
+        $jobs = $this->jobsByName($io);
+        self::assertSame(1, $polls['archive']);
+        self::assertSame(2, $polls['list']);
+        self::assertSame(2, $polls['detail']);
+        self::assertSame(2, $polls['detail-content']);
+        self::assertSame(2, $polls['detail-html']);
+        self::assertSame(self::ARCHIVE_URL, $jobs['detail']->url);
+        self::assertSame(self::ARCHIVE_URL, $jobs['detail-content']->url);
+        self::assertSame(self::ARCHIVE_URL, $jobs['detail-html']->url);
+
+        self::assertSame(
+            'http://127.0.0.1:8000/api/archives/7',
+            $this->readJson($this->directory . '/steps/03-detail.json')['request']['url'],
+        );
+        self::assertSame(
+            'http://127.0.0.1:8000/api/archives/7?includeContent=true',
+            $this->readJson($this->directory . '/steps/04-detail-content.json')['request']['url'],
+        );
+        self::assertSame(
+            'http://127.0.0.1:8000/api/archives/7.html',
+            $this->readJson($this->directory . '/steps/05-detail-html.json')['request']['url'],
+        );
+        self::assertNull($this->readJson($this->directory . '/steps/03-detail.json')['request']['body']);
+    }
+
     private function scheduler(FakeIo $io): Scheduler
     {
         return new Scheduler($io, new Record($this->directory), self::BASE_URL, self::ARCHIVE_URL);
@@ -320,6 +413,7 @@ final class SchedulerTest extends TestCase
         ?string $stdout = null,
         ?string $stderr = null,
         ?string $errorLog = null,
+        ?string $path = null,
     ): Settled {
         return new Settled(
             new Job($kind, $name, null, null),
@@ -333,6 +427,7 @@ final class SchedulerTest extends TestCase
             $errorLog,
             null,
             null,
+            $path,
         );
     }
 

@@ -45,7 +45,7 @@ final class CurlProcessIo implements Io
     /** @var list<Settled> */
     private array $ready = [];
 
-    /** @var array<int, array{job: Job, handle: \CurlHandle, headers: string}> */
+    /** @var array<int, array{job: Job, handle: \CurlHandle, headers: string, path: string}> */
     private array $transfers = [];
 
     /** @var list<Job> */
@@ -323,7 +323,14 @@ final class CurlProcessIo implements Io
             return;
         }
 
-        $handle = curl_init('http://127.0.0.1:' . $this->port . $preset->path);
+        $path = $this->requestPath($preset, $job->url);
+        if ($path === null) {
+            $this->ready[] = $this->settled($job, 'The archive id could not be read.');
+
+            return;
+        }
+
+        $handle = curl_init('http://127.0.0.1:' . $this->port . $path);
         if ($handle === false) {
             $this->ready[] = $this->settled($job, 'The HTTP transfer failed.');
 
@@ -336,7 +343,67 @@ final class CurlProcessIo implements Io
             'job' => $job,
             'handle' => $handle,
             'headers' => '',
+            'path' => $path,
         ];
+    }
+
+    /**
+     * Returns the preset path. A `{id}` segment becomes the id stored for `$url`.
+     *
+     * A missing file or a missing row returns null and does not create the database.
+     */
+    private function requestPath(Preset $preset, ?string $url): ?string
+    {
+        if (!str_contains($preset->path, '{id}')) {
+            return $preset->path;
+        }
+
+        $id = $this->archiveId($url);
+        if ($id === null) {
+            return null;
+        }
+
+        return str_replace('{id}', (string) $id, $preset->path);
+    }
+
+    /**
+     * Returns the archive id stored for `$url`, or null when that row cannot be read.
+     */
+    private function archiveId(?string $url): ?int
+    {
+        if (!is_string($url) || $url === '') {
+            return null;
+        }
+
+        $absolute = self::databasePath($this->packageDir . '/var/data', $this->ownerEmail);
+        if (!is_file($absolute)) {
+            return null;
+        }
+
+        try {
+            $pdo = new \PDO('sqlite:' . $absolute, options: [
+                \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+                \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
+                \Pdo\Sqlite::ATTR_OPEN_FLAGS => \Pdo\Sqlite::OPEN_READWRITE,
+            ]);
+            $pdo->exec('PRAGMA query_only = ON');
+            $statement = $pdo->prepare('SELECT id FROM archive WHERE url = :url');
+            if (!$statement instanceof \PDOStatement) {
+                return null;
+            }
+
+            $statement->execute(['url' => $url]);
+            $id = $statement->fetchColumn();
+            if ($id === false) {
+                return null;
+            }
+
+            $id = (int) $id;
+
+            return $id > 0 ? $id : null;
+        } catch (\PDOException) {
+            return null;
+        }
     }
 
     private function armBoot(): void
@@ -382,7 +449,8 @@ final class CurlProcessIo implements Io
             curl_setopt($handle, CURLOPT_HTTPHEADER, $headers);
         }
         $body = $preset->body;
-        if ($body === null && is_string($url) && $url !== '') {
+        // The drawn URL fills the archive POST. A detail GET carries that URL for the id lookup and sends no body.
+        if ($body === null && $preset->contentType === 'application/json' && is_string($url) && $url !== '') {
             $body = json_encode(['url' => $url], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
         }
         if ($body !== null) {
@@ -452,14 +520,14 @@ final class CurlProcessIo implements Io
         $transfer = $this->transfers[$id];
         unset($this->transfers[$id]);
         curl_multi_remove_handle($this->multi, $handle);
-        $this->ready[] = $this->httpSettled($transfer['job'], $handle, $transfer['headers']);
+        $this->ready[] = $this->httpSettled($transfer['job'], $handle, $transfer['headers'], $transfer['path']);
     }
 
-    private function httpSettled(Job $job, \CurlHandle $handle, string $rawHeaders): Settled
+    private function httpSettled(Job $job, \CurlHandle $handle, string $rawHeaders, string $path): Settled
     {
         $status = curl_getinfo($handle, CURLINFO_RESPONSE_CODE);
         if (curl_errno($handle) !== 0 || !is_int($status) || $status === 0) {
-            return $this->settled($job, 'The HTTP transfer failed.');
+            return $this->settled($job, 'The HTTP transfer failed.', path: $path);
         }
 
         $body = curl_multi_getcontent($handle);
@@ -470,6 +538,7 @@ final class CurlProcessIo implements Io
             $status,
             is_string($body) ? $body : '',
             $this->responseHeaders($rawHeaders),
+            path: $path,
         );
     }
 
@@ -846,6 +915,7 @@ final class CurlProcessIo implements Io
         ?string $errorLog = null,
         ?array $rows = null,
         ?string $sqlFile = null,
+        ?string $path = null,
     ): Settled {
         return new Settled(
             $job,
@@ -859,6 +929,7 @@ final class CurlProcessIo implements Io
             $errorLog,
             $rows,
             $sqlFile,
+            $path,
         );
     }
 }

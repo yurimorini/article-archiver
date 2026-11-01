@@ -16,7 +16,7 @@ final class CatalogTest extends TestCase
     public function test_write_chain_and_reads_equal_the_named_lists(): void
     {
         self::assertSame(['import', 'archive', 'archive-again'], Catalog::writeChain());
-        self::assertSame(['list', 'sql'], Catalog::reads());
+        self::assertSame(['list', 'detail', 'detail-content', 'detail-html', 'sql'], Catalog::reads());
         self::assertSame([
             'no-bearer',
             'wrong-bearer',
@@ -39,6 +39,9 @@ final class CatalogTest extends TestCase
         $this->assertRow('archive', 'POST', '/api/archives', 'application/json', null, 'bearer');
         $this->assertRow('archive-again', 'POST', '/api/archives', 'application/json', null, 'bearer');
         $this->assertRow('list', 'GET', '/api/archives', null, null, 'bearer');
+        $this->assertRow('detail', 'GET', '/api/archives/{id}', null, null, 'bearer');
+        $this->assertRow('detail-content', 'GET', '/api/archives/{id}?includeContent=true', null, null, 'bearer');
+        $this->assertRow('detail-html', 'GET', '/api/archives/{id}.html', null, null, 'bearer');
         $this->assertRow('no-bearer', 'POST', '/api/archives', 'application/json', '{"url":"https://example.com/"}', 'absent');
         $this->assertRow('wrong-bearer', 'POST', '/api/archives', 'application/json', '{"url":"https://example.com/"}', 'wrong');
         $this->assertRow('invalid-json', 'POST', '/api/archives', 'application/json', '{', 'bearer');
@@ -53,6 +56,9 @@ final class CatalogTest extends TestCase
     public function test_needs_draw_is_true_for_import_and_false_for_list(): void
     {
         self::assertTrue(Catalog::needsDraw('import'));
+        self::assertTrue(Catalog::needsDraw('detail'));
+        self::assertTrue(Catalog::needsDraw('detail-content'));
+        self::assertTrue(Catalog::needsDraw('detail-html'));
         self::assertFalse(Catalog::needsDraw('list'));
     }
 

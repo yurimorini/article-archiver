@@ -327,6 +327,66 @@ final class CurlProcessIoTest extends TestCase
         self::assertSame('', $list['body']);
     }
 
+    public function test_detail_jobs_request_the_stored_id_in_each_format(): void
+    {
+        $package = $this->writeRouter($this->root . '/package');
+        $dataDir = $package . '/var/data';
+        mkdir($dataDir, 0o777, true);
+        $pdo = new \PDO('sqlite:' . $dataDir . '/c8cd3c6427301eaf.sqlite');
+        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        new SqliteSchema()->migrate($pdo);
+        $pdo->exec("INSERT INTO archive (url, title, created_at) VALUES ('https://example.com/other', 'Other', '2026-11-01T15:41:02Z')");
+        $pdo->exec("INSERT INTO archive (url, title, created_at) VALUES ('https://example.com/a', 'A', '2026-11-01T15:41:02Z')");
+        unset($pdo);
+
+        $io = $this->makeIo($package, $this->root . '/run', $this->freePort());
+        $this->boot($io);
+        $io->start(new Job('http', 'detail', Catalog::preset('detail'), 'https://example.com/a'));
+        $io->start(new Job('http', 'detail-content', Catalog::preset('detail-content'), 'https://example.com/a'));
+        $io->start(new Job('http', 'detail-html', Catalog::preset('detail-html'), 'https://example.com/a'));
+
+        $byName = $this->awaitAll($io, ['detail', 'detail-content', 'detail-html']);
+
+        $detail = $this->payload($byName['detail']);
+        self::assertNull($byName['detail']->error);
+        self::assertSame('GET', $detail['method']);
+        self::assertSame('/api/archives/2', $detail['path']);
+        self::assertSame('', $detail['body']);
+        self::assertSame('bearer', $detail['authorization']);
+        self::assertSame('/api/archives/2', $byName['detail']->path);
+
+        $content = $this->payload($byName['detail-content']);
+        self::assertNull($byName['detail-content']->error);
+        self::assertSame('/api/archives/2?includeContent=true', $content['path']);
+        self::assertSame('', $content['body']);
+        self::assertSame('/api/archives/2?includeContent=true', $byName['detail-content']->path);
+
+        $html = $this->payload($byName['detail-html']);
+        self::assertNull($byName['detail-html']->error);
+        self::assertSame('/api/archives/2.html', $html['path']);
+        self::assertSame('', $html['body']);
+        self::assertSame('/api/archives/2.html', $byName['detail-html']->path);
+    }
+
+    public function test_detail_without_a_stored_row_settles_before_http_and_creates_no_file(): void
+    {
+        $package = $this->root . '/package';
+        $dataDir = $package . '/var/data';
+        mkdir($dataDir, 0o777, true);
+        $absolute = $dataDir . '/c8cd3c6427301eaf.sqlite';
+
+        $io = $this->makeIo($package, $this->root . '/run', $this->freePort());
+        mkdir($this->root . '/run');
+        $io->start(new Job('http', 'detail', Catalog::preset('detail'), 'https://example.com/a'));
+        $settled = $io->poll();
+
+        self::assertCount(1, $settled);
+        self::assertSame('The archive id could not be read.', $settled[0]->error);
+        self::assertNull($settled[0]->status);
+        self::assertNull($settled[0]->path);
+        self::assertFileDoesNotExist($absolute);
+    }
+
     public function test_poll_does_not_block_while_an_http_transfer_is_open(): void
     {
         $socket = stream_socket_server('tcp://127.0.0.1:0', $errno, $error);

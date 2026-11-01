@@ -17,11 +17,17 @@ final class ProbeRun
      *
      * A broken token, owner, selection, or config returns 1 before the scheduler starts.
      * A required draw that is missing or empty returns 1 before `probe/runs/` is created.
+     * Each of those failures writes one sentence to `$stderr`.
      *
      * @param list<string> $argv
+     * @param resource|null $stderr
      */
-    public static function main(array $argv): int
+    public static function main(array $argv, $stderr = null): int
     {
+        if (!is_resource($stderr)) {
+            $stderr = STDERR;
+        }
+
         try {
             $config = Config::fromFile(__DIR__ . '/probe.json');
             $selected = Selection::names($config->steps, $argv);
@@ -30,24 +36,24 @@ final class ProbeRun
             $owner = Guard::owner(self::parameterEmail(), $config->owner);
             $seed = $config->seed ?? random_int(1, PHP_INT_MAX);
             $draw = self::draw($config, $selected, $seed);
-        } catch (\InvalidArgumentException) {
-            return 1;
+        } catch (\InvalidArgumentException $error) {
+            return self::fail($stderr, $error->getMessage());
         }
 
         if ($draw === null) {
-            return 1;
+            return self::fail($stderr, 'The URL file is missing or empty.');
         }
 
         $stamp = time();
         $runDir = self::packageDir() . '/probe/runs/' . gmdate('Ymd\THis\Z', $stamp) . '-' . $seed;
         if (!is_dir($runDir) && !mkdir($runDir, 0o775, true)) {
-            return 1;
+            return self::fail($stderr, 'The run directory could not be created.');
         }
 
         if ($draw !== []) {
             $written = file_put_contents($runDir . '/sample.txt', implode("\n", $draw) . "\n");
             if ($written === false) {
-                return 1;
+                return self::fail($stderr, 'The sample file could not be written.');
             }
         }
 
@@ -69,9 +75,42 @@ final class ProbeRun
             $baseUrl,
             self::archiveUrl($draw),
             fn (): array => $io->logLines(),
+            $stderr,
         );
 
-        return $scheduler->run($selected);
+        return self::finish($scheduler->run($selected), $runDir, self::packageDir(), STDOUT);
+    }
+
+    /**
+     * Writes the run folder when `$exit` is 0.
+     *
+     * The folder is relative to `$packageDir` when the run lives there.
+     *
+     * @param resource $stdout
+     */
+    public static function finish(int $exit, string $runDir, string $packageDir, $stdout): int
+    {
+        if ($exit !== 0) {
+            return $exit;
+        }
+
+        $prefix = $packageDir . '/';
+        $shown = str_starts_with($runDir, $prefix) ? substr($runDir, strlen($prefix)) : $runDir;
+        fwrite($stdout, 'Wrote ' . $shown . "\n");
+
+        return 0;
+    }
+
+    /**
+     * Writes `$message` to `$stderr` and returns the broken-probe status.
+     *
+     * @param resource $stderr
+     */
+    private static function fail($stderr, string $message): int
+    {
+        fwrite($stderr, $message . "\n");
+
+        return 1;
     }
 
     private static function packageDir(): string

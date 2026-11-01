@@ -62,13 +62,13 @@ Phases:
 1. `Io::start` the server job. Poll until it settles. A broken server returns non-zero and starts no step.
 2. Start every selected refusal preset, and start `import` when it is selected. Those jobs share the poll loop from the first tick.
 3. When `import` has settled, or was not selected, start `archive` if it is selected. When `archive` has settled, start `archive-again` if it is selected. A broken write starts the next write anyway. Each of them uses the first URL of the draw.
-4. When every selected write has settled, start `list` and `sql` if they are selected. They share the poll loop. They do not wait for a refusal that is still running.
+4. When every selected write has settled, start `list`, `detail`, `detail-content`, `detail-html`, and `sql` if they are selected. They share the poll loop. They do not wait for a refusal that is still running. The three detail rows look up the id of the first drawn URL and send `GET /api/archives/{id}`, the same path with `includeContent=true`, and `GET /api/archives/{id}.html`. A missing row records an error and sends no request.
 5. Poll until every selected step has settled. A job that settles with an error is recorded and does not remove the others.
 6. Stop the server. Return 0 when no settled step has an error. Return non-zero when any step has an error.
 
 `archive:import` remains one child process. The catalog does not start one process per URL.
 
-Refusal presets are rows in a table on `Catalog`: method, path, content type, body, and the authorization label. Adding a route later is a row, or a branch in the write chain, not a new class per step. `import` and `sql` are the two jobs that are not HTTP rows. `read` has no row until `GET /api/archives/{id}` exists.
+Refusal presets are rows in a table on `Catalog`: method, path, content type, body, and the authorization label. Adding a route later is a row, or a branch in the write chain, not a new class per step. `import` and `sql` are the two jobs that are not HTTP rows. `detail`, `detail-content`, and `detail-html` are the three rows for one archive.
 
 ## Production Io
 

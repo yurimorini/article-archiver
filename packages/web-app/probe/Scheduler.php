@@ -26,13 +26,18 @@ final class Scheduler
     /** @var \Closure(): list<string> */
     private readonly \Closure $logLines;
 
+    /** @var resource */
+    private $stderr;
+
     /**
      * Stores the job seam, the run directory, the HTTP origin, the article URL, and the dev-log reader.
      *
      * `$logLines` returns raw log lines. This scheduler passes them to `LogTail` when a response has a request id.
      * An omitted reader is the empty list. A closure is not a legal parameter default, so `null` stands in for that reader.
+     * A server failure or a step error is one sentence on `$stderr`.
      *
      * @param (\Closure(): list<string>)|null $logLines
+     * @param resource|null $stderr
      */
     public function __construct(
         private readonly Io $io,
@@ -40,8 +45,13 @@ final class Scheduler
         private readonly string $baseUrl,
         private readonly string $archiveUrl,
         ?\Closure $logLines = null,
+        $stderr = null,
     ) {
         $this->logLines = $logLines ?? static fn (): array => [];
+        if (!is_resource($stderr)) {
+            $stderr = STDERR;
+        }
+        $this->stderr = $stderr;
     }
 
     /**
@@ -57,6 +67,8 @@ final class Scheduler
             $this->io->start(new Job('server', 'server', null, null));
             $server = $this->awaitSettled('server');
             if ($server->error !== null) {
+                $this->report($server->job->name, $server->error);
+
                 return 1;
             }
 
@@ -206,7 +218,7 @@ final class Scheduler
             return new Job('sql', $name, null, $this->archiveUrl);
         }
 
-        $url = $name === 'archive' || $name === 'archive-again' ? $this->archiveUrl : null;
+        $url = Catalog::usesDrawnUrl($name) ? $this->archiveUrl : null;
 
         return new Job('http', $name, Catalog::preset($name), $url);
     }
@@ -226,9 +238,18 @@ final class Scheduler
         $this->done[$name] = true;
         if ($settled->error !== null) {
             $this->failed = true;
+            $this->report($name, $settled->error);
         }
 
         $this->writeStep($selected, $settled);
+    }
+
+    /**
+     * Writes one failure sentence for `$name`.
+     */
+    private function report(string $name, string $error): void
+    {
+        fwrite($this->stderr, $name . ': ' . $error . "\n");
     }
 
     /**
@@ -254,7 +275,7 @@ final class Scheduler
         ];
 
         if ($job->kind === 'http') {
-            $step['request'] = $this->httpRequest($name, $job);
+            $step['request'] = $this->httpRequest($name, $job, $settled->path);
             $step['log'] = $this->httpLog($settled);
             if ($settled->error === null) {
                 $step['response'] = [
@@ -312,7 +333,7 @@ final class Scheduler
     /**
      * @return array{method: string, url: string, authorization: string, contentType: ?string, body: ?string}
      */
-    private function httpRequest(string $name, Job $job): array
+    private function httpRequest(string $name, Job $job, ?string $path = null): array
     {
         $preset = $job->preset;
         if (!$preset instanceof Preset) {
@@ -326,7 +347,7 @@ final class Scheduler
 
         return [
             'method' => $preset->method,
-            'url' => $this->baseUrl . $preset->path,
+            'url' => $this->baseUrl . ($path ?? $preset->path),
             'authorization' => $preset->authorization,
             'contentType' => $preset->contentType,
             'body' => $body,

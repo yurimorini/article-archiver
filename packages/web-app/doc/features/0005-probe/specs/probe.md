@@ -18,7 +18,7 @@ The folder is an observation. The agent compares it to the current specs. The pr
 - Steps that do not depend on each other run at the same time. A step that breaks is recorded, and the others still run.
 - The run folder records the owner, the sample, each request, each response, the matching dev-log lines, the import `error.log`, and the SQLite row.
 - A dedicated owner email keeps the probe file apart from any other owner's file. Dev already stores one SQLite file per email under `var/data`.
-- The default config draws at most 10 URLs at random from `var/log-urls.txt`, imports that draw, archives one URL from it, repeats that call, lists the archives, reads the SQL row, then sends the refusal calls that need no fetch.
+- The default config draws at most 10 URLs at random from `var/log-urls.txt`, imports that draw, archives one URL from it, repeats that call, lists the archives, reads that archive as metadata, as metadata plus HTML, and as stored HTML, reads the SQL row, then sends the refusal calls that need no fetch.
 - A person can launch the same command. The config is the interface. The only argument is one catalog name, and it is optional.
 
 ## Non-goals
@@ -76,7 +76,7 @@ Inside the container a PHP runner:
 1. Reads `probe/probe.json`.
 2. Refuses to start when `ELEANOR_BEARER_TOKEN` is missing or empty.
 3. Reads `eleanor.owner_email` from the booted container parameter. When the config sets `owner`, the two strings must match after the same lowercasing `Owner` applies. A mismatch is a broken probe.
-4. Draws the sample only when a selected step needs it: `import`, `archive`, `archive-again`, or `sql`. A run of only `list` or only a refusal preset does not read `var/log-urls.txt`. When a draw is required, the runner reads that file, drops blank lines, shuffles with the seed, and keeps `sample` lines. `sample` defaults to 10 and is never above 10. A shorter file keeps every remaining line. Zero URLs is a broken probe. The run directory then receives `sample.txt`: the draw only, at most 10 lines.
+4. Draws the sample only when a selected step needs it: `import`, `archive`, `archive-again`, `detail`, `detail-content`, `detail-html`, or `sql`. A run of only `list` or only a refusal preset does not read `var/log-urls.txt`. When a draw is required, the runner reads that file, drops blank lines, shuffles with the seed, and keeps `sample` lines. `sample` defaults to 10 and is never above 10. A shorter file keeps every remaining line. Zero URLs is a broken probe. The run directory then receives `sample.txt`: the draw only, at most 10 lines.
 5. Starts `php -S 0.0.0.0:8000 -t public router.php` in the package directory. The first HTTP response on `http://127.0.0.1:8000` means the server is up. No response before the boot timeout is a broken probe. The port is the config value, default 8000. A port already taken is a broken probe. The server is not started until the checks above have passed.
 6. Runs the selected steps on the schedule below. Each step is recorded. A step that gets an HTTP response is recorded whatever the status. A step that cannot be sent is recorded with `response` null and `error` set, and the others still run.
 7. Stops the server when every selected step has been recorded.
@@ -95,7 +95,9 @@ The write chain stays in this order, and only the selected names run: `import`, 
 
 Every selected refusal preset runs at the same time as that chain and at the same time as the other presets. A preset does not wait for the chain. The chain does not wait for a preset.
 
-When the write chain has been recorded, `list` and `sql` run at the same time, if they were selected. They do not wait for a refusal preset that is still in flight. They do wait for the write chain, so the page and the row are the result of those writes. A broken write does not skip them.
+When the write chain has been recorded, `list`, `detail`, `detail-content`, `detail-html`, and `sql` run at the same time, if they were selected. They do not wait for a refusal preset that is still in flight. They do wait for the write chain, so the page and the row are the result of those writes. A broken write does not skip them.
+
+`detail` is `GET /api/archives/{id}`. `detail-content` is that path with `includeContent=true`. `detail-html` is `GET /api/archives/{id}.html`. `{id}` is the id stored for the first drawn URL. A missing file or a missing row records `error` and sends no request. It does not create the database.
 
 A step that breaks does not cancel a sibling that is already running, and it does not remove a step that has not started.
 
