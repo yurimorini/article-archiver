@@ -18,3 +18,5 @@
 /var/
 /vendor/
 ###< symfony/framework-bundle ###
+
+/probe/runs/
