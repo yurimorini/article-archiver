@@ -60,8 +60,8 @@ final class ArchiveServiceTest extends TestCase
 
         self::assertSame(ArchiveOutcome::Written, $result->outcome);
         self::assertSame(1, $this->fetcher->fetchCount());
-        self::assertEquals(new ArchiveSummary(self::URL, 'Title', null, null, 1), $summary);
-        self::assertEquals(new Archive(self::URL, 'Title', null, null, '<p>Body</p>', 1), $this->store->find(new UrlPointer(self::URL)));
+        self::assertEquals(new ArchiveSummary(self::URL, 'Title', null, null, 1, $summary->archived), $summary);
+        self::assertEquals(new Archive(self::URL, 'Title', null, null, '<p>Body</p>', 1, $summary->archived), $this->store->find(new UrlPointer(self::URL)));
     }
 
     public function test_second_archive_is_already_stored_and_does_not_fetch(): void
@@ -80,9 +80,9 @@ final class ArchiveServiceTest extends TestCase
     {
         $this->fetcher->willReturn(self::URL, PipelineFixtures::article('Title', 'Excerpt', 'Site', '<p>Body</p>'));
 
-        $this->service->archive(new UrlPointer(self::URL));
+        $result = $this->service->archive(new UrlPointer(self::URL));
 
-        self::assertEquals(new Archive(self::URL, 'Title', 'Excerpt', 'Site', '<p>Body</p>', 1), $this->store->find(new UrlPointer(self::URL)));
+        self::assertEquals(new Archive(self::URL, 'Title', 'Excerpt', 'Site', '<p>Body</p>', 1, $result->summary->archived), $this->store->find(new UrlPointer(self::URL)));
     }
 
     public function test_text_fields_are_stored_as_the_article_text(): void

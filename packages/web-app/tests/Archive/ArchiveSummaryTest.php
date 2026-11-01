@@ -22,6 +22,7 @@ final class ArchiveSummaryTest extends TestCase
             'Site',
             '<p>body</p>',
             17,
+            '2026-11-01T10:52:00Z',
         );
 
         $summary = ArchiveSummary::fromArchive($archive);
@@ -35,7 +36,7 @@ final class ArchiveSummaryTest extends TestCase
     public function test_copies_the_id(): void
     {
         $summary = ArchiveSummary::fromArchive(
-            new Archive('https://example.com/a', 'Title', 'Excerpt', 'Site', '<p>body</p>', 17),
+            new Archive('https://example.com/a', 'Title', 'Excerpt', 'Site', '<p>body</p>', 17, '2026-11-01T10:52:00Z'),
         );
 
         self::assertSame(17, $summary->id);
@@ -46,7 +47,33 @@ final class ArchiveSummaryTest extends TestCase
         $this->expectException(\LogicException::class);
 
         ArchiveSummary::fromArchive(
-            new Archive('https://example.com/a', 'Title', null, null, '<p>body</p>', null),
+            new Archive('https://example.com/a', 'Title', null, null, '<p>body</p>', null, '2026-11-01T10:52:00Z'),
+        );
+    }
+
+    public function test_copies_archived(): void
+    {
+        $summary = ArchiveSummary::fromArchive(
+            new Archive(
+                'https://example.com/a',
+                'Title',
+                'Excerpt',
+                'Site',
+                '<p>body</p>',
+                17,
+                '2026-11-01T10:52:00Z',
+            ),
+        );
+
+        self::assertSame('2026-11-01T10:52:00Z', $summary->archived);
+    }
+
+    public function test_rejects_an_archive_without_archived(): void
+    {
+        $this->expectException(\LogicException::class);
+
+        ArchiveSummary::fromArchive(
+            new Archive('https://example.com/a', 'Title', null, null, '<p>body</p>', 17, null),
         );
     }
 }

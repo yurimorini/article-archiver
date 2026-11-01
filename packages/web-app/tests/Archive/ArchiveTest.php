@@ -14,8 +14,8 @@ final class ArchiveTest extends TestCase
 {
     public function test_keeps_null_and_an_assigned_id(): void
     {
-        $unsaved = new Archive('https://example.com/a', 'Title', null, null, '<p>Body</p>', null);
-        $saved = new Archive('https://example.com/a', 'Title', null, null, '<p>Body</p>', 17);
+        $unsaved = new Archive('https://example.com/a', 'Title', null, null, '<p>Body</p>', null, null);
+        $saved = new Archive('https://example.com/a', 'Title', null, null, '<p>Body</p>', 17, null);
 
         self::assertNull($unsaved->id);
         self::assertSame(17, $saved->id);

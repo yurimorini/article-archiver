@@ -73,8 +73,8 @@ final class FakeArchiveStore implements ArchiveStore
     /**
      * Stores `$archive` under its URL and returns the stored archive.
      *
-     * The first archive gets id 1. A URL that is already stored keeps its id.
-     * The id on `$archive` is ignored.
+     * The first archive gets id 1. A URL that is already stored keeps its id and its insert time.
+     * The id on `$archive` is ignored. A new row with no insert time is stamped in UTC.
      */
     public function save(Archive $archive): Archive
     {
@@ -91,10 +91,24 @@ final class FakeArchiveStore implements ArchiveStore
             $archive->siteName,
             $archive->html,
             $this->idFor($archive->url),
+            $this->archivedFor($archive),
         );
         $this->archives[$archive->url] = $stored;
 
         return $stored;
+    }
+
+    /**
+     * Returns the insert time already stored for `$archive`, or stamps one when the row is new.
+     */
+    private function archivedFor(Archive $archive): string
+    {
+        $current = $this->archives[$archive->url] ?? null;
+        if (is_string($current?->archived)) {
+            return $current->archived;
+        }
+
+        return $archive->archived ?? gmdate('Y-m-d\TH:i:s\Z');
     }
 
     /**

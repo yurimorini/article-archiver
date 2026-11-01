@@ -26,13 +26,15 @@ final readonly class ArchiveSummary
         public ?string $siteName,
         /** The database identity of the stored archive. */
         public int $id,
+        /** The UTC insert time. */
+        public string $archived,
     ) {
     }
 
     /**
-     * Copies the light fields of `$archive`, including its id. The HTML stays out.
+     * Copies the light fields of `$archive`, including its id and insert time. The HTML stays out.
      *
-     * @throws \LogicException When `$archive` has no id
+     * @throws \LogicException When `$archive` has no id or no insert time
      */
     public static function fromArchive(Archive $archive): self
     {
@@ -40,6 +42,17 @@ final readonly class ArchiveSummary
             throw new \LogicException('The archive has no id.');
         }
 
-        return new self($archive->url, $archive->title, $archive->excerpt, $archive->siteName, $archive->id);
+        if ($archive->archived === null) {
+            throw new \LogicException('The archive has no insert time.');
+        }
+
+        return new self(
+            $archive->url,
+            $archive->title,
+            $archive->excerpt,
+            $archive->siteName,
+            $archive->id,
+            $archive->archived,
+        );
     }
 }

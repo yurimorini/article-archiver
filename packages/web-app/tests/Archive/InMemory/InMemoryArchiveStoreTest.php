@@ -62,18 +62,22 @@ final class InMemoryArchiveStoreTest extends TestCase
         $excerpt = 'Excerpt';
         $siteName = 'Site';
         $store = new InMemoryArchiveStore(new Owner('ada@example.com'), new InMemoryArchiveShelf());
-        $store->save(new Archive($url, $title, $excerpt, $siteName, '<p>x</p>', null));
+        $saved = $store->save(new Archive($url, $title, $excerpt, $siteName, '<p>x</p>', null, null));
 
         $summary = $store->findSummary(new UrlPointer($url));
         $stored = $store->find(new UrlPointer($url));
+        $archived = $saved->archived;
+        if (!is_string($archived)) {
+            self::fail('Expected an insert time.');
+        }
 
-        self::assertEquals(new ArchiveSummary($url, $title, $excerpt, $siteName, 1), $summary);
+        self::assertEquals(new ArchiveSummary($url, $title, $excerpt, $siteName, 1, $archived), $summary);
         self::assertNotNull($stored);
         self::assertSame('<p>x</p>', $stored->html);
     }
 
     private function archive(string $url): Archive
     {
-        return new Archive($url, 'Title', null, null, '<p>Body</p>', null);
+        return new Archive($url, 'Title', null, null, '<p>Body</p>', null, null);
     }
 }

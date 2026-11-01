@@ -94,6 +94,7 @@ final class ArchiveService
             $article->siteName,
             $article->html,
             null,
+            null,
         );
     }
 

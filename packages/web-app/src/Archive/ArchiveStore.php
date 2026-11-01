@@ -27,7 +27,7 @@ interface ArchiveStore
      * Stores `$archive` under its URL for this owner and returns the stored archive.
      *
      * The id on `$archive` is ignored. The returned id is the one this store assigned.
-     * A second save of the same URL keeps that id.
+     * A second save of the same URL keeps that id and the insert time.
      *
      * @throws ArchiveException When the archive cannot be stored, with `NotWritten`
      */

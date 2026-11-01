@@ -18,7 +18,7 @@ final class ArchiveResponseTest extends TestCase
     public function test_copies_url_and_title_and_leaves_the_rest_of_the_result_out(): void
     {
         $result = new ArchiveResult(
-            new ArchiveSummary('https://example.com/a', 'Title', 'Excerpt', 'Site', 17),
+            new ArchiveSummary('https://example.com/a', 'Title', 'Excerpt', 'Site', 17, '2026-11-01T10:52:00Z'),
             ArchiveOutcome::Written,
         );
 

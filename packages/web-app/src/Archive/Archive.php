@@ -30,6 +30,8 @@ final readonly class Archive
         public string $html,
         /** The database identity, or null before the store assigns one. */
         public ?int $id,
+        /** The UTC insert time, or null before the store assigns one. */
+        public ?string $archived,
     ) {
     }
 }

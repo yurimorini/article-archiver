@@ -42,12 +42,22 @@ final class SqliteArchiveStore implements ArchiveStore
      */
     public function findSummary(UrlPointer $url): ?ArchiveSummary
     {
-        $row = $this->fetchRow('SELECT id, url, title, excerpt, site_name FROM archive WHERE url = :url', $url->toString());
+        $row = $this->fetchRow(
+            'SELECT id, url, title, excerpt, site_name, created_at FROM archive WHERE url = :url',
+            $url->toString(),
+        );
         if ($row === null) {
             return null;
         }
 
-        return new ArchiveSummary($row['url'], $row['title'], $row['excerpt'], $row['site_name'], (int) $row['id']);
+        return new ArchiveSummary(
+            $row['url'],
+            $row['title'],
+            $row['excerpt'],
+            $row['site_name'],
+            (int) $row['id'],
+            (string) $row['created_at'],
+        );
     }
 
     /**
@@ -58,7 +68,7 @@ final class SqliteArchiveStore implements ArchiveStore
     public function find(UrlPointer $url): ?Archive
     {
         $row = $this->fetchRow(
-            'SELECT a.id, a.url, a.title, a.excerpt, a.site_name, b.html'
+            'SELECT a.id, a.url, a.title, a.excerpt, a.site_name, a.created_at, b.html'
             . ' FROM archive a JOIN archive_body b ON b.archive_id = a.id WHERE a.url = :url',
             $url->toString(),
         );
@@ -66,14 +76,22 @@ final class SqliteArchiveStore implements ArchiveStore
             return null;
         }
 
-        return new Archive($row['url'], $row['title'], $row['excerpt'], $row['site_name'], $row['html'], (int) $row['id']);
+        return new Archive(
+            $row['url'],
+            $row['title'],
+            $row['excerpt'],
+            $row['site_name'],
+            $row['html'],
+            (int) $row['id'],
+            (string) $row['created_at'],
+        );
     }
 
     /**
      * Stores `$archive` under its URL and returns the stored archive.
      *
-     * A second save of the same URL replaces the title, excerpt, site name, and HTML, and keeps the id.
-     * The id on `$archive` is not written.
+     * A second save of the same URL replaces the title, excerpt, site name, and HTML, and keeps the id and the insert time.
+     * The id on `$archive` is not written. The insert time is the row's `created_at` and is not changed on conflict.
      *
      * @throws ArchiveException When the archive cannot be stored, with `NotWritten`
      */
@@ -84,7 +102,7 @@ final class SqliteArchiveStore implements ArchiveStore
                 try {
                     $pdo->beginTransaction();
                     $this->writeOwner($pdo);
-                    $id = $this->writeArchive($pdo, $archive);
+                    [$id, $archived] = $this->writeArchive($pdo, $archive);
                     $this->writeBody($pdo, $id, $archive->html);
                     $pdo->commit();
 
@@ -95,6 +113,7 @@ final class SqliteArchiveStore implements ArchiveStore
                         $archive->siteName,
                         $archive->html,
                         $id,
+                        $archived,
                     );
                 } catch (\Throwable $failure) {
                     if ($pdo->inTransaction()) {
@@ -186,14 +205,21 @@ final class SqliteArchiveStore implements ArchiveStore
         );
     }
 
-    private function writeArchive(\PDO $pdo, Archive $archive): int
+    /**
+     * Inserts or updates the archive row and returns its id and insert time.
+     *
+     * The insert time is the column default. A conflict does not assign `created_at`.
+     *
+     * @return array{int, string}
+     */
+    private function writeArchive(\PDO $pdo, Archive $archive): array
     {
         $statement = $pdo->prepare(
             'INSERT INTO archive (url, title, excerpt, site_name)'
             . ' VALUES (:url, :title, :excerpt, :site_name)'
             . ' ON CONFLICT(url) DO UPDATE SET'
             . ' title = excluded.title, excerpt = excluded.excerpt, site_name = excluded.site_name'
-            . ' RETURNING id',
+            . ' RETURNING id, created_at',
         );
         $statement->execute([
             'url' => $archive->url,
@@ -201,8 +227,12 @@ final class SqliteArchiveStore implements ArchiveStore
             'excerpt' => $archive->excerpt,
             'site_name' => $archive->siteName,
         ]);
+        $row = $statement->fetch(\PDO::FETCH_NUM);
+        if (!is_array($row)) {
+            throw new \PDOException('The stored archive row could not be read.');
+        }
 
-        return (int) $statement->fetchColumn();
+        return [(int) $row[0], (string) $row[1]];
     }
 
     private function writeBody(\PDO $pdo, int $id, string $html): void
