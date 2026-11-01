@@ -60,7 +60,8 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Yumo\\Eleanor\\Tests\\": "tests/"
+            "Yumo\\Eleanor\\Tests\\": "tests/",
+            "Yumo\\Eleanor\\Probe\\": "probe/"
         }
     },
     "config": {

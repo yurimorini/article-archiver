@@ -6,6 +6,7 @@ Work recorded here has no feature slice yet. Pull an item into a feature by reco
 - [Human login](human-login.md)
 - [Second owner](second-owner.md)
 - [HTML pages](html-pages.md)
+- [Content-Security-Policy on the archive HTML](archive-html-content-security-policy.md)
 - [CORS, HTTP caching, CSRF, and a version segment](cors-caching-csrf-version.md)
 - [Limits and configuration](limits-and-configuration.md)
 - [Refresh a changed page](refresh-changed-page.md)
@@ -15,3 +16,4 @@ Work recorded here has no feature slice yet. Pull an item into a feature by reco
 - [Bookmark](bookmark.md)
 - [Semantic search (preventive research)](semantic-search.md)
 - [Owner database file name (discussion)](owner-database-file-name.md)
+- [Positive integer string](positive-integer-string.md)

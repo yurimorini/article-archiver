@@ -82,6 +82,39 @@ An empty `--owner` or a file that cannot be read fails before any archive. The c
 
 If the image is missing, build it and install dependencies as in [Tests](#tests).
 
+## Probe
+
+From `packages/web-app`, one command starts the development image, starts the server, runs the steps in `probe/probe.json`, writes a run folder, and stops the server.
+
+```bash
+export ELEANOR_BEARER_TOKEN=change-me
+./bin/probe
+```
+
+The token is the same secret as `.env.local`. The command reads it from the shell. An empty token exits 1, prints `The bearer token is empty.` on the error output, and writes no run folder.
+
+A broken setup, a server that does not start, or a step that could not be sent prints one sentence on the error output. An Eleanor status stays in the step file and does not print.
+
+No argument runs every name in `steps`. One argument runs that step alone:
+
+```bash
+./bin/probe invalid-json
+```
+
+A second argument, or a name the catalog does not have, exits 1 before the server starts.
+
+The folder is `probe/runs/<utc>-<seed>/`. `run.json` records the start, the owner, the seed, and the drawn URLs. Each step is a file under `steps/`, such as `steps/01-import.json`. The bearer is not written there.
+
+`import`, `archive`, `archive-again`, `detail`, `detail-content`, `detail-html`, and `sql` draw at most 10 lines from `var/log-urls.txt`. That file is one URL per line and stays out of git. A run of `list` or of a refusal step does not read it. A required draw with a missing or empty file prints `The URL file is missing or empty.` and exits 1 before the folder is created.
+
+`detail` requests `GET /api/archives/{id}` and records the metadata. `detail-content` adds `includeContent=true`, so the JSON includes `html`. `detail-html` requests `GET /api/archives/{id}.html` and records the stored HTML alone. `{id}` is the row stored for the first drawn URL. A missing row is recorded with `error` set and no response.
+
+Stop `bin/serve` first. The probe binds `127.0.0.1:8000` itself. The owner in `probe/probe.json` must match `eleanor.owner_email`.
+
+Exit 0 means setup held and every selected step was recorded without a tool failure. The command then prints `Wrote probe/runs/<utc>-<seed>`. An Eleanor status, including 400 and 401, still exits 0. A step that could not be sent is recorded with `error` set, the other steps still run, and the process exits 1 at the end.
+
+If the image is missing, build it and install dependencies as in [Tests](#tests).
+
 ## Tests
 
 From `packages/web-app`, Composer scripts run inside the development image:

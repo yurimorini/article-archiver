@@ -1,0 +1,25 @@
+{
+  "urls": "var/log-urls.txt",
+  "sample": 10,
+  "owner": "owner@example.com",
+  "port": 8000,
+  "steps": [
+    "import",
+    "archive",
+    "archive-again",
+    "list",
+    "detail",
+    "detail-content",
+    "detail-html",
+    "sql",
+    "no-bearer",
+    "wrong-bearer",
+    "invalid-json",
+    "invalid-body",
+    "url-policy",
+    "unsupported-media-type",
+    "not-found",
+    "method-not-allowed",
+    "invalid-query"
+  ]
+}

@@ -3,6 +3,7 @@ parameters:
     paths:
         - src
         - tests
+        - probe
     excludePaths:
         - vendor
     treatPhpDocTypesAsCertain: false
