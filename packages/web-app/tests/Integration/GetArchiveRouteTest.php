@@ -212,6 +212,7 @@ final class GetArchiveRouteTest extends WebTestCase
         yield 'zero' => ['/api/archives/0'];
         yield 'negative' => ['/api/archives/-3'];
         yield 'decimal' => ['/api/archives/1.5'];
+        yield 'decimal html' => ['/api/archives/1.5.html'];
         yield 'leading zero' => ['/api/archives/01'];
         yield 'word html' => ['/api/archives/abc.html'];
     }

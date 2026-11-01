@@ -75,7 +75,7 @@ final class GetArchiveController
     #[Route(
         '/archives/{id}.html',
         name: 'read_archive_html',
-        requirements: ['id' => '[^/.]+'],
+        requirements: ['id' => '[^/]+'],
         methods: ['GET', 'HEAD'],
     )]
     public function html(string $id, ArchiveReadService $archives): Response
