@@ -117,13 +117,13 @@ final readonly class ArchivePageQuery
     /**
      * Reads a base-10 integer string of at least 1 that fits in a PHP int.
      *
-     * A sign, a decimal point, a leading zero, or surrounding space is rejected.
+     * A sign, a decimal point, a leading zero, surrounding space, or a trailing newline is rejected.
      *
      * @throws InvalidArchiveQuery
      */
     private static function integer(string $value): int
     {
-        if (preg_match('/^[1-9][0-9]*$/', $value) !== 1) {
+        if (preg_match('/^[1-9][0-9]*\z/', $value) !== 1) {
             throw new InvalidArchiveQuery();
         }
 

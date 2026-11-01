@@ -84,6 +84,7 @@ final class ArchivePageQueryTest extends TestCase
         yield 'page abc' => [null, null, 'abc', null];
         yield 'page 01' => [null, null, '01', null];
         yield 'page space 1' => [null, null, ' 1', null];
+        yield 'page trailing newline' => [null, null, "1\n", null];
         yield 'page empty' => [null, null, '', null];
         yield 'size 0' => [null, null, null, '0'];
         yield 'size 101' => [null, null, null, '101'];
