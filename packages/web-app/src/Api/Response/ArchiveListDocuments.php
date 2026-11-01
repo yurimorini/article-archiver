@@ -6,12 +6,11 @@ namespace Yumo\Eleanor\Api\Response;
 
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Yumo\Eleanor\Archive\ArchivePage;
-use Yumo\Eleanor\Archive\ArchiveSummary;
 
 /**
  * Builds the JSON document for one archive page and the link to the next page.
  *
- * It does not read the store. `next` is set only when `page * size < total`.
+ * The items are the page summaries. It does not read the store. `next` is set only when `page * size < total`.
  */
 final readonly class ArchiveListDocuments
 {
@@ -23,7 +22,7 @@ final readonly class ArchiveListDocuments
     }
 
     /**
-     * Copies the page into the list document. The site name is written as `site`.
+     * Copies the page into the list document. Each item is that page's summary.
      */
     public function response(ArchivePage $page): ArchiveListResponse
     {
@@ -32,37 +31,9 @@ final readonly class ArchiveListDocuments
             $page->dir->value,
             $page->page,
             $page->size,
-            $this->items($page),
+            $page->items,
             $page->total,
             $this->next($page),
-        );
-    }
-
-    /**
-     * @return list<ArchiveListItemResponse>
-     */
-    private function items(ArchivePage $page): array
-    {
-        $items = [];
-        foreach ($page->items as $summary) {
-            $items[] = $this->item($summary);
-        }
-
-        return $items;
-    }
-
-    /**
-     * Copies one summary. `site` is `siteName`, and null stays null.
-     */
-    private function item(ArchiveSummary $summary): ArchiveListItemResponse
-    {
-        return new ArchiveListItemResponse(
-            $summary->id,
-            $summary->url,
-            $summary->title,
-            $summary->excerpt,
-            $summary->siteName,
-            $summary->archived,
         );
     }
 

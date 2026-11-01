@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Yumo\Eleanor\Api\Response;
 
 use Symfony\Component\DependencyInjection\Attribute\Exclude;
+use Yumo\Eleanor\Archive\ArchiveSummary;
 
 /**
  * JSON document of one archive page, including the path of the next page when one exists.
@@ -15,7 +16,7 @@ final readonly class ArchiveListResponse
     /**
      * Creates the list document.
      *
-     * @param list<ArchiveListItemResponse> $items
+     * @param list<ArchiveSummary> $items
      */
     public function __construct(
         /** The applied sort token. */

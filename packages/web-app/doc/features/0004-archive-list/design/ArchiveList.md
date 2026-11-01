@@ -1,6 +1,6 @@
 # Archive list
 
-Module design for YUM-9, one page of an owner's archives. The behavior is [archive-list.md](../specs/archive-list.md) stories 1–35 and 52–63 for the list route. [adr/0010](../../../adr/0010-archive-list-is-a-page.md) is the page. [adr/0011](../../../adr/0011-archive-id-is-public.md) is the id already on the summary. This design adds no glossary term and no schema change.
+Module design for YUM-9, one page of an owner's archives. The behavior is [archive-list.md](../specs/archive-list.md) stories 1–34 and 51–62 for the list route. [adr/0010](../../../adr/0010-archive-list-is-a-page.md) is the page. [adr/0011](../../../adr/0011-archive-id-is-public.md) is the id already on the summary. This design adds no glossary term and no schema change.
 
 YUM-8 has already put `?int $id` on `Archive` and `int $id` on `ArchiveSummary`. This design adds the insert time beside that id. [ArchiveId.md](ArchiveId.md) records that follow-up.
 
@@ -10,7 +10,7 @@ A client lists one owner's archives, one page at a time, without the purified HT
 
 ## Goals
 
-`GET /api/archives` answers 200 `application/json`. An omitted parameter means `sort=archived`, `dir=desc`, `page=1`, and `size=10`. The body repeats those applied values and adds `items`, `total`, and `next`. Each element is `id`, `url`, `title`, `excerpt`, `site`, and `archived`. `excerpt` and `site` are null when the page had none. `archived` is the stored UTC insert time. `total` is the number of archives. `size` repeats the requested size, including on a short last page. `next` is the path of the following page, or null when this page is the last or past the last.
+`GET /api/archives` answers 200 `application/json`. An omitted parameter means `sort=archived`, `dir=desc`, `page=1`, and `size=10`. The body repeats those applied values and adds `items`, `total`, and `next`. Each element is one summary, in property order: `url`, `title`, `excerpt`, `siteName`, `id`, and `archived`. `excerpt` and `siteName` are null when the page had none. `archived` is the stored UTC insert time. `total` is the number of archives. `size` repeats the requested size, including on a short last page. `next` is the path of the following page, or null when this page is the last or past the last.
 
 ## Non-goals
 
@@ -22,7 +22,7 @@ A domain type that imports the HTTP DTO or the router. `Reply` building the next
 
 ## Constraints
 
-The functional spec and the two ADRs stay as they are. `adr/0010` and `adr/0011` do not change: the JSON contract already names `archived` and the public id. The list reads the archive row and does not read `archive_body`. A missing database file is an empty page, total 0, `next` null. Only the authenticated owner's store is read. A 400 does not write an error line. The existing `Reply` path serializes the body, including `JSON_UNESCAPED_SLASHES` and `JSON_UNESCAPED_UNICODE`.
+`adr/0010` names `siteName` in the summary's property order. `adr/0011` does not change: the JSON contract already names `archived` and the public id. The list reads the archive row and does not read `archive_body`. A missing database file is an empty page, total 0, `next` null. Only the authenticated owner's store is read. A 400 does not write an error line. The existing `Reply` path serializes the body, including `JSON_UNESCAPED_SLASHES` and `JSON_UNESCAPED_UNICODE`.
 
 The maximum `size` is the parameter `eleanor.archive_page_max_size` in `services.yaml`, starting at 100. The container passes it to `ArchivePageQueryFactory`. A test replaces that parameter. It is not an environment variable: the bearer secret is the value that comes from the environment, and this cap is operator configuration like `eleanor.data_dir`.
 
@@ -55,7 +55,7 @@ An integer string is a base-10 digit string with no sign, no decimal point, no l
 
 `ArchivePage` is the use-case result: the applied `sort`, `dir`, `page`, and `size`, the items, and `total`. It has no `next`.
 
-`ArchiveListItemResponse` is one JSON element: `int $id`, `string $url`, `string $title`, `?string $excerpt`, `?string $site`, `string $archived`. `site` copies `siteName`. The constructor order is that field order.
+`ArchiveListResponse` items are the `ArchiveSummary` values on the page. The serializer writes each public property under its own name, in constructor order.
 
 `ArchiveListResponse` is the JSON document: `string $sort`, `string $dir`, `int $page`, `int $size`, `list $items`, `int $total`, `?string $next`. The constructor order is that field order. `sort` and `dir` are the tokens `archived`, `asc`, and `desc`.
 

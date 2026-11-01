@@ -8,7 +8,6 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Routing\RequestContext;
 use Yumo\Eleanor\Api\Response\ArchiveListDocuments;
-use Yumo\Eleanor\Api\Response\ArchiveListItemResponse;
 use Yumo\Eleanor\Api\Response\ArchiveListResponse;
 use Yumo\Eleanor\Archive\ArchiveDirection;
 use Yumo\Eleanor\Archive\ArchivePage;
@@ -16,7 +15,7 @@ use Yumo\Eleanor\Archive\ArchiveSort;
 use Yumo\Eleanor\Archive\ArchiveSummary;
 
 /**
- * Proves that the list document copies each summary and adds next only when another page exists.
+ * Proves that the list document keeps each summary and adds next only when another page exists.
  */
 final class ArchiveListDocumentsTest extends TestCase
 {
@@ -46,7 +45,7 @@ final class ArchiveListDocumentsTest extends TestCase
             'desc',
             1,
             10,
-            [new ArchiveListItemResponse(17, 'https://example.com/a', 'Title', 'Excerpt', 'Example', '2026-11-01T10:52:00Z')],
+            [new ArchiveSummary('https://example.com/a', 'Title', 'Excerpt', 'Example', 17, '2026-11-01T10:52:00Z')],
             11,
             '/api/archives?sort=archived&dir=desc&page=2&size=10',
         ), $response);
@@ -84,10 +83,7 @@ final class ArchiveListDocumentsTest extends TestCase
 
         $response = new ArchiveListDocuments($urls)->response($page);
 
-        self::assertEquals(
-            new ArchiveListItemResponse(4, 'https://example.com/a', 'Title', null, null, '2026-11-01T10:52:00Z'),
-            $response->items[0],
-        );
+        self::assertSame($page->items[0], $response->items[0]);
     }
 }
 

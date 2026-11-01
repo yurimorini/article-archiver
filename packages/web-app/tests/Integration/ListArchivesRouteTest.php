@@ -51,10 +51,14 @@ final class ListArchivesRouteTest extends WebTestCase
         self::assertSame('https://example.com/a', $item['url']);
         self::assertSame('Title', $item['title']);
         self::assertNull($item['excerpt']);
-        self::assertNull($item['site']);
+        self::assertNull($item['siteName']);
+        self::assertSame(
+            ['url', 'title', 'excerpt', 'siteName', 'id', 'archived'],
+            array_keys($item),
+        );
         self::assertMatchesRegularExpression('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/', $item['archived']);
         self::assertArrayNotHasKey('html', $item);
-        self::assertStringContainsString('"excerpt":null,"site":null', $this->responseBody($client));
+        self::assertStringContainsString('"excerpt":null,"siteName":null', $this->responseBody($client));
     }
 
     public function test_eleven_archives_link_the_next_page_and_stop_after_it(): void
@@ -200,8 +204,8 @@ final class ListArchivesRouteTest extends WebTestCase
         self::assertSame($title, $item['title']);
         self::assertSame('https://example.com/a/b', $item['url']);
         self::assertNull($item['excerpt']);
-        self::assertNull($item['site']);
-        self::assertStringContainsString('"excerpt":null,"site":null', $raw);
+        self::assertNull($item['siteName']);
+        self::assertStringContainsString('"excerpt":null,"siteName":null', $raw);
         self::assertStringContainsString('Say \\"Café\\"', $raw);
         self::assertStringContainsString('https://example.com/a/b', $raw);
         self::assertStringContainsString('Café', $raw);
