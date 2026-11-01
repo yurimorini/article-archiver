@@ -1,7 +1,8 @@
 ---
-description: Core coding standards — language, architecture, conventions, agent behavior
+
+## description: Core coding standards — language, architecture, conventions, agent behavior
+
 alwaysApply: true
----
 
 # Project foundation
 
@@ -14,9 +15,13 @@ alwaysApply: true
 
 - Prefer simple over complex
 - Prefer readable over compact
+- Keep the implementation small, sharp, easy to understand. Try to write elegant code in a state of grace. Don't settle for the first thing that comes to mind, try to find the most minimal and better working design. Don't introduce slop: very fragile code that just patches specific cases, dead code, useless code and code ways more complicated of how it should be.
 
 ## Design priorities
 
+- Apply SOLID principles.
+- Prefer simplicity over compactness.
+- Prefer readable code and an clean architecture.
 - Favor **simplicity and maintainability** over cleverness.
 - Prefer **small modules with a clear, bounded scope** over large grab-bags.
 - Apply **single responsibility**: modules, classes, and functions should each have one job; avoid overlapping responsibilities across units.
@@ -34,7 +39,7 @@ alwaysApply: true
 - Do not open a folder to sort files by kind (entity, interface, service). Domain, application, and adapter in the design priorities above are responsibilities, not directory names.
 - A layout chosen for one slice is not a template for the next slice. The next slice applies this rule to its own classes.
 
-## Coding principles 
+## Coding principles
 
 - Apply SOLID principles
 - Separate business logic from presentation and I/O
@@ -46,16 +51,14 @@ alwaysApply: true
 ## Working with the agent
 
 - When requirements, scope, or trade-offs are **ambiguous**, **ask** rather than guess. Offer sensible defaults only after stating assumptions.
-- In grill or brainstorming, a closed spec stays binding until you and the user revise it. When that choice would split this design across two layouts, or would block a simpler structure you can name, stop. Name the spec path, the locked choice, and one alternative. Ask: "Spec <path> locks <choice>. Alternative: <alternative>. Revise that spec?" Edit the spec only after the user says yes.
+- In grill or brainstorming, a closed spec stays binding until you and the user revise it. When that choice would split this design across two layouts, or would block a simpler structure you can name, stop. Name the spec path, the locked choice, and one alternative. Ask: "Spec  locks . Alternative: . Revise that spec?" Edit the spec only after the user says yes.
 - **Use tools** to inspect the codebase, configuration, and tests before changing behavior; do not rely on memory alone.
 - When behavior or public surfaces change, **update the relevant documentation** in the same change when it exists (README, inline docs users rely on).
 
 Before designing or building a feature, pick one interview and name it:
 
 - Terms are fuzzy, or a hard-to-reverse decision is still open: run `grill-with-docs` (`grilling` + `domain-modeling`). Stop when the frontier is empty and the user confirms a shared understanding. Do not write a spec in that session. 
-
 - The decisions are settled enough to design: run `brainstorming`. Classify spike, bounded, or architectural, ask one question at a time, and stop at that path's approval gate.
-
 - Both apply: grill first, then brainstorm from the shared understanding.
 
 Do not start `brainstorming` while a grill frontier is still open. When grilling, ask one question at a time.
@@ -66,7 +69,9 @@ Do not start `brainstorming` while a grill frontier is still open. When grilling
 - Use English for all code and documentation
 - Add comments only where intent is non-obvious; avoid narrating what the code already says
 - Use standard formatting (Prettier / project formatter)
-
+- Comment important inference code where the model mechanics, cache lifetime, memory policy, or API orchestration are not obvious from the local code.
+- Prefer comments beside the implementation over separate design documents.
+- Keep comments instructive and compact: explain why a shape, ordering, cache boundary, or memory choice exists.
 
 ## Review Checklist
 

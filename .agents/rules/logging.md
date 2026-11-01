@@ -1,8 +1,8 @@
 ---
-description: A use case logs the outcome of its decision, not the step it is about to take
+
+## description: A use case logs the outcome of its decision, not the step it is about to take
 globs: packages/**/src/**/*.php
 alwaysApply: false
----
 
 # Logging
 
