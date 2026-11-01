@@ -16,6 +16,7 @@ use Symfony\Component\Serializer\Exception\NotEncodableValueException;
 use Yumo\Eleanor\Api\Error\ErrorTranslator;
 use Yumo\Eleanor\Archive\ArchiveException;
 use Yumo\Eleanor\Archive\ArchiveFailure;
+use Yumo\Eleanor\Archive\InvalidArchiveQuery;
 
 /**
  * Proves that every throwable becomes one status, one stable code, and one fixed message.
@@ -171,6 +172,15 @@ final class ErrorTranslatorTest extends TestCase
             'unexpected',
             'Something went wrong on the server.',
         ];
+    }
+
+    public function test_translates_invalid_archive_query(): void
+    {
+        $reply = new ErrorTranslator()->translate(new InvalidArchiveQuery());
+
+        self::assertSame(400, $reply->status);
+        self::assertSame('invalid_query', $reply->body->code);
+        self::assertSame('A parameter has an invalid value.', $reply->body->message);
     }
 
     #[DataProvider('translations')]

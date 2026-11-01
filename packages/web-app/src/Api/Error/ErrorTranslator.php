@@ -18,6 +18,7 @@ use Yumo\Eleanor\Api\Response\ErrorResponse;
 use Yumo\Eleanor\Api\Response\Reply;
 use Yumo\Eleanor\Archive\ArchiveException;
 use Yumo\Eleanor\Archive\ArchiveFailure;
+use Yumo\Eleanor\Archive\InvalidArchiveQuery;
 
 /**
  * Turns any throwable into the error reply a client sees.
@@ -135,6 +136,7 @@ final class ErrorTranslator
             $error instanceof NotFoundHttpException => RequestFailure::NotFound,
             $error instanceof MethodNotAllowedHttpException => RequestFailure::MethodNotAllowed,
             $error instanceof UnsupportedMediaTypeHttpException => RequestFailure::UnsupportedMediaType,
+            $error instanceof InvalidArchiveQuery => RequestFailure::InvalidQuery,
             $error instanceof HttpExceptionInterface && $error->getStatusCode() === 400 => $this->badRequest($error),
             default => null,
         };
