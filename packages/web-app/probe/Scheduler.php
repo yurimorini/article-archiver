@@ -23,15 +23,25 @@ final class Scheduler
 
     private bool $failed = false;
 
+    /** @var \Closure(): list<string> */
+    private readonly \Closure $logLines;
+
     /**
-     * Stores the job seam, the run directory, the HTTP origin, and the article URL.
+     * Stores the job seam, the run directory, the HTTP origin, the article URL, and the dev-log reader.
+     *
+     * `$logLines` returns raw log lines. This scheduler passes them to `LogTail` when a response has a request id.
+     * An omitted reader is the empty list. A closure is not a legal parameter default, so `null` stands in for that reader.
+     *
+     * @param (\Closure(): list<string>)|null $logLines
      */
     public function __construct(
         private readonly Io $io,
         private readonly Record $record,
         private readonly string $baseUrl,
         private readonly string $archiveUrl,
+        ?\Closure $logLines = null,
     ) {
+        $this->logLines = $logLines ?? static fn (): array => [];
     }
 
     /**
@@ -245,7 +255,7 @@ final class Scheduler
 
         if ($job->kind === 'http') {
             $step['request'] = $this->httpRequest($name, $job);
-            $step['log'] = [];
+            $step['log'] = $this->httpLog($settled);
             if ($settled->error === null) {
                 $step['response'] = [
                     'status' => $settled->status,
@@ -268,6 +278,35 @@ final class Scheduler
         }
 
         $this->record->writeStep($position + 1, $name, $step);
+    }
+
+    /**
+     * Returns the dev-log objects for the response request id.
+     *
+     * A response without `x-request-id` keeps an empty log.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function httpLog(Settled $settled): array
+    {
+        $requestId = $settled->headers['x-request-id'] ?? null;
+        if (!is_string($requestId) || $requestId === '') {
+            return [];
+        }
+
+        $lines = ($this->logLines)();
+        if (!is_array($lines)) {
+            return [];
+        }
+
+        $raw = [];
+        foreach ($lines as $line) {
+            if (is_string($line)) {
+                $raw[] = $line;
+            }
+        }
+
+        return LogTail::forRequest($raw, $requestId);
     }
 
     /**
