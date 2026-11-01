@@ -15,11 +15,11 @@ Every controller that works on one owner's archives needs the same two steps: re
 The resolver lives in `Yumo\Eleanor\Api\Resolver`.
 
 - `OwnerScopedServiceResolver`: final class implementing `Symfony\Component\HttpKernel\Controller\ValueResolverInterface`.
-  - The constructor is `(OwnerProvider $owners, ArchiveServiceFactory $archives, ArchiveListServiceFactory $lists)`.
-  - `resolve(Request $request, ArgumentMetadata $argument): array` returns `list<ArchiveService|ArchiveListService>`. For `ArchiveService::class` it returns `[$this->archives->create($this->owners->owner())]`. For `ArchiveListService::class` it returns `[$this->lists->create($this->owners->owner())]`. Any other type returns an empty array.
+  - The constructor is `(OwnerProvider $owners, ArchiveServiceFactory $archives, ArchiveReadServiceFactory $lists)`.
+  - `resolve(Request $request, ArgumentMetadata $argument): array` returns `list<ArchiveService|ArchiveReadService>`. For `ArchiveService::class` it returns `[$this->archives->create($this->owners->owner())]`. For `ArchiveReadService::class` it returns `[$this->lists->create($this->owners->owner())]`. Any other type returns an empty array.
   - `owner()` runs only on a match.
   - It does not read the request.
-  - It stays global, not targeted. `ArchiveService` and `ArchiveListService` both stay `#[Exclude]`, so `ServiceValueResolver` cannot resolve them and no other resolver competes for those types. No attribute is needed on the argument.
+  - It stays global, not targeted. `ArchiveService` and `ArchiveReadService` both stay `#[Exclude]`, so `ServiceValueResolver` cannot resolve them and no other resolver competes for those types. No attribute is needed on the argument.
   - A later owner-scoped service adds one constructor argument and one `match` arm.
 
 `CreateArchiveController`:
