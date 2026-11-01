@@ -8,4 +8,4 @@ A private probe runs the real Eleanor server, imports a random draw of at most 1
 
 ## Current
 
-The behavior is [probe.md](specs/probe.md). The module is [Probe](design/Probe.md). The plan is [2026-11-01-probe.md](plans/2026-11-01-probe.md). No ticket yet. The behavior and the module were accepted on 2026-11-01. The plan is the current review.
+The behavior is [probe.md](specs/probe.md). The module is [Probe](design/Probe.md). The plan is [2026-11-01-probe.md](plans/2026-11-01-probe.md). The ticket is [YUM-11](https://linear.app/yurimorini/issue/YUM-11/probe-the-live-eleanor-server). The behavior and the module were accepted on 2026-11-01. The plan is the current review.
