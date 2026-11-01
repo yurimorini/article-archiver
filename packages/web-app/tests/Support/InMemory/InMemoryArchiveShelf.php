@@ -98,6 +98,43 @@ final class InMemoryArchiveShelf
     }
 
     /**
+     * Returns the light fields of `$owner` stored for `$id`, or null.
+     */
+    public function findSummaryById(Owner $owner, int $id): ?ArchiveSummary
+    {
+        $archive = $this->findById($owner, $id);
+        if ($archive === null) {
+            return null;
+        }
+
+        return ArchiveSummary::fromArchive($archive);
+    }
+
+    /**
+     * Returns the archive of `$owner` stored for `$id`, or null.
+     */
+    public function findById(Owner $owner, int $id): ?Archive
+    {
+        foreach ($this->archives[$owner->email] ?? [] as $archive) {
+            if ($archive->id === $id) {
+                return $archive;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Returns the HTML of `$owner` stored for `$id`, or null.
+     *
+     * Empty HTML is an empty string.
+     */
+    public function findHtmlById(Owner $owner, int $id): ?string
+    {
+        return $this->findById($owner, $id)?->html;
+    }
+
+    /**
      * Stores `$archive` for `$owner` under the archive's URL and returns the stored archive.
      *
      * The first archive for an owner gets id 1. A URL that is already stored keeps its id and its insert time.

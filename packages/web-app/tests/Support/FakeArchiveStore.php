@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Yumo\Eleanor\Tests\Support;
 
 use Yumo\Eleanor\Archive\Archive;
+use Yumo\Eleanor\Archive\ArchiveId;
 use Yumo\Eleanor\Archive\ArchivePageQuery;
 use Yumo\Eleanor\Archive\ArchivePageSlice;
 use Yumo\Eleanor\Archive\ArchiveStore;
@@ -16,6 +17,7 @@ use Yumo\Eleanor\Archive\UrlPointer;
  *
  * `findSummary` appends `find` to the shared log and `save` appends `save`. `find` is for the test to read
  * what was stored, so it leaves no trace. `findPage` returns `page` and leaves no trace.
+ * `findById`, `findSummaryById`, and `findHtmlById` read the stored rows and leave no trace.
  */
 final class FakeArchiveStore implements ArchiveStore
 {
@@ -74,6 +76,32 @@ final class FakeArchiveStore implements ArchiveStore
     public function find(UrlPointer $url): ?Archive
     {
         return $this->archives[$url->toString()] ?? null;
+    }
+
+    public function findSummaryById(ArchiveId $id): ?ArchiveSummary
+    {
+        $archive = $this->findById($id);
+        if ($archive === null) {
+            return null;
+        }
+
+        return ArchiveSummary::fromArchive($archive);
+    }
+
+    public function findById(ArchiveId $id): ?Archive
+    {
+        foreach ($this->archives as $archive) {
+            if ($archive->id === $id->value) {
+                return $archive;
+            }
+        }
+
+        return null;
+    }
+
+    public function findHtmlById(ArchiveId $id): ?string
+    {
+        return $this->findById($id)?->html;
     }
 
     /**

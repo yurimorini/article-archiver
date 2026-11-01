@@ -4,7 +4,7 @@
 
 ## Goal
 
-A client lists one owner's archives and reads one archive, including the purified HTML. The list is `GET /api/archives`. The detail is `GET /api/archives/{id}`. `POST /api/archives` also returns the archive id.
+A client lists one owner's archives and reads one archive. The list is `GET /api/archives`. The detail is `GET /api/archives/{id}` as metadata, `GET /api/archives/{id}?includeContent=true` with the purified HTML, and `GET /api/archives/{id}.html` as the stored HTML with no template. `POST /api/archives` also returns the archive id.
 
 The list document is the document a later search will reuse. This feature does not add search.
 
@@ -32,6 +32,7 @@ The backlog note `list.md` is adopted here and removed. [adr/0010](../../adr/001
 | --- | --- |
 | YUM-8 | [Archive id](design/ArchiveId.md) ([plan](plans/2026-10-31-archive-id.md)) |
 | YUM-9 | [Archive list](design/ArchiveList.md) ([plan](plans/2026-11-01-archive-list.md)) |
+| YUM-10 | [Archive detail](design/ArchiveDetail.md) ([plan](plans/2026-11-01-archive-detail.md)) |
 
 ## Current
 

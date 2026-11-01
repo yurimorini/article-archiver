@@ -23,6 +23,7 @@ use Yumo\Eleanor\Api\Response\ReplyResponder;
 use Yumo\Eleanor\Archive\ArchiveException;
 use Yumo\Eleanor\Archive\ArchiveFailure;
 use Yumo\Eleanor\Archive\InvalidArchiveQuery;
+use Yumo\Eleanor\Archive\MissingArchive;
 use Yumo\Eleanor\EventSubscriber\TranslateApiException;
 use Yumo\Eleanor\Request\EnrichedRequest;
 
@@ -120,6 +121,22 @@ final class TranslateApiExceptionTest extends TestCase
         self::assertSame(400, $response->getStatusCode());
         self::assertSame(
             '{"code":"invalid_query","message":"A parameter has an invalid value."}',
+            $response->getContent(),
+        );
+        self::assertSame([], $this->handler->getRecords());
+    }
+
+    public function test_missing_archive_writes_no_error_line(): void
+    {
+        $event = $this->exceptionEvent('/api/archives/1', new MissingArchive());
+
+        $this->subscriber()->onException($event);
+
+        $response = $event->getResponse();
+        self::assertNotNull($response);
+        self::assertSame(404, $response->getStatusCode());
+        self::assertSame(
+            '{"code":"archive_not_found","message":"The archive does not exist."}',
             $response->getContent(),
         );
         self::assertSame([], $this->handler->getRecords());

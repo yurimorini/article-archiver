@@ -9,6 +9,7 @@ use PHPUnit\Framework\TestCase;
 use Yumo\Eleanor\Archive\Archive;
 use Yumo\Eleanor\Archive\ArchiveException;
 use Yumo\Eleanor\Archive\ArchiveFailure;
+use Yumo\Eleanor\Archive\ArchiveId;
 use Yumo\Eleanor\Archive\ArchivePageQuery;
 use Yumo\Eleanor\Archive\ArchivePageSlice;
 use Yumo\Eleanor\Archive\ArchiveStore;
@@ -65,6 +66,62 @@ final class ArchiveStoreContractTest extends TestCase
 
         self::assertNull($store->find(new UrlPointer(self::URL)));
         self::assertNull($store->findSummary(new UrlPointer(self::URL)));
+    }
+
+    #[DataProvider('storeKindProvider')]
+    public function test_unknown_id_is_absent(string $kind): void
+    {
+        $store = $this->factory($kind)->create(new Owner('ada@example.com'));
+        $id = ArchiveId::from('1');
+
+        self::assertNull($store->findSummaryById($id));
+        self::assertNull($store->findById($id));
+        self::assertNull($store->findHtmlById($id));
+    }
+
+    #[DataProvider('storeKindProvider')]
+    public function test_finds_one_archive_by_id(string $kind): void
+    {
+        $store = $this->factory($kind)->create(new Owner('ada@example.com'));
+        $stored = $store->save(new Archive(self::URL, 'Title', 'Excerpt', 'Site', '<p>Body</p>', null, null));
+        $id = ArchiveId::from('1');
+
+        self::assertEquals(
+            new ArchiveSummary(self::URL, 'Title', 'Excerpt', 'Site', 1, $this->insertTime($stored)),
+            $store->findSummaryById($id),
+        );
+        self::assertEquals(
+            new Archive(self::URL, 'Title', 'Excerpt', 'Site', '<p>Body</p>', 1, $this->insertTime($stored)),
+            $store->findById($id),
+        );
+        self::assertSame('<p>Body</p>', $store->findHtmlById($id));
+    }
+
+    #[DataProvider('storeKindProvider')]
+    public function test_empty_html_is_stored_text(string $kind): void
+    {
+        $store = $this->factory($kind)->create(new Owner('ada@example.com'));
+        $stored = $store->save(new Archive(self::URL, 'Title', null, null, '', null, null));
+        $id = ArchiveId::from('1');
+        $found = $store->findById($id);
+
+        self::assertInstanceOf(Archive::class, $found);
+        self::assertSame('', $found->html);
+        self::assertSame(1, $found->id);
+        self::assertSame($this->insertTime($stored), $found->archived);
+        self::assertSame('', $store->findHtmlById($id));
+    }
+
+    public function test_missing_file_id_is_absent(): void
+    {
+        $store = $this->factory('sqlite')->create(new Owner('ada@example.com'));
+        $id = ArchiveId::from('1');
+
+        self::assertNull($store->findSummaryById($id));
+        self::assertNull($store->findById($id));
+        self::assertNull($store->findHtmlById($id));
+
+        self::assertSame([], $this->databaseFiles());
     }
 
     #[DataProvider('storeKindProvider')]
